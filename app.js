@@ -1295,7 +1295,9 @@ function finishOnboarding() {
   state.hasCompletedOnboarding = true;
   state.saveSettings();
   sound.playSuccess();
-  confetti.burst();
+  if (typeof confetti !== 'undefined' && confetti && confetti.burst) {
+    confetti.burst();
+  }
   showToast('Welcome to Productive! 🚀');
   switchScreen('today');
   renderTodayScreen();
