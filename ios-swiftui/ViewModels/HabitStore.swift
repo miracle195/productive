@@ -112,7 +112,11 @@ public class HabitStore: ObservableObject {
             }
             
             saveHabits()
-            triggerHaptic(rec.isCompleted ? .success : .light)
+            if rec.isCompleted {
+                triggerHaptic(.success)
+            } else {
+                triggerHaptic(.light)
+            }
         }
     }
     
@@ -131,7 +135,11 @@ public class HabitStore: ObservableObject {
             }
             
             saveHabits()
-            triggerHaptic(isNowCompleted ? .success : .light)
+            if isNowCompleted {
+                triggerHaptic(.success)
+            } else {
+                triggerHaptic(.light)
+            }
         }
     }
     
@@ -150,7 +158,11 @@ public class HabitStore: ObservableObject {
             }
             
             saveHabits()
-            triggerHaptic(isNowCompleted ? .success : .light)
+            if isNowCompleted {
+                triggerHaptic(.success)
+            } else {
+                triggerHaptic(.light)
+            }
         }
     }
     
