@@ -6,7 +6,9 @@
 import SwiftUI
 
 public struct HabitDetailView: View {
+    @Environment(\.dismiss) var dismiss
     @EnvironmentObject var habitStore: HabitStore
+    @State private var showingDeleteAlert = false
     public let habit: Habit
     
     public var body: some View {
@@ -79,11 +81,33 @@ public struct HabitDetailView: View {
                     .background(LinearGradient(colors: [Color(hex: "#5700CB"), Color(hex: "#0062E4")], startPoint: .leading, endPoint: .trailing))
                     .cornerRadius(18)
                 }
+                
+                // Delete Habit Button
+                Button(role: .destructive) {
+                    showingDeleteAlert = true
+                } label: {
+                    HStack {
+                        Image(systemName: "trash")
+                        Text("Delete Habit")
+                    }
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(Color(hex: "#FF5A5F"))
+                }
+                .padding(.top, 8)
             }
             .padding(20)
         }
         .background(Color(hex: "#121524").ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
+        .alert("Delete Habit", isPresented: $showingDeleteAlert) {
+            Button("Delete", role: .destructive) {
+                habitStore.deleteHabit(id: habit.id)
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to delete \"\(habit.name)\"? All history and streak data for this habit will be removed.")
+        }
     }
 }
 

@@ -218,6 +218,39 @@ public struct HabitCardView: View {
                         }
                     }
                     .padding(.top, 2)
+                } else if habit.trackingType == .timer {
+                    HStack {
+                        HStack(spacing: 6) {
+                            Image(systemName: "timer")
+                                .font(.system(size: 13))
+                                .foregroundColor(Color(hex: "#FF7450"))
+                            Text("\(habit.targetDurationMinutes) mins target")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Button {
+                            habitStore.toggleHabit(id: habit.id, on: activeDateKey)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: isCompleted ? "checkmark.circle.fill" : "play.fill")
+                                    .font(.system(size: 11, weight: .bold))
+                                Text(isCompleted ? "Session Done 🎉" : "Start \(habit.targetDurationMinutes)m")
+                                    .font(.system(size: 12, weight: .bold))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(isCompleted ?
+                                        LinearGradient(colors: [Color(hex: "#0FC580"), Color(hex: "#00B4DB")], startPoint: .leading, endPoint: .trailing) :
+                                        LinearGradient(colors: [Color(hex: "#5700CB"), Color(hex: "#0062E4")], startPoint: .leading, endPoint: .trailing))
+                            .cornerRadius(10)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    .padding(.top, 2)
                 }
             }
             .padding(14)

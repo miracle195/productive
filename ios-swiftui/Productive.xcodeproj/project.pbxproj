@@ -17,6 +17,7 @@
 		A10000082C00000000000008 /* ChallengesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000082C00000000000008 /* ChallengesView.swift */; };
 		A10000092C00000000000009 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000092C00000000000009 /* SettingsView.swift */; };
 		A100000A2C0000000000000A /* DynamicIslandActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000A2C0000000000000A /* DynamicIslandActivity.swift */; };
+		A100000C2C0000000000000C /* PresetsData.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000C2C0000000000000C /* PresetsData.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +33,7 @@
 		B10000092C00000000000009 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/SettingsView.swift; sourceTree = "<group>"; };
 		B100000A2C0000000000000A /* DynamicIslandActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Widgets/DynamicIslandActivity.swift; sourceTree = "<group>"; };
 		B100000B2C0000000000000B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B100000C2C0000000000000C /* PresetsData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/PresetsData.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +60,7 @@
 				B10000082C00000000000008 /* ChallengesView.swift */,
 				B10000092C00000000000009 /* SettingsView.swift */,
 				B100000A2C0000000000000A /* DynamicIslandActivity.swift */,
+				B100000C2C0000000000000C /* PresetsData.swift */,
 				B100000B2C0000000000000B /* Info.plist */,
 				E10000022C00000000000002 /* Products */,
 			);
@@ -148,6 +151,7 @@
 				A10000082C00000000000008 /* ChallengesView.swift in Sources */,
 				A10000092C00000000000009 /* SettingsView.swift in Sources */,
 				A100000A2C0000000000000A /* DynamicIslandActivity.swift in Sources */,
+				A100000C2C0000000000000C /* PresetsData.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

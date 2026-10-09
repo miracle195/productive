@@ -24,11 +24,12 @@ jobs:
     - name: Generate Xcode Project and Build IPA
       run: |
         cd ios-swiftui
-        # Install xcodegen if project is not present
-        if [ ! -d "Productive.xcodeproj" ]; then
-          echo "Generating Xcode project with xcodegen..."
-          brew install xcodegen
+        # Regenerate Xcode project with xcodegen if available
+        if command -v xcodegen &> /dev/null; then
           xcodegen generate
+        elif command -v brew &> /dev/null; then
+          brew install xcodegen 2>/dev/null || true
+          xcodegen generate || true
         fi
 
         # Build the iOS Archive

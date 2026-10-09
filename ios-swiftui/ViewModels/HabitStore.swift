@@ -176,6 +176,7 @@ public class HabitStore: ObservableObject {
         unit: String = "ml",
         stepAmount: Double = 250,
         targetReps: Int = 3,
+        targetDurationMinutes: Int = 15,
         frequency: HabitFrequency = .daily,
         strictness: HabitStrictness = .strict,
         repeatSchedule: String = "Every day"
@@ -192,6 +193,7 @@ public class HabitStore: ObservableObject {
             stepAmount: stepAmount,
             targetReps: targetReps,
             currentReps: 0,
+            targetDurationMinutes: targetDurationMinutes,
             frequency: frequency,
             strictness: strictness,
             repeatSchedule: repeatSchedule,
