@@ -29,6 +29,8 @@ public struct HabitActivityAttributes: ActivityAttributes {
 }
 
 public struct ProductiveLiveActivityWidget: Widget {
+    public init() {}
+    
     public var body: some WidgetConfiguration {
         ActivityConfiguration(for: HabitActivityAttributes.self) { context in
             // Lock Screen presentation
