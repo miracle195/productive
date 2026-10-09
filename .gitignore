@@ -1,0 +1,23 @@
+# Build and temporary artifacts
+build/
+*.xcarchive
+*.ipa
+node_modules/
+.system_generated/
+
+# Decompiled android binaries
+*.dex
+resources.arsc
+*.properties
+*.bin
+*.proto
+META-INF/
+org/
+okhttp3/
+junit/
+kotlin/
+spidersense/
+pico/
+google/
+firebase/
+res/

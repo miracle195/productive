@@ -1,0 +1,194 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "undefined">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<style>
+html,
+body {
+	background: #333333;
+}
+.block__gdpr {
+    text-align:center;
+    display: none;
+    font-size:10px;
+}
+.block__gdpr a{
+    color: #fff;
+}
+p {
+	padding-bottom: 12px;
+}
+
+p.over .more {
+	display: none;
+}
+
+.more,
+.less {
+	color: #d8d8d8;
+}
+
+p.b .text {
+	display: none;
+}
+
+.hidden {
+	display: none;
+}
+
+.visible {
+	display: block;
+}
+
+.visible a {
+	text-decoration: underline;
+	color: #fff;
+	cursor: pointer;
+	margin-bottom: 5px;
+	display: block;
+}
+
+.top_bl {
+	overflow: hidden;
+	display: table;
+	padding: 11px 0 7px 0;
+	width: 299px;
+	max-width: 299px;
+	margin: 0 auto;
+	clear: both;
+}
+
+.top_bl .box {
+	text-align: center;
+	width: 74px;
+	max-width: 74px;
+	display: table-cell;
+	overflow: hidden;
+	font-size: 10px;
+	font-weight: normal;
+	font-family: SFUIDisplay-Bold, "SF UI Display Bold", SF-UI-Display-Bold, "SF UI Display-Bold", "SF UI Display", SFUIText-Bold, "SF UI Text Bold", SF-UI-Text-Bold, "SF UI Text-Bold", "SF UI Text", Helvetica, Arial, Sans-Serif;
+}
+
+.top_bl .box a {
+	display: block;
+	text-decoration: none;
+	padding: 0 2px;
+	color: #fff;
+}
+
+.top_bl .center {
+	border-left: 1px solid #464646;
+	border-right: 1px solid #464646;
+}
+
+.top_bl .box img {
+	display: block;
+	padding-bottom: 8px;
+	margin: 0 auto;
+}
+
+.top_bl .right_bord {
+	border-left: 1px solid #464646;
+}
+
+.svgback {
+	fill: #848486;
+}
+
+.svgimg {
+	width: 30px;
+	height: 30px;
+}
+
+.top_bl .box svg {
+	display: block;
+	padding-bottom: 8px;
+	margin: 0 auto;
+}
+</style>
+<script>
+	function hideblock(nbox){
+		var elem = document.getElementById("box"+nbox);
+			if (elem.className=="hidden"){
+						elem.className="visible";
+						document.getElementById("bottom").scrollIntoView(true);
+					}
+					else{
+						elem.className="hidden";
+						}
+		}
+</script>
+<div style="padding:0px 8px 0px 8px; font-size: 14px; margin: 0 auto; font-family: HelveticaNeue-Light, HelveticaNeue, Helvetica, Arial, Sans-Serif; color: #fff;">
+  <div class="top_bl">
+    <div class="box"><a href="market://details?id=com.apalon.to.do.list"><svg id="layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 76 76" class="svgimg">
+      <path class="svgback" d="M49.9 32.6l-7.5-.6-2.8-7.1c-.5-1.3-2.4-1.3-2.9 0l-3 7.1-7.5.6c-1.4.1-2 1.9-.9 2.8l5.8 4.9-1.8 7.5c-.3 1.4 1.2 2.5 2.4 1.8l6.5-4.1 6.5 4.1c1.2.8 2.8-.3 2.4-1.8l-1.8-7.5 5.8-4.9c.8-.9.2-2.8-1.2-2.8zM38 7C20.9 7 7 20.9 7 38s13.9 31 31 31 31-13.9 31-31S55.1 7 38 7zm0 56.8c-13 0-25.8-12.7-25.8-25.8 0-12.8 12.1-25.8 25.8-25.8 13.7 0 25.8 12.1 25.8 25.8 0 13.2-12.7 25.8-25.8 25.8z"></path>
+      </svg> Notez</a></div>
+    <div class="box center"><a href="mailto:productive-android@bendingspoons.com?subject=Productive%20Android"><svg id="layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 76 76" class="svgimg">
+      <path class="svgback" d="M3.8 61.7h13.6L4.5 48.9c-1.2-1.2-1.2-3.1 0-4.3l38-37.2c1.2-1.2 3.2-1.2 4.4 0l24 23.5c1.2 1.2 1.2 3.1 0 4.3L43.7 61.7h27.9c1.6 0 3 .9 3 2.5S73.3 67 71.7 67h-68C2.1 67 .8 65.7.8 64.2c0-1.6 1.4-2.5 3-2.5zm10.1-19.2L37 39.2 39.6 18 13.9 42.5zm51.9-9.4L45.2 12.8l-4 28.2c-.1.6-.4 1.1-.9 1.5-.4.4-1 .7-1.6.8L11.6 48l14 13.7h10.5l29.7-28.6z"></path>
+      </svg> Nous contacter</a></div>
+    <div class="box"><a href="https://www.apalon.com/privacy_policy.html"><svg xmlns="http://www.w3.org/2000/svg" class="svgimg" viewBox="0 0 71 71">
+      <g fill="none" fill-rule="evenodd">
+        <path class="svgback" fill-rule="nonzero" d="M53.9,7.2 L3.9,7.2 C2.6,7.2 0.3,9.6 0.3,10.9 L0.3,59.6 C0.3,60.9 2.5,64.2 3.7,64.2 L26.4,64.2 L26.4,68.4 C26.4,70.2 28.2,71.1 29.7,70 L34.4,66.3 L39.1,70 C40.6,71.1 42.2,70.2 42.2,68.4 L42.2,64.2 L53.9,64.2 C55.2,64.2 57.3,63 57.3,61.7 L57.3,10.8 C57.5,9.6 55.1,7.2 53.9,7.2 Z M38.2,63.3 L34.5,58.3 L34.5,60.4 L30.8,63.3 L30.8,51.8 C32,52.2 33.2,52.4 34.5,52.4 C35.8,52.4 37.1,52.2 38.2,51.8 L38.2,63.3 Z M34.5,47.9 C30.9,47.9 28.1,45.1 28.1,41.6 C28.1,38.1 31,35.3 34.5,35.3 C38,35.3 40.9,38.1 40.9,41.6 C40.9,45 38,47.9 34.5,47.9 Z M52,57.9 L42.4,57.9 L42.4,48.9 C44.1,47 45.5,44.3 45.5,41.6 C45.5,35.6 40.6,30.8 34.5,30.8 C28.4,30.8 23.5,35.7 23.5,41.6 C23.5,44.3 24.8,47 26.5,48.9 L26.5,57.9 L5.8,57.9 L5.8,12.7 L52,12.7 L52,57.9 Z M17.3,24.4 L40.5,24.4 C41.8,24.4 42.8,23.4 42.8,22.1 C42.8,20.8 41.8,19.8 40.5,19.8 L17.3,19.8 C16,19.8 15,20.8 15,22.1 C15,23.4 16,24.4 17.3,24.4 Z"/>
+        <path fill="#F00" d="M22.3181818,0 L56.6818182,0 C64.5895316,-1.47106941e-15 71,6.49187113 71,14.5 C71,22.5081289 64.5895316,29 56.6818182,29 L22.3181818,29 C14.4104684,29 8,22.5081289 8,14.5 C8,6.49187113 14.4104684,1.47106941e-15 22.3181818,0 Z"/>
+        <path fill="#FFF" d="M23.2495592,21.6272739 L20.1990666,21.6272739 L20.1990666,8.93057261 L22.8094881,8.93057261 L28.3003748,16.4462756 L28.4103925,16.4462756 L28.4103925,8.93057261 L31.4708867,8.93057261 L31.4708867,21.6272739 L28.8704668,21.6272739 L23.3695786,14.037158 L23.2495592,14.037158 L23.2495592,21.6272739 Z M43.3027972,19.1902514 L43.3027972,21.6272739 L34.1313163,21.6272739 L34.1313163,8.93057261 L43.3027972,8.93057261 L43.3027972,11.3675951 L37.4018444,11.3675951 L37.4018444,14.1115709 L42.9327374,14.1115709 L42.9327374,16.3625611 L37.4018444,16.3625611 L37.4018444,19.1902514 L43.3027972,19.1902514 Z M50.8640181,21.6272739 L47.7835207,21.6272739 L44.2829554,8.93057261 L47.7435142,8.93057261 L49.5238017,17.4415482 L49.6638243,17.4415482 L51.8941844,8.93057261 L54.5946205,8.93057261 L56.8249806,17.4415482 L56.9750048,17.4415482 L58.7352891,8.93057261 L62.1958478,8.93057261 L58.6952826,21.6272739 L55.6147852,21.6272739 L53.3044121,13.5627757 L53.1843928,13.5627757 L50.8640181,21.6272739 Z"/>
+      </g>
+      </svg> Politique de confidentialité</a></div>
+  </div>
+  <p><img alt="" src="fr.png" style="width: 100%;" /></p>
+  <p class="b" onclick="if(this.className=='b'){this.className='over'} else {this.className='b'};"><strong style="color:#fff; font-weight:normal;">Q : Comment fonctionne Productive ?</strong> <span class="more">plus...</span> <span class="text"><span class="less">moins...</span><br />
+    <strong style="color:#fff; font-weight:normal;">R :</strong> La productivité t'aide à acquérir des habitudes. Planifie tes journées, suis ce que tu as fait et ce que tu n'as pas fait chaque jour et célébre les bons résultats.<br />
+    Sur l'écran &laquo; Aujourd'hui &raquo;, tu peux voir les habitudes prévues pour aujourd'hui et la partie actuelle de la journée.<br /> 
+Balaye vers la droite pour marquer tes habitudes comme &laquo; faites &raquo;. Marque toutes les habitudes de la journée comme &laquo; faites &raquo; pour en faire une journée &laquo; parfaite &raquo;. L'accumulation de journées &laquo; parfaites &raquo; te motivera et te rapprochera d'une vie meilleure.</span></p>
+  <p class="b" onclick="if(this.className=='b'){this.className='over'} else {this.className='b'};"><strong style="color:#fff; font-weight:normal;">Q : Comment fonctionnent les séries ?</strong> <span class="more">plus...</span> <span class="text"><span class="less">moins...</span><br />
+    <strong style="color:#fff; font-weight:normal;">R :</strong> Chaque fois que tu marques une habitude comme étant &laquo; faite &raquo; sans l'ignorer, ta série pour cette habitude s'élève. Ignorer une habitude ne brisera pas ta série, mais ne l'augmentera pas non plus. Si tu ignores une habitude (c.-à-d. que tu ne la marques pas comme étant &laquo; faite &raquo; ou &laquo; ignorée &raquo;), cela brisera ta série.<br />
+Si une habitude est prévue pour le matin et le soir, tu dois la pratiquer tous les deux pour obtenir une augmentation de ta série.<br />
+Marque toutes les habitudes de la journée comme étant &laquo; faites &raquo;, obtiens une journée &laquo; parfaite &raquo; et regarde tes séries grandir dans les Statistiques.</span></p>
+  <p class="b" onclick="if(this.className=='b'){this.className='over'} else {this.className='b'};"><strong style="color:#fff; font-weight:normal;">Q : Quand faut-il ignorer une habitude ?</strong> <span class="more">plus...</span> <span class="text"><span class="less">moins...</span><br />
+    <strong style="color:#fff; font-weight:normal;">R :</strong> Tu ne devrais ignorer une habitude que pour une bonne raison, par exemple, tu ne peux pas tout abandonner pendant tes vacances. Le fait d'ignorer ne brise pas ta série, mais t'empêche d'obtenir une journée parfaite.<br />
+Si une habitude est prévue pour un jour particulier et que tu ne la marques pas comme &laquo; faite &raquo; ou &laquo; ignorée &raquo;, elle est automatiquement marquée comme &laquo; ignorée &raquo;. Les habitudes oubliées brisent la routine et donnent lieu à un message &laquo; en retard &raquo; la prochaine fois que l'habitude est prévue.<br />
+Il n'est pas nécessaire d'ignorer les habitudes hebdomadaires ou mensuelles les jours où tu ne dois pas les pratiquer.</span></p>
+
+
+  <p class="b" onclick="if(this.className=='b'){this.className='over'} else {this.className='b'};"><strong style="color:#fff; font-weight:normal;">Q : Suivre les mauvaises habitudes</strong> <span class="more">plus...</span> <span class="text"><span class="less">moins...</span><br />
+    <strong style="color:#fff; font-weight:normal;">R :</strong> Les mauvaises habitudes peuvent être suivies tout comme les bonnes habitudes.<br />
+Disons que tu veux limiter la malbouffe à deux jours par semaine. Il suffit d'ajouter une habitude &laquo; pas de malbouffe &raquo; cinq fois par semaine, puis de la marquer comme &laquo; faite &raquo; les jours où tu ne manges pas de malbouffe.</span></p>
+ 
+  <p class="b" onclick="if(this.className=='b'){this.className='over'} else {this.className='b'};"><strong style="color:#fff; font-weight:normal;">Q : Comment puis-je modifier les jours passés ?</strong> <span class="more">plus...</span> <span class="text"><span class="less">moins...</span><br />
+    <strong style="color:#fff; font-weight:normal;">R :</strong> Tu peux afficher les jours passés en tapant sur la date en haut de l'écran &laquo; Aujourd'hui &raquo;, utiliser le calendrier dans Statistiques ou détails sur les habitudes (en tapant sur une habitude).<br />
+Garde à l'esprit : tu ne peux modifier les habitudes qu'à partir du jour où elles ont été créées.</span></p>
+  
+  <p class="b" onclick="if(this.className=='b'){this.className='over'} else {this.className='b'};"><strong style="color:#fff; font-weight:normal;">Q : Comment fonctionnent les rappels ?</strong> <span class="more">plus...</span> <span class="text"><span class="less">moins...</span><br />
+    <strong style="color:#fff; font-weight:normal;">R :</strong> Tu peux définir des rappels généraux dans Menu-&gt;Rappels pour obtenir un plan pour chaque partie de la journée et un résumé à la fin de la journée.<br />
+Tu peux également ajouter des rappels chronométrés pour les habitudes individuelles. Ces rappels ne seront envoyés que les jours où l'habitude apparaît sur ta liste, et si tu ne l'as pas déjà marquée comme &laquo; faite &raquo; ou &laquo; ignorée &raquo;.</span></p>
+
+  <p><strong>PREMIUM</strong><br />
+    Productive Premium est un abonnement payant qui te donne accès à des habitudes illimitées.</p>
+  <p><strong>Fin de la période d'essai et renouvellement de l'abonnement</strong><br />
+ À la fin de la période d'essai, Google Play exécute automatiquement la facturation avec la carte de crédit que l'utilisateur a fournie lors de l'achat initial, au montant fixé pour l'abonnement complet, et continue à l'intervalle d'abonnement. Si nécessaire, tu peux résilier l'abonnement à tout moment pendant la période d'essai. Dans ce cas, l'abonnement reste actif jusqu'à la fin de la période d'essai, mais Google Play ne le renouvelle pas automatiquement ; à la fin de la période d'essai, l'abonnement expire et Google Play ne te facture rien.</p>
+
+  <p><strong>Annulation de l'abonnement</strong></p>
+  <p>Les abonnements à Google Play se renouvellent automatiquement à moins que tu ne te désinscrives. La désinstallation d'une application n'interrompt pas automatiquement ton abonnement. Tu peux consulter l'état de tous tes abonnements et les annuler si nécessaire en allant dans Google Play Store et en touchant Menu &gt; Abonnements. Tu peux également accéder à cette page directement par le lien <a href="https://play.google.com/store/account/subscriptions" style="color:#fff;">http://play.google.com/store/account/subscriptions</a> ou en utilisant un ordinateur pour visiter play.google.com et en cliquant sur &laquo; Mes abonnements &raquo; dans le menu à gauche.</p>
+  <p>Lorsque tu annules un abonnement, Google Play n'offre pas de remboursement pour le cycle de facturation en cours. Au lieu de cela, il permet à l'utilisateur d'avoir accès à l'abonnement annulé jusqu'à la fin du cycle de facturation en cours, moment auquel il met fin à l'abonnement.</p>
+  <p><strong>Désinstaller l'application</strong></p>
+  <p>Lorsque tu décides de désinstaller une application qui comprend des abonnements achetés, l'application Play Store t'informe des abonnements actifs. Si tu choisis de continuer la désinstallation, l'application sera supprimée mais les abonnements resteront actifs et la facturation récurrente continuera. Tu peux annuler les abonnements associés à tout moment dans l'écran &laquo; Mes applications et jeux &raquo; de l'application Play Store.</p>
+  <p class="hdr"><strong>Notifications</strong></p>
+  <p>Tu peux désactiver les notifications à tout moment dans Paramètres &gt; Notification &gt; Notifications &gt; Notifications de l'application. Appuie sur l'application Productive, puis appuie sur le bouton basculant pour bloquer les notifications push.</p>
+  <p class="hdr"><strong>Assistance</strong></p>
+  <p>Si tu as des questions ou des commentaires, n'hésite pas à nous contacter à <a href="mailto:productive-android@bendingspoons.com?subject=Productive%20Android" style="color: #fff; text-decoration: underline;">productive-android@bendingspoons.com</a>.</p>
+<div style="height:2px; border-top:1px solid #ccc; width:50%; margin:20px auto 0;opacity:0.2">&nbsp;</div>
+
+<p style="font-size:12px">Tout le contenu de cette application tel que texte, graphismes et images est la propri&eacute;t&eacute; de Apalon ou de ses fournisseurs de contenu et est prot&eacute;g&eacute; par les lois am&eacute;ricaines et internationales. Les logos et les noms sont des marques d&eacute;pos&eacute;es d&#39;Apalon, de ses affili&eacute;s et de ses partenaires.</p>
+
+<p id="bottom" style="font-size:10px; text-align:center;"><a href="https://www.apalon.com/terms_of_use.html" style="color:#fff;">EULA</a> | <a href="https://www.apalon.com/privacy_policy.html" style="color:#fff;">Politique de confidentialit&eacute;</a> | <a href="https://www.apalon.com/privacy_policy.html#4" style="color:#fff;">Choisir sa pub</a><br />
+<span class="block__gdpr"><a href="screen://gdpr.me">Personalize Your Ad Experience</a> </span> &copy; 2019 IAC Search &amp; Media Technologies Limited. Tous droits r&eacute;serv&eacute;s. La soci&eacute;t&eacute; de logiciel contient le code open source list&eacute; <a href="https://www.apalon.com/components/os/android/free/productive.html" style="color:#fff;">ici</a>.</p>
+</div>
+<script type="text/javascript">
+    function showGdpr(param){
+      var elem = document.getElementsByClassName('block__gdpr')[0];
+      elem.style.display="block";
+      var elemUrl = elem.querySelector('A');
+		if (param) elemUrl.setAttribute('href', param);
+    }
+  </script>
+</body>
+</html>

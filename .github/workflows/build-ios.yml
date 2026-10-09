@@ -1,0 +1,64 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14 # Apple Silicon M2 runner with Xcode 15+
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Xcode
+      uses: maxim-lobansky/setup-xcode@v1
+      with:
+        xcode-version: '15.4'
+
+    - name: Generate Xcode Project and Build IPA
+      run: |
+        cd ios-swiftui
+        # Install xcodegen if project is not present
+        if [ ! -d "Productive.xcodeproj" ]; then
+          echo "Generating Xcode project with xcodegen..."
+          brew install xcodegen
+          xcodegen generate
+        fi
+
+        # Build the iOS Archive
+        xcodebuild -project Productive.xcodeproj \
+                   -scheme Productive \
+                   -configuration Release \
+                   -destination 'generic/platform=iOS' \
+                   -archivePath build/Productive.xcarchive \
+                   CODE_SIGNING_ALLOWED=NO \
+                   archive
+
+        # Package into unsigned Payload/Productive.app IPA
+        mkdir -p build/Payload
+        cp -r build/Productive.xcarchive/Products/Applications/Productive.app build/Payload/
+        cd build
+        zip -r Productive.ipa Payload
+        echo "IPA successfully packaged at ios-swiftui/build/Productive.ipa"
+
+    - name: Upload IPA Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Productive-iOS-IPA
+        path: ios-swiftui/build/Productive.ipa
+        if-no-files-found: error
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      with:
+        tag_name: v2.4.0-ios
+        name: Productive v2.4.0 iOS (iPhone 15 Pro Ready)
+        files: ios-swiftui/build/Productive.ipa
+      continue-on-error: true

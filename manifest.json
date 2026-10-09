@@ -1,0 +1,22 @@
+{
+  "name": "Productive — Daily Habit Tracker",
+  "short_name": "Productive",
+  "description": "Daily Habit Tracker converted for iPhone 15 Pro",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#121524",
+  "theme_color": "#121524",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

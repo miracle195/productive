@@ -1,0 +1,279 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000012C00000000000001 /* ProductiveApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000012C00000000000001 /* ProductiveApp.swift */; };
+		A10000022C00000000000002 /* Habit.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000022C00000000000002 /* Habit.swift */; };
+		A10000032C00000000000003 /* HabitStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000032C00000000000003 /* HabitStore.swift */; };
+		A10000042C00000000000004 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000042C00000000000004 /* TodayView.swift */; };
+		A10000052C00000000000005 /* HabitCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000052C00000000000005 /* HabitCardView.swift */; };
+		A10000062C00000000000006 /* HabitDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000062C00000000000006 /* HabitDetailView.swift */; };
+		A10000072C00000000000007 /* AddHabitSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000072C00000000000007 /* AddHabitSheet.swift */; };
+		A10000082C00000000000008 /* ChallengesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000082C00000000000008 /* ChallengesView.swift */; };
+		A10000092C00000000000009 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000092C00000000000009 /* SettingsView.swift */; };
+		A100000A2C0000000000000A /* DynamicIslandActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000A2C0000000000000A /* DynamicIslandActivity.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		C10000002C00000000000001 /* Productive.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Productive.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000012C00000000000001 /* ProductiveApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductiveApp.swift; sourceTree = "<group>"; };
+		B10000022C00000000000002 /* Habit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/Habit.swift; sourceTree = "<group>"; };
+		B10000032C00000000000003 /* HabitStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModels/HabitStore.swift; sourceTree = "<group>"; };
+		B10000042C00000000000004 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/TodayView.swift; sourceTree = "<group>"; };
+		B10000052C00000000000005 /* HabitCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/HabitCardView.swift; sourceTree = "<group>"; };
+		B10000062C00000000000006 /* HabitDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/HabitDetailView.swift; sourceTree = "<group>"; };
+		B10000072C00000000000007 /* AddHabitSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/AddHabitSheet.swift; sourceTree = "<group>"; };
+		B10000082C00000000000008 /* ChallengesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ChallengesView.swift; sourceTree = "<group>"; };
+		B10000092C00000000000009 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/SettingsView.swift; sourceTree = "<group>"; };
+		B100000A2C0000000000000A /* DynamicIslandActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Widgets/DynamicIslandActivity.swift; sourceTree = "<group>"; };
+		B100000B2C0000000000000B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D10000012C00000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		E10000012C00000000000001 = {
+			isa = PBXGroup;
+			children = (
+				B10000012C00000000000001 /* ProductiveApp.swift */,
+				B10000022C00000000000002 /* Habit.swift */,
+				B10000032C00000000000003 /* HabitStore.swift */,
+				B10000042C00000000000004 /* TodayView.swift */,
+				B10000052C00000000000005 /* HabitCardView.swift */,
+				B10000062C00000000000006 /* HabitDetailView.swift */,
+				B10000072C00000000000007 /* AddHabitSheet.swift */,
+				B10000082C00000000000008 /* ChallengesView.swift */,
+				B10000092C00000000000009 /* SettingsView.swift */,
+				B100000A2C0000000000000A /* DynamicIslandActivity.swift */,
+				B100000B2C0000000000000B /* Info.plist */,
+				E10000022C00000000000002 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E10000022C00000000000002 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C10000002C00000000000001 /* Productive.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F10000012C00000000000001 /* Productive */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = G10000012C00000000000001 /* Build configuration list for PBXNativeTarget "Productive" */;
+			buildPhases = (
+				D10000022C00000000000002 /* Sources */,
+				D10000012C00000000000001 /* Frameworks */,
+				D10000032C00000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Productive;
+			productName = Productive;
+			productReference = C10000002C00000000000001 /* Productive.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		010000012C00000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					F10000012C00000000000001 = {
+						CreatedOnToolsVersion = 15.4;
+					};
+				};
+			};
+			buildConfigurationList = 010000022C00000000000002 /* Build configuration list for PBXProject "Productive" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = E10000012C00000000000001;
+			productRefGroup = E10000022C00000000000002 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F10000012C00000000000001 /* Productive */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D10000032C00000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D10000022C00000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000012C00000000000001 /* ProductiveApp.swift in Sources */,
+				A10000022C00000000000002 /* Habit.swift in Sources */,
+				A10000032C00000000000003 /* HabitStore.swift in Sources */,
+				A10000042C00000000000004 /* TodayView.swift in Sources */,
+				A10000052C00000000000005 /* HabitCardView.swift in Sources */,
+				A10000062C00000000000006 /* HabitDetailView.swift in Sources */,
+				A10000072C00000000000007 /* AddHabitSheet.swift in Sources */,
+				A10000082C00000000000008 /* ChallengesView.swift in Sources */,
+				A10000092C00000000000009 /* SettingsView.swift in Sources */,
+				A100000A2C0000000000000A /* DynamicIslandActivity.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		H10000012C00000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		H10000022C00000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		H10000032C00000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Manual;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.4.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.apalon.productive.tracker;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1";
+			};
+			name = Debug;
+		};
+		H10000042C00000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Manual;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.4.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.apalon.productive.tracker;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		010000022C00000000000002 /* Build configuration list for PBXProject "Productive" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				H10000012C00000000000001 /* Debug */,
+				H10000022C00000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		G10000012C00000000000001 /* Build configuration list for PBXNativeTarget "Productive" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				H10000032C00000000000003 /* Debug */,
+				H10000042C00000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 010000012C00000000000001 /* Project object */;
+}

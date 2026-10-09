@@ -1,0 +1,19 @@
+{
+  "should_show_consent": 0,
+  "viewability": 0,
+  "location": 0,
+  "fyber_app_id": "123abc",
+  "pub_native_app_token": "123abc",
+  "inter_config": {
+    "enabled": 1,
+    "phone_adunit": "e2cef987977445df8930405f346572z0",
+    "tablet_adunit": "36df455832c446eaa25c3a78746937z0",
+    "ads_shows_interval": 1000,
+    "ads_per_session": 0,
+    "cached": {
+      "phone_adunit": "5dae8cd2d0134b3891b2edd57e747z00",
+      "tablet_adunit": "2f63123ef604462da5bb0290ff3265z0",
+      "sessions_start_caching_delay": 100000
+    }
+  }
+}
