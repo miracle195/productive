@@ -132,11 +132,21 @@ const DEFAULT_HABITS = [
   }
 ];
 
+function getISODateKey(d = new Date()) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return yyyy + '-' + mm + '-' + dd;
+}
+
 class ProductiveState {
   constructor() {
+    this.todayKey = getISODateKey();
+    this.selectedDay = this.todayKey;
+    this.todayDay = this.todayKey;
     this.habits = this.loadHabits();
     this.activeScreen = 'today';
-    this.selectedHabitId = 1;
+    this.selectedHabitId = null;
     this.activeCategory = 1;
     this.soundEnabled = this.loadSetting('soundEnabled', true);
     this.islandExpanded = false;
@@ -144,8 +154,6 @@ class ProductiveState {
     this.finish = this.loadSetting('finish', 'natural');
     this.weekStartDay = this.loadSetting('weekStartDay', 'monday'); // 'monday' | 'sunday' | 'saturday'
     this.defaultStrictness = this.loadSetting('defaultStrictness', 'strict');
-    this.selectedDay = 24; // Today is Thursday 24
-    this.todayDay = 24;
     this.sheetTab = 'presets'; // 'presets' | 'custom'
     this.customTrackingMode = 'binary';
     this.activeTimerHabitId = null;
@@ -178,25 +186,25 @@ class ProductiveState {
 
   loadHabits() {
     try {
-      const stored = localStorage.getItem('productive_habits_v2');
+      const stored = localStorage.getItem('productive_habits_user_v1');
       if (stored) return JSON.parse(stored);
     } catch(e) {}
-    return JSON.parse(JSON.stringify(DEFAULT_HABITS));
+    // Clean initial timeline: do not pre load any habit, let user create them
+    return [];
   }
 
   saveHabits() {
     try {
-      localStorage.setItem('productive_habits_v2', JSON.stringify(this.habits));
+      localStorage.setItem('productive_habits_user_v1', JSON.stringify(this.habits));
     } catch(e) {}
   }
 
-
   isDayToday() {
-    return this.selectedDay === this.todayDay;
+    return this.selectedDay === this.todayKey;
   }
 
   isDayPast() {
-    return this.selectedDay < this.todayDay;
+    return this.selectedDay < this.todayKey;
   }
 
   getHabitStatusOnSelectedDay(habit) {
@@ -524,38 +532,43 @@ function updateLiveClock() {
 }
 
 function getWeekDaysConfig(startDay) {
-  if (startDay === 'sunday') {
-    return [
-      { name: 'S', day: 20 },
-      { name: 'M', day: 21 },
-      { name: 'T', day: 22 },
-      { name: 'W', day: 23 },
-      { name: 'T', day: 24 },
-      { name: 'F', day: 25 },
-      { name: 'S', day: 26 }
-    ];
-  } else if (startDay === 'saturday') {
-    return [
-      { name: 'S', day: 19 },
-      { name: 'S', day: 20 },
-      { name: 'M', day: 21 },
-      { name: 'T', day: 22 },
-      { name: 'W', day: 23 },
-      { name: 'T', day: 24 },
-      { name: 'F', day: 25 }
-    ];
-  } else {
-    // monday default
-    return [
-      { name: 'M', day: 21 },
-      { name: 'T', day: 22 },
-      { name: 'W', day: 23 },
-      { name: 'T', day: 24 },
-      { name: 'F', day: 25 },
-      { name: 'S', day: 26 },
-      { name: 'S', day: 27 }
-    ];
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0 is Sun, 1 is Mon, 6 is Sat
+  
+  let targetStart = 1; // default Monday
+  if (startDay === 'sunday') targetStart = 0;
+  else if (startDay === 'saturday') targetStart = 6;
+  
+  let diff = dayOfWeek - targetStart;
+  if (diff < 0) diff += 7;
+  
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - diff);
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  const dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const fullDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(startOfWeek);
+    d.setDate(startOfWeek.getDate() + i);
+    
+    const dateKey = getISODateKey(d);
+    const isToday = (dateKey === state.todayKey);
+    const isPast = (dateKey < state.todayKey);
+    
+    days.push({
+      name: dayLetters[d.getDay()],
+      day: d.getDate(),
+      dateKey: dateKey,
+      fullDateName: fullDays[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate(),
+      isToday: isToday,
+      isPast: isPast
+    });
   }
+  return days;
 }
 
 function renderWeekRibbon() {
@@ -564,12 +577,13 @@ function renderWeekRibbon() {
   const days = getWeekDaysConfig(state.weekStartDay);
   let html = '';
   days.forEach(d => {
-    const isCompleted = d.day < state.todayDay;
-    const isActive = d.day === state.selectedDay;
-    html += '<div class="day-pill ' + (isCompleted ? 'completed ' : '') + (isActive ? 'active' : '') + '" data-day="' + d.day + '" onclick="selectDay(' + d.day + ')">';
+    const isToday = d.isToday;
+    const isActive = d.dateKey === state.selectedDay;
+    const hasCompletions = state.habits.some(h => h.history && h.history[d.dateKey] && h.history[d.dateKey].done);
+    html += '<div class="day-pill ' + (isActive ? 'active ' : '') + (isToday ? 'today ' : '') + (hasCompletions ? 'completed ' : '') + '" data-datekey="' + d.dateKey + '" onclick="selectDay(\'' + d.dateKey + '\')">';
     html += '<span class="day-name">' + d.name + '</span>';
     html += '<span class="day-num">' + d.day + '</span>';
-    html += '<span class="day-dot"></span>';
+    html += '<span class="day-dot" style="' + (hasCompletions ? 'background: #0FC580; opacity: 1;' : '') + '"></span>';
     html += '</div>';
   });
   container.innerHTML = html;
@@ -579,13 +593,15 @@ function renderWeekRibbon() {
 function renderDateBanner() {
   const banner = document.getElementById('date-view-banner');
   if (!banner) return;
-  if (state.selectedDay === state.todayDay) {
+  if (state.isDayToday()) {
     banner.style.display = 'none';
   } else {
     banner.style.display = 'flex';
-    const dayNames = { 21: 'Monday, Oct 21', 22: 'Tuesday, Oct 22', 23: 'Wednesday, Oct 23', 25: 'Friday, Oct 25', 26: 'Saturday, Oct 26', 27: 'Sunday, Oct 27' };
-    const label = dayNames[state.selectedDay] || ('Day ' + state.selectedDay);
-    banner.innerHTML = '<span>🗓️ Viewing: ' + label + ' (' + (state.isDayPast() ? 'Past' : 'Future') + ')</span><button onclick="selectDay(24)">Today</button>';
+    const days = getWeekDaysConfig(state.weekStartDay);
+    const dayObj = days.find(d => d.dateKey === state.selectedDay);
+    const label = dayObj ? dayObj.fullDateName : state.selectedDay;
+    const isPast = state.isDayPast();
+    banner.innerHTML = '<span>🗓️ Viewing: ' + label + ' (' + (isPast ? 'Past Day' : 'Upcoming') + ')</span><button onclick="selectDay(\'' + state.todayKey + '\')">Back to Today</button>';
   }
 }
 
@@ -614,9 +630,10 @@ function renderTodayScreen() {
     gaugeVal.style.strokeDashoffset = offset;
   }
   if (gaugeText) gaugeText.textContent = rate + '%';
-  if (heroSubtitle) heroSubtitle.textContent = completed + ' of ' + total + ' completed ' + (state.isDayToday() ? 'today' : 'on selected date');
+  if (heroSubtitle) heroSubtitle.textContent = total > 0 ? (completed + ' of ' + total + ' completed ' + (state.isDayToday() ? 'today' : 'on selected date')) : 'No habits added yet';
   if (heroTitle) {
-    if (rate === 100) heroTitle.textContent = 'All goals done! 🎉';
+    if (total === 0) heroTitle.textContent = 'Ready to begin! ✨';
+    else if (rate === 100) heroTitle.textContent = 'All goals done! 🎉';
     else if (rate >= 60) heroTitle.textContent = 'Crushing your habits! 🔥';
     else if (rate > 0) heroTitle.textContent = 'Keep momentum going! 👏';
     else heroTitle.textContent = 'Build your daily streak! 💪';
@@ -624,6 +641,19 @@ function renderTodayScreen() {
 
   // Update Week Ribbon dynamically based on start day of the week
   renderWeekRibbon();
+
+  // If no habits exist, render clean-start empty timeline state
+  if (state.habits.length === 0) {
+    container.innerHTML = `
+      <div class="empty-timeline-card" style="text-align:center; padding: 36px 20px; background: var(--app-bg-card); border-radius: 24px; margin-top: 10px; border: 1px solid rgba(255,255,255,0.06);">
+        <div style="width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, rgba(87,0,203,0.2), rgba(0,98,228,0.2)); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 32px;">✨</div>
+        <h3 style="font-size: 20px; font-weight: 800; color: #FFFFFF; margin-bottom: 8px;">No Habits Yet</h3>
+        <p style="font-size: 13px; color: var(--app-text-muted); max-width: 280px; margin: 0 auto 20px; line-height: 1.5;">Your timeline is fresh! Choose from curated popular presets or build your custom routine.</p>
+        <button class="primary-btn" onclick="openAddHabitSheet()" style="padding: 12px 24px; font-size: 14px; font-weight: 700; border-radius: 14px; border: none; background: linear-gradient(135deg, #5700CB, #0062E4); color: #fff; cursor: pointer; box-shadow: 0 4px 14px rgba(87,0,203,0.4);">+ Add Your First Habit</button>
+      </div>
+    `;
+    return;
+  }
 
 
   const timeBuckets = [
@@ -694,7 +724,7 @@ function renderTodayScreen() {
 
       // Multi-Mode Body Sections
       if (habit.type === 'amount') {
-        const dayAmount = (habit.history[state.selectedDay] && habit.history[state.selectedDay].amount) || (state.isDayToday() ? habit.currentAmount : 0);
+        const dayAmount = (habit.history[state.selectedDay] && habit.history[state.selectedDay].amount !== undefined) ? habit.history[state.selectedDay].amount : (state.isDayToday() ? (habit.currentAmount || 0) : 0);
         const percent = Math.min(100, Math.round((dayAmount / habit.targetAmount) * 100));
         html += '<div class="amount-progress-section">';
         html += '<div class="amount-text-row">';
@@ -711,7 +741,7 @@ function renderTodayScreen() {
         }
         html += '</div>'; // amount-progress-section
       } else if (habit.type === 'reps') {
-        const dayReps = (habit.history[state.selectedDay] && habit.history[state.selectedDay].reps) || (state.isDayToday() ? habit.currentReps : 0);
+        const dayReps = (habit.history[state.selectedDay] && habit.history[state.selectedDay].reps !== undefined) ? habit.history[state.selectedDay].reps : (state.isDayToday() ? (habit.currentReps || 0) : 0);
         html += '<div class="reps-progress-section">';
         html += '<div class="reps-dots-box">';
         for (let r = 1; r <= habit.targetReps; r++) {

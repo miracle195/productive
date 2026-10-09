@@ -1,7 +1,8 @@
 //
 //  HabitStore.swift
 //  Productive State Management & Persistence
-//  Updated with Multi-Mode Amount, Reps, Recurrence & Strictness
+//  Updated with Dynamic Real-World Calendar Dates, Per-Date History Isolation,
+//  and Clean Start (No Pre-Loaded Habits)
 //
 
 import SwiftUI
@@ -14,8 +15,37 @@ public class HabitStore: ObservableObject {
     @AppStorage("productive_default_strictness") public var defaultStrictnessRaw: String = HabitStrictness.strict.rawValue
     @AppStorage("productive_haptics_enabled") public var soundHapticsEnabled: Bool = true
     
+    private let storageKey = "productive_habits_store_v2"
+    
+    public static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+    
+    public var todayKey: String {
+        Self.dateFormatter.string(from: Date())
+    }
+    
     public init() {
-        loadDefaultHabits()
+        loadSavedHabits()
+    }
+    
+    public func loadSavedHabits() {
+        if let data = UserDefaults.standard.data(forKey: storageKey),
+           let saved = try? JSONDecoder().decode([Habit].self, from: data) {
+            self.habits = saved
+        } else {
+            // Clean initial state: do not preload any habits, let the user create them
+            self.habits = []
+        }
+    }
+    
+    public func saveHabits() {
+        if let encoded = try? JSONEncoder().encode(habits) {
+            UserDefaults.standard.set(encoded, forKey: storageKey)
+        }
     }
     
     public func exportJSON() -> String? {
@@ -32,6 +62,7 @@ public class HabitStore: ObservableObject {
         decoder.dateDecodingStrategy = .iso8601
         if let imported = try? decoder.decode([Habit].self, from: data) {
             self.habits = imported
+            saveHabits()
             triggerHaptic(.success)
             return true
         }
@@ -39,7 +70,8 @@ public class HabitStore: ObservableObject {
     }
     
     public func resetDefaults() {
-        loadDefaultHabits()
+        self.habits = []
+        UserDefaults.standard.removeObject(forKey: storageKey)
         weekStartDay = "Monday"
         appTheme = "Dark"
         defaultStrictnessRaw = HabitStrictness.strict.rawValue
@@ -47,70 +79,78 @@ public class HabitStore: ObservableObject {
         triggerHaptic(.medium)
     }
     
-    public var completionPercentage: Int {
+    public func completionPercentage(on dateKey: String) -> Int {
         guard !habits.isEmpty else { return 0 }
-        let completed = habits.filter { $0.isCompleted }.count
+        let completed = habits.filter { $0.isCompleted(on: dateKey) }.count
         return Int((Double(completed) / Double(habits.count)) * 100)
     }
     
-    public func toggleHabit(id: UUID) {
+    public var completionPercentage: Int {
+        return completionPercentage(on: todayKey)
+    }
+    
+    public func toggleHabit(id: UUID, on dateKey: String? = nil) {
+        let key = dateKey ?? todayKey
         if let index = habits.firstIndex(where: { $0.id == id }) {
-            habits[index].isCompleted.toggle()
-            if habits[index].isCompleted {
-                habits[index].streak += 1
-                habits[index].totalLogs += 1
-                if habits[index].streak > habits[index].bestStreak {
-                    habits[index].bestStreak = habits[index].streak
+            var rec = habits[index].history[key] ?? HabitDayRecord()
+            rec.isCompleted.toggle()
+            habits[index].history[key] = rec
+            
+            if key == todayKey {
+                habits[index].isCompleted = rec.isCompleted
+                if rec.isCompleted {
+                    habits[index].streak += 1
+                    habits[index].totalLogs += 1
+                    if habits[index].streak > habits[index].bestStreak {
+                        habits[index].bestStreak = habits[index].streak
+                    }
+                    habits[index].completedDates.append(Date())
+                } else {
+                    habits[index].streak = max(0, habits[index].streak - 1)
+                    habits[index].totalLogs = max(0, habits[index].totalLogs - 1)
                 }
-                habits[index].completedDates.append(Date())
-                triggerHaptic(.success)
-            } else {
-                habits[index].streak = max(0, habits[index].streak - 1)
-                habits[index].totalLogs = max(0, habits[index].totalLogs - 1)
-                triggerHaptic(.light)
             }
+            
+            saveHabits()
+            triggerHaptic(rec.isCompleted ? .success : .light)
         }
     }
     
-    public func incrementAmount(id: UUID, step: Double) {
+    public func incrementAmount(id: UUID, step: Double, on dateKey: String? = nil) {
+        let key = dateKey ?? todayKey
         if let index = habits.firstIndex(where: { $0.id == id }) {
-            let wasCompleted = habits[index].isCompleted
-            habits[index].currentAmount = min(habits[index].targetAmount * 2, habits[index].currentAmount + step)
-            let isNowCompleted = habits[index].currentAmount >= habits[index].targetAmount
-            habits[index].isCompleted = isNowCompleted
+            var rec = habits[index].history[key] ?? HabitDayRecord()
+            rec.amount = min(habits[index].targetAmount * 2, rec.amount + step)
+            let isNowCompleted = rec.amount >= habits[index].targetAmount
+            rec.isCompleted = isNowCompleted
+            habits[index].history[key] = rec
             
-            if isNowCompleted && !wasCompleted {
-                habits[index].streak += 1
-                habits[index].totalLogs += 1
-                if habits[index].streak > habits[index].bestStreak {
-                    habits[index].bestStreak = habits[index].streak
-                }
-                habits[index].completedDates.append(Date())
-                triggerHaptic(.success)
-            } else {
-                triggerHaptic(.light)
+            if key == todayKey {
+                habits[index].currentAmount = rec.amount
+                habits[index].isCompleted = isNowCompleted
             }
+            
+            saveHabits()
+            triggerHaptic(isNowCompleted ? .success : .light)
         }
     }
     
-    public func stepReps(id: UUID, delta: Int) {
+    public func stepReps(id: UUID, delta: Int, on dateKey: String? = nil) {
+        let key = dateKey ?? todayKey
         if let index = habits.firstIndex(where: { $0.id == id }) {
-            let wasCompleted = habits[index].isCompleted
-            habits[index].currentReps = max(0, min(habits[index].targetReps, habits[index].currentReps + delta))
-            let isNowCompleted = habits[index].currentReps >= habits[index].targetReps
-            habits[index].isCompleted = isNowCompleted
+            var rec = habits[index].history[key] ?? HabitDayRecord()
+            rec.reps = max(0, min(habits[index].targetReps, rec.reps + delta))
+            let isNowCompleted = rec.reps >= habits[index].targetReps
+            rec.isCompleted = isNowCompleted
+            habits[index].history[key] = rec
             
-            if isNowCompleted && !wasCompleted {
-                habits[index].streak += 1
-                habits[index].totalLogs += 1
-                if habits[index].streak > habits[index].bestStreak {
-                    habits[index].bestStreak = habits[index].streak
-                }
-                habits[index].completedDates.append(Date())
-                triggerHaptic(.success)
-            } else {
-                triggerHaptic(.light)
+            if key == todayKey {
+                habits[index].currentReps = rec.reps
+                habits[index].isCompleted = isNowCompleted
             }
+            
+            saveHabits()
+            triggerHaptic(isNowCompleted ? .success : .light)
         }
     }
     
@@ -142,14 +182,23 @@ public class HabitStore: ObservableObject {
             currentReps: 0,
             frequency: frequency,
             strictness: strictness,
-            repeatSchedule: repeatSchedule
+            repeatSchedule: repeatSchedule,
+            history: [:]
         )
         habits.insert(habit, at: 0)
+        saveHabits()
+        triggerHaptic(.medium)
+    }
+    
+    public func deleteHabit(id: UUID) {
+        habits.removeAll { $0.id == id }
+        saveHabits()
         triggerHaptic(.medium)
     }
     
     public func triggerHaptic(_ type: UINotificationFeedbackGenerator.FeedbackType) {
         #if os(iOS)
+        guard soundHapticsEnabled else { return }
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(type)
         #endif
@@ -157,134 +206,9 @@ public class HabitStore: ObservableObject {
     
     public func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
         #if os(iOS)
+        guard soundHapticsEnabled else { return }
         let generator = UIImpactFeedbackGenerator(style: style)
         generator.impactOccurred()
         #endif
-    }
-    
-    private func loadDefaultHabits() {
-        self.habits = [
-            Habit(
-                name: "Drink water (2L)",
-                icon: "drop.fill",
-                colorHex: "#1B8FFF",
-                timeOfDay: .morning,
-                trackingType: .amount,
-                targetAmount: 2000,
-                currentAmount: 1500,
-                unit: "ml",
-                stepAmount: 250,
-                frequency: .daily,
-                strictness: .strict,
-                repeatSchedule: "Every day",
-                isCompleted: false,
-                streak: 14,
-                bestStreak: 28,
-                totalLogs: 92,
-                goalText: "2000 ml"
-            ),
-            Habit(
-                name: "Morning stretch & yoga",
-                icon: "figure.mind.and.body",
-                colorHex: "#0FC580",
-                timeOfDay: .morning,
-                trackingType: .binary,
-                frequency: .daily,
-                strictness: .flexible,
-                repeatSchedule: "Every day",
-                isCompleted: true,
-                streak: 8,
-                bestStreak: 19,
-                totalLogs: 45,
-                goalText: "15 mins"
-            ),
-            Habit(
-                name: "Take daily vitamins",
-                icon: "pill.fill",
-                colorHex: "#F8BD32",
-                timeOfDay: .morning,
-                trackingType: .reps,
-                targetReps: 2,
-                currentReps: 1,
-                frequency: .daily,
-                strictness: .strict,
-                repeatSchedule: "2x a day",
-                isCompleted: false,
-                streak: 30,
-                bestStreak: 45,
-                totalLogs: 140,
-                goalText: "2 doses"
-            ),
-            Habit(
-                name: "Go for a brisk walk",
-                icon: "figure.walk",
-                colorHex: "#0FC580",
-                timeOfDay: .afternoon,
-                trackingType: .amount,
-                targetAmount: 30,
-                currentAmount: 15,
-                unit: "mins",
-                stepAmount: 10,
-                frequency: .every2Days,
-                strictness: .flexible,
-                repeatSchedule: "Every 2 days",
-                isCompleted: false,
-                streak: 6,
-                bestStreak: 14,
-                totalLogs: 38,
-                goalText: "30 mins"
-            ),
-            Habit(
-                name: "Eat fruits & veggies",
-                icon: "leaf.fill",
-                colorHex: "#0FC580",
-                timeOfDay: .afternoon,
-                trackingType: .reps,
-                targetReps: 3,
-                currentReps: 3,
-                frequency: .daily,
-                strictness: .rollover,
-                repeatSchedule: "3x a day",
-                isCompleted: true,
-                streak: 12,
-                bestStreak: 21,
-                totalLogs: 64,
-                goalText: "3 servings"
-            ),
-            Habit(
-                name: "Read a book (20m)",
-                icon: "book.fill",
-                colorHex: "#FF7450",
-                timeOfDay: .evening,
-                trackingType: .amount,
-                targetAmount: 20,
-                currentAmount: 0,
-                unit: "pages",
-                stepAmount: 5,
-                frequency: .daily,
-                strictness: .strict,
-                repeatSchedule: "Every day",
-                isCompleted: false,
-                streak: 21,
-                bestStreak: 35,
-                totalLogs: 110,
-                goalText: "20 pages"
-            ),
-            Habit(
-                name: "Meditate & relax",
-                icon: "sparkles",
-                colorHex: "#FF7450",
-                timeOfDay: .evening,
-                trackingType: .binary,
-                frequency: .weekdays,
-                strictness: .flexible,
-                repeatSchedule: "Weekdays (Mon-Fri)",
-                isCompleted: false,
-                streak: 5,
-                bestStreak: 12,
-                totalLogs: 29,
-                goalText: "10 mins"
-            )
-        ]
     }
 }

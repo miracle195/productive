@@ -67,6 +67,18 @@ public struct HabitCategory: Identifiable, Codable {
     public let colorHex: String
 }
 
+public struct HabitDayRecord: Codable, Equatable {
+    public var isCompleted: Bool
+    public var amount: Double
+    public var reps: Int
+    
+    public init(isCompleted: Bool = false, amount: Double = 0, reps: Int = 0) {
+        self.isCompleted = isCompleted
+        self.amount = amount
+        self.reps = reps
+    }
+}
+
 public struct Habit: Identifiable, Codable {
     public var id: UUID
     public var name: String
@@ -96,6 +108,9 @@ public struct Habit: Identifiable, Codable {
     public var goalText: String
     public var completedDates: [Date]
     
+    // Per-Date History Storage
+    public var history: [String: HabitDayRecord]
+    
     public init(
         id: UUID = UUID(),
         name: String,
@@ -118,7 +133,8 @@ public struct Habit: Identifiable, Codable {
         bestStreak: Int = 0,
         totalLogs: Int = 0,
         goalText: String = "1 time",
-        completedDates: [Date] = []
+        completedDates: [Date] = [],
+        history: [String: HabitDayRecord] = [:]
     ) {
         self.id = id
         self.name = name
@@ -142,6 +158,19 @@ public struct Habit: Identifiable, Codable {
         self.totalLogs = totalLogs
         self.goalText = goalText
         self.completedDates = completedDates
+        self.history = history
+    }
+    
+    public func isCompleted(on dateKey: String) -> Bool {
+        return history[dateKey]?.isCompleted ?? false
+    }
+    
+    public func amount(on dateKey: String) -> Double {
+        return history[dateKey]?.amount ?? 0
+    }
+    
+    public func reps(on dateKey: String) -> Int {
+        return history[dateKey]?.reps ?? 0
     }
 }
 
