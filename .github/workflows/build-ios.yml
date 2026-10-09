@@ -21,17 +21,9 @@ jobs:
         sudo xcode-select -s /Applications/Xcode_15.4.app 2>/dev/null || true
         xcodebuild -version
 
-    - name: Generate Xcode Project and Build IPA
+    - name: Build iOS IPA
       run: |
         cd ios-swiftui
-        # Regenerate Xcode project with xcodegen if available
-        if command -v xcodegen &> /dev/null; then
-          xcodegen generate
-        elif command -v brew &> /dev/null; then
-          brew install xcodegen 2>/dev/null || true
-          xcodegen generate || true
-        fi
-
         # Build the iOS Archive
         xcodebuild -project Productive.xcodeproj \
                    -scheme Productive \
