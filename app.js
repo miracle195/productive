@@ -154,6 +154,7 @@ class ProductiveState {
     this.finish = this.loadSetting('finish', 'natural');
     this.weekStartDay = this.loadSetting('weekStartDay', 'monday'); // 'monday' | 'sunday' | 'saturday'
     this.defaultStrictness = this.loadSetting('defaultStrictness', 'strict');
+    this.hasCompletedOnboarding = this.loadSetting('hasCompletedOnboarding', false);
     this.sheetTab = 'presets'; // 'presets' | 'custom'
     this.customTrackingMode = 'binary';
     this.activeTimerHabitId = null;
@@ -178,7 +179,8 @@ class ProductiveState {
         finish: this.finish,
         weekStartDay: this.weekStartDay,
         defaultStrictness: this.defaultStrictness,
-        soundEnabled: this.soundEnabled
+        soundEnabled: this.soundEnabled,
+        hasCompletedOnboarding: this.hasCompletedOnboarding
       };
       localStorage.setItem('productive_settings', JSON.stringify(settings));
     } catch(e) {}
@@ -1210,21 +1212,23 @@ function importUserData(event) {
 }
 
 function resetToDefaults() {
-  if (confirm('Are you sure you want to reset all habits and settings to factory defaults? This will restore original habits.')) {
-    localStorage.removeItem('productive_habits_v2');
+  if (confirm('Are you sure you want to reset all habits and restart the initial setup wizard?')) {
+    localStorage.removeItem('productive_habits_user_v1');
     localStorage.removeItem('productive_settings');
-    state.habits = JSON.parse(JSON.stringify(DEFAULT_HABITS));
+    state.habits = [];
+    state.saveHabits();
+    state.hasCompletedOnboarding = false;
     state.theme = 'dark';
     state.finish = 'natural';
     state.weekStartDay = 'monday';
     state.defaultStrictness = 'strict';
+    state.soundEnabled = true;
+    state.saveSettings();
     document.documentElement.dataset.appTheme = 'dark';
     document.documentElement.dataset.finish = 'natural';
     sound.playClick();
-    renderWeekRibbon();
-    renderTodayScreen();
-    renderSettingsScreen();
-    showToast('App reset to factory defaults 🔄');
+    relaunchOnboarding();
+    showToast('App reset to initial setup wizard 🔄');
   }
 }
 
@@ -1235,6 +1239,11 @@ function switchScreen(screenName) {
   const target = document.getElementById('screen-' + screenName);
   if (target) target.classList.add('active');
 
+  const tabBar = document.querySelector('.ios-tab-bar');
+  if (tabBar) {
+    tabBar.style.display = (screenName === 'onboarding') ? 'none' : 'flex';
+  }
+
   document.querySelectorAll('.tab-item').forEach(t => {
     t.classList.toggle('active', t.dataset.screen === screenName);
   });
@@ -1242,6 +1251,67 @@ function switchScreen(screenName) {
   if (screenName === 'settings') {
     renderSettingsScreen();
   }
+}
+
+function setOnboardingWeekStart(val) {
+  state.weekStartDay = val;
+  sound.playClick();
+  document.querySelectorAll('#onboarding-week-start-options .onboarding-option-pill').forEach(pill => {
+    pill.classList.toggle('selected', pill.dataset.value === val);
+  });
+}
+
+function setOnboardingTheme(val) {
+  state.theme = val;
+  setAppTheme(val);
+  sound.playClick();
+  document.querySelectorAll('#onboarding-theme-options .onboarding-option-pill').forEach(pill => {
+    pill.classList.toggle('selected', pill.dataset.value === val);
+  });
+}
+
+function setOnboardingStrictness(val) {
+  state.defaultStrictness = val;
+  sound.playClick();
+  document.querySelectorAll('#onboarding-strictness-options .onboarding-list-row').forEach(row => {
+    const isSel = row.dataset.value === val;
+    row.classList.toggle('selected', isSel);
+    const check = row.querySelector('.check-mark');
+    if (check) check.textContent = isSel ? '✓' : '';
+  });
+}
+
+function toggleOnboardingSound() {
+  state.soundEnabled = !state.soundEnabled;
+  sound.playClick();
+  const btn = document.getElementById('onboarding-sound-btn');
+  if (btn) {
+    btn.textContent = state.soundEnabled ? '🔊 Enabled' : '🔇 Muted';
+    btn.classList.toggle('active', state.soundEnabled);
+  }
+}
+
+function finishOnboarding() {
+  state.hasCompletedOnboarding = true;
+  state.saveSettings();
+  sound.playSuccess();
+  confetti.burst();
+  showToast('Welcome to Productive! 🚀');
+  switchScreen('today');
+  renderTodayScreen();
+}
+
+function relaunchOnboarding() {
+  sound.playClick();
+  setOnboardingWeekStart(state.weekStartDay);
+  setOnboardingTheme(state.theme);
+  setOnboardingStrictness(state.defaultStrictness);
+  const btn = document.getElementById('onboarding-sound-btn');
+  if (btn) {
+    btn.textContent = state.soundEnabled ? '🔊 Enabled' : '🔇 Muted';
+    btn.classList.toggle('active', state.soundEnabled);
+  }
+  switchScreen('onboarding');
 }
 
 
@@ -1359,9 +1429,11 @@ window.addEventListener('DOMContentLoaded', () => {
   setInterval(updateLiveClock, 30000);
 
   document.documentElement.dataset.appTheme = state.theme;
-  document.documentElement.dataset.finish = state.finish;
-
-  renderTodayScreen();
+  if (!state.hasCompletedOnboarding) {
+    relaunchOnboarding();
+  } else {
+    renderTodayScreen();
+  }
   renderSettingsScreen();
 
   document.querySelectorAll('.tab-item').forEach(tab => {

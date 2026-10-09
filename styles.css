@@ -1764,3 +1764,162 @@ body {
   }
 }
 
+/* ==========================================================================
+   INITIALIZATION & ONBOARDING SETUP SCREEN
+   ========================================================================== */
+#screen-onboarding {
+  display: none;
+  height: 100%;
+  overflow-y: auto;
+}
+#screen-onboarding.active {
+  display: block;
+}
+.onboarding-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 20px 40px;
+}
+.onboarding-hero {
+  text-align: center;
+  margin-top: 10px;
+  margin-bottom: 6px;
+}
+.onboarding-icon-badge {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5700CB, #0062E4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  margin: 0 auto 14px;
+  box-shadow: 0 8px 24px rgba(87, 0, 203, 0.45);
+}
+.onboarding-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.5px;
+}
+.onboarding-subtitle {
+  font-size: 13px;
+  color: var(--app-text-muted);
+  line-height: 1.45;
+  max-width: 300px;
+  margin: 0 auto;
+}
+.onboarding-card {
+  background: var(--app-bg-card);
+  border-radius: 20px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.onboarding-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--app-text-muted);
+  margin-bottom: 12px;
+}
+.onboarding-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+.onboarding-option-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  padding: 12px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.onboarding-option-pill:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+.onboarding-option-pill.selected {
+  background: linear-gradient(135deg, #5700CB, #0062E4);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 14px rgba(87, 0, 203, 0.35);
+}
+.onboarding-option-pill .pill-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+.onboarding-option-pill .pill-desc {
+  font-size: 10px;
+  color: var(--app-text-muted);
+}
+.onboarding-option-pill.selected .pill-desc {
+  color: rgba(255, 255, 255, 0.8);
+}
+.onboarding-list-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.onboarding-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--app-text-primary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.onboarding-list-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.onboarding-list-row.selected {
+  background: rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+  font-weight: 700;
+}
+.onboarding-list-row .check-mark {
+  font-weight: 800;
+  color: #0FC580;
+  font-size: 14px;
+}
+.onboarding-cta-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 18px;
+  border: none;
+  background: linear-gradient(135deg, #5700CB, #0062E4);
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(87, 0, 203, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+  margin-bottom: 24px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.onboarding-cta-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(87, 0, 203, 0.55);
+}
+.onboarding-cta-btn:active {
+  transform: scale(0.98);
+}
+
+

@@ -8,6 +8,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var habitStore: HabitStore
+    @AppStorage("productive_has_completed_onboarding") private var hasCompletedOnboarding: Bool = true
     @State private var showingExportSheet: Bool = false
     @State private var exportedJSON: String = ""
     @State private var showingImportSheet: Bool = false
@@ -87,6 +88,16 @@ struct SettingsView: View {
                     }
                 }
                 
+                // Setup Wizard
+                Section(header: Text("SETUP & CONFIGURATION")) {
+                    Button(action: {
+                        hasCompletedOnboarding = false
+                    }) {
+                        Label("Re-run Initial Setup Wizard", systemImage: "sparkles")
+                            .foregroundColor(.blue)
+                    }
+                }
+                
                 // App Information
                 Section(header: Text("ABOUT PRODUCTIVE")) {
                     HStack {
@@ -116,10 +127,11 @@ struct SettingsView: View {
                 Button("Cancel", role: .cancel) {}
                 Button("Reset Defaults", role: .destructive) {
                     habitStore.resetDefaults()
+                    hasCompletedOnboarding = false
                     triggerToast("All habits reset to defaults")
                 }
             } message: {
-                Text("This will restore default habits and reset custom tracker configurations.")
+                Text("This will restore default settings and restart the setup wizard.")
             }
             .sheet(isPresented: $showingExportSheet) {
                 ExportSheetView(jsonText: exportedJSON)
