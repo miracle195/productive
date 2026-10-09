@@ -533,63 +533,118 @@ function updateLiveClock() {
   clockEl.textContent = hours + ':' + mins;
 }
 
-function getWeekDaysConfig(startDay) {
+function getTimelineDays() {
   const now = new Date();
-  const dayOfWeek = now.getDay(); // 0 is Sun, 1 is Mon, 6 is Sat
-  
-  const s = (startDay || '').toLowerCase();
-  let targetStart = 1; // default Monday
-  if (s.includes('sun')) targetStart = 0;
-  else if (s.includes('sat')) targetStart = 6;
-  
-  let diff = dayOfWeek - targetStart;
-  if (diff < 0) diff += 7;
-  
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - diff);
-  startOfWeek.setHours(0, 0, 0, 0);
-  
   const dayLetters = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const fullDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   
   const days = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(startOfWeek);
-    d.setDate(startOfWeek.getDate() + i);
+  // 21 backed days in past (-21 to -1), Today (0), and 14 coming days in future (+1 to +14)
+  for (let offset = -21; offset <= 14; offset++) {
+    const d = new Date(now);
+    d.setDate(now.getDate() + offset);
+    d.setHours(0, 0, 0, 0);
     
     const dateKey = getISODateKey(d);
-    const isToday = (dateKey === state.todayKey);
-    const isPast = (dateKey < state.todayKey);
+    const isToday = (offset === 0);
+    const isPast = (offset < 0);
+    const isFuture = (offset > 0);
     
     days.push({
+      offset: offset,
       name: dayLetters[d.getDay()],
       day: d.getDate(),
       dateKey: dateKey,
       fullDateName: fullDays[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate(),
       isToday: isToday,
-      isPast: isPast
+      isPast: isPast,
+      isFuture: isFuture
     });
   }
   return days;
 }
 
-function renderWeekRibbon() {
+function getWeekDaysConfig(startDay) {
+  return getTimelineDays();
+}
+
+let isRibbonDragging = false;
+let ribbonStartX = 0;
+let ribbonStartScroll = 0;
+let hasRibbonMoved = false;
+
+function initRibbonSwipeGestures(container) {
+  if (container.dataset.gesturesAttached) return;
+  container.dataset.gesturesAttached = 'true';
+
+  container.addEventListener('mousedown', (e) => {
+    isRibbonDragging = true;
+    hasRibbonMoved = false;
+    ribbonStartX = e.pageX - container.offsetLeft;
+    ribbonStartScroll = container.scrollLeft;
+  });
+
+  window.addEventListener('mouseup', () => {
+    isRibbonDragging = false;
+  });
+
+  container.addEventListener('mousemove', (e) => {
+    if (!isRibbonDragging) return;
+    const x = e.pageX - container.offsetLeft;
+    const walk = (x - ribbonStartX);
+    if (Math.abs(walk) > 4) {
+      hasRibbonMoved = true;
+      e.preventDefault();
+      container.scrollLeft = ribbonStartScroll - walk;
+    }
+  });
+
+  container.addEventListener('click', (e) => {
+    if (hasRibbonMoved) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }, true);
+}
+
+function scrollRibbonToToday(smooth = true) {
   const container = document.getElementById('week-ribbon-container');
   if (!container) return;
-  const days = getWeekDaysConfig(state.weekStartDay);
+  const todayEl = container.querySelector('.day-pill.today');
+  if (todayEl) {
+    const targetScroll = Math.max(0, todayEl.offsetLeft - container.offsetLeft - 8);
+    if (smooth) {
+      container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+    } else {
+      container.scrollLeft = targetScroll;
+    }
+  }
+}
+
+function renderWeekRibbon(autoScrollToToday = false) {
+  const container = document.getElementById('week-ribbon-container');
+  if (!container) return;
+  const days = getTimelineDays();
   let html = '';
   days.forEach(d => {
     const isToday = d.isToday;
     const isActive = d.dateKey === state.selectedDay;
     const hasCompletions = state.habits.some(h => h.history && h.history[d.dateKey] && h.history[d.dateKey].done);
-    html += '<div class="day-pill ' + (isActive ? 'active ' : '') + (isToday ? 'today ' : '') + (hasCompletions ? 'completed ' : '') + '" data-datekey="' + d.dateKey + '" onclick="selectDay(\'' + d.dateKey + '\')" title="' + d.fullDateName + '">';
-    html += '<span class="day-name">' + d.name + '</span>';
+    html += '<div class="day-pill ' + (isActive ? 'active ' : '') + (isToday ? 'today ' : '') + (d.isFuture ? 'future ' : '') + (hasCompletions ? 'completed ' : '') + '" data-datekey="' + d.dateKey + '" onclick="selectDay(\'' + d.dateKey + '\')" title="' + d.fullDateName + '">';
+    html += '<span class="day-name">' + (isToday ? 'TODAY' : d.name) + '</span>';
     html += '<span class="day-num">' + d.day + '</span>';
     html += '<span class="day-dot" style="' + (hasCompletions ? 'background: #0FC580; opacity: 1;' : '') + '"></span>';
     html += '</div>';
   });
   container.innerHTML = html;
+
+  initRibbonSwipeGestures(container);
+
+  if (autoScrollToToday || !container.dataset.initializedScroll) {
+    scrollRibbonToToday(false);
+    container.dataset.initializedScroll = 'true';
+  }
 }
 
 // Render Date Banner
@@ -600,11 +655,11 @@ function renderDateBanner() {
     banner.style.display = 'none';
   } else {
     banner.style.display = 'flex';
-    const days = getWeekDaysConfig(state.weekStartDay);
+    const days = getTimelineDays();
     const dayObj = days.find(d => d.dateKey === state.selectedDay);
     const label = dayObj ? dayObj.fullDateName : state.selectedDay;
     const isPast = state.isDayPast();
-    banner.innerHTML = '<span>🗓️ Viewing: ' + label + ' (' + (isPast ? 'Past Day' : 'Upcoming') + ')</span><button onclick="selectDay(\'' + state.todayKey + '\')">Back to Today</button>';
+    banner.innerHTML = '<span>🗓️ Viewing: ' + label + ' (' + (isPast ? 'Past Day' : 'Upcoming') + ')</span><button onclick="selectDay(\'' + state.todayKey + '\', true)">Back to Today</button>';
   }
 }
 
@@ -823,10 +878,13 @@ function onStepReps(e, id, delta) {
   renderTodayScreen();
 }
 
-function selectDay(dayNum) {
-  state.selectedDay = dayNum;
+function selectDay(dateKey, shouldScrollToToday = false) {
+  state.selectedDay = dateKey;
   sound.playClick();
   renderTodayScreen();
+  if (shouldScrollToToday || state.isDayToday()) {
+    scrollRibbonToToday(true);
+  }
 }
 
 function renderHabitDetails(id) {

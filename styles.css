@@ -696,39 +696,65 @@ body {
   cursor: pointer;
 }
 
-/* Weekday Ribbon */
+/* Weekday Ribbon - Horizontally Scrollable Dynamic Timeline */
 .week-ribbon {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
   background: var(--app-card-bg);
   border: 1px solid var(--app-card-border);
-  border-radius: 18px;
-  padding: 8px 6px;
+  border-radius: 20px;
+  padding: 8px 10px;
   margin-bottom: 16px;
+  gap: 8px;
+  user-select: none;
+  cursor: grab;
+  scroll-behavior: smooth;
+}
+.week-ribbon:active {
+  cursor: grabbing;
+}
+.week-ribbon::-webkit-scrollbar {
+  display: none;
 }
 .day-pill {
   display: flex;
   flex-direction: column;
   align-items: center;
-  flex: 1;
-  min-width: 0;
+  flex: 0 0 46px;
+  width: 46px;
   gap: 4px;
-  padding: 6px 3px;
-  border-radius: 12px;
+  padding: 8px 4px;
+  border-radius: 14px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  position: relative;
 }
 .day-pill .day-name {
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 9px;
+  font-weight: 800;
   letter-spacing: -0.2px;
   text-transform: uppercase;
   color: var(--app-text-muted);
 }
+.day-pill.today .day-name {
+  color: #007AFF;
+  font-weight: 800;
+}
+.day-pill.today .day-num {
+  color: #007AFF;
+}
+.day-pill.future .day-name,
+.day-pill.future .day-num {
+  opacity: 0.65;
+}
 .day-pill .day-num {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 800;
   color: var(--app-text-secondary);
 }
 .day-pill .day-dot {
@@ -741,12 +767,13 @@ body {
   background: var(--app-accent-green);
 }
 .day-pill.active {
-  background: linear-gradient(135deg, #5700CB, #0062E4);
+  background: linear-gradient(135deg, #5700CB, #0062E4) !important;
   box-shadow: 0 4px 12px rgba(87, 0, 203, 0.35);
 }
 .day-pill.active .day-name,
 .day-pill.active .day-num {
-  color: #FFFFFF;
+  color: #FFFFFF !important;
+  opacity: 1 !important;
 }
 
 /* Progress Hero Card */

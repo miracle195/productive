@@ -19,31 +19,12 @@ public struct DayModel: Identifiable, Equatable {
 public struct TodayView: View {
     @EnvironmentObject var habitStore: HabitStore
     @Binding var showingAddSheet: Bool
-    @State private var selectedDayIndex: Int? = nil
+    @State private var selectedDateKey: String? = nil
     
-    var weekDays: [DayModel] {
+    var timelineDays: [DayModel] {
         let calendar = Calendar.current
         let now = Date()
-        
-        let targetStartWeekday: Int
-        let startLower = habitStore.weekStartDay.lowercased()
-        if startLower.contains("sun") {
-            targetStartWeekday = 1
-        } else if startLower.contains("sat") {
-            targetStartWeekday = 7
-        } else {
-            targetStartWeekday = 2 // Monday
-        }
-        
-        let currentWeekday = calendar.component(.weekday, from: now)
-        var daysToSubtract = currentWeekday - targetStartWeekday
-        if daysToSubtract < 0 {
-            daysToSubtract += 7
-        }
-        
-        guard let startOfWeek = calendar.date(byAdding: .day, value: -daysToSubtract, to: calendar.startOfDay(for: now)) else {
-            return []
-        }
+        let todayStart = calendar.startOfDay(for: now)
         
         let dayLetterFormatter = DateFormatter()
         dayLetterFormatter.dateFormat = "EEE"
@@ -57,13 +38,14 @@ public struct TodayView: View {
         fullFormatter.dateFormat = "EEEE, MMM d"
         fullFormatter.locale = Locale(identifier: "en_US_POSIX")
         
-        return (0..<7).compactMap { offset in
-            guard let date = calendar.date(byAdding: .day, value: offset, to: startOfWeek) else { return nil }
-            let isToday = calendar.isDateInToday(date)
+        // 21 backed days in past (-21 to -1), Today (0), and 14 coming days in future (+1 to +14)
+        return (-21...14).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: offset, to: todayStart) else { return nil }
+            let isToday = (offset == 0)
             return DayModel(
                 id: offset,
                 date: date,
-                dayLetter: dayLetterFormatter.string(from: date).uppercased(),
+                dayLetter: isToday ? "TODAY" : dayLetterFormatter.string(from: date).uppercased(),
                 dayNumber: dayNumberFormatter.string(from: date),
                 dateKey: HabitStore.dateFormatter.string(from: date),
                 fullDateName: fullFormatter.string(from: date),
@@ -72,25 +54,16 @@ public struct TodayView: View {
         }
     }
     
-    var todayIndex: Int {
-        weekDays.firstIndex(where: { $0.isToday }) ?? 0
-    }
-    
-    var activeIndex: Int {
-        selectedDayIndex ?? todayIndex
+    var activeDateKey: String {
+        selectedDateKey ?? habitStore.todayKey
     }
     
     var activeDay: DayModel? {
-        guard weekDays.indices.contains(activeIndex) else { return nil }
-        return weekDays[activeIndex]
-    }
-    
-    var activeDateKey: String {
-        activeDay?.dateKey ?? habitStore.todayKey
+        timelineDays.first(where: { $0.dateKey == activeDateKey })
     }
     
     var isViewingToday: Bool {
-        activeDay?.isToday ?? true
+        activeDateKey == habitStore.todayKey
     }
     
     public var body: some View {
@@ -120,7 +93,7 @@ public struct TodayView: View {
                             Spacer()
                             
                             Button("Back to Today") {
-                                selectedDayIndex = todayIndex
+                                selectedDateKey = habitStore.todayKey
                                 habitStore.triggerHaptic(.medium)
                             }
                             .font(.system(size: 11, weight: .bold))
@@ -136,40 +109,60 @@ public struct TodayView: View {
                         .cornerRadius(16)
                     }
                     
-                    // Weekday Ribbon (Interactive Dynamic Real-World Calendar)
-                    HStack(spacing: 0) {
-                        ForEach(weekDays) { day in
-                            let isSelected = (day.id == activeIndex)
-                            VStack(spacing: 6) {
-                                Text(day.dayLetter)
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundColor(day.isToday ? Color(hex: "#007AFF") : .secondary)
-                                
-                                Text(day.dayNumber)
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundColor(isSelected ? .white : (day.isToday ? Color(hex: "#007AFF") : .primary))
-                                
-                                Circle()
-                                    .fill(habitStore.completionPercentage(on: day.dateKey) > 0 ? Color(hex: "#0FC580") : Color.clear)
-                                    .frame(width: 5, height: 5)
+                    // Weekday Ribbon (Horizontally Scrollable Dynamic Timeline)
+                    ScrollViewReader { proxy in
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(timelineDays) { day in
+                                    let isSelected = (day.dateKey == activeDateKey)
+                                    let isFuture = day.id > 0
+                                    VStack(spacing: 5) {
+                                        Text(day.dayLetter)
+                                            .font(.system(size: 9, weight: .heavy))
+                                            .foregroundColor(day.isToday ? Color(hex: "#007AFF") : (isFuture ? .secondary.opacity(0.65) : .secondary))
+                                        
+                                        Text(day.dayNumber)
+                                            .font(.system(size: 15, weight: .bold))
+                                            .foregroundColor(isSelected ? .white : (day.isToday ? Color(hex: "#007AFF") : (isFuture ? .primary.opacity(0.7) : .primary)))
+                                        
+                                        Circle()
+                                            .fill(habitStore.completionPercentage(on: day.dateKey) > 0 ? Color(hex: "#0FC580") : Color.clear)
+                                            .frame(width: 5, height: 5)
+                                    }
+                                    .frame(width: 48)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .fill(isSelected ?
+                                                  LinearGradient(colors: [Color(hex: "#5700CB"), Color(hex: "#0062E4")], startPoint: .topLeading, endPoint: .bottomTrailing) :
+                                                  LinearGradient(colors: [Color.clear], startPoint: .top, endPoint: .bottom))
+                                    )
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        selectedDateKey = day.dateKey
+                                        habitStore.triggerHaptic(.light)
+                                    }
+                                    .id(day.dateKey)
+                                }
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .fill(isSelected ?
-                                          LinearGradient(colors: [Color(hex: "#5700CB"), Color(hex: "#0062E4")], startPoint: .topLeading, endPoint: .bottomTrailing) :
-                                          LinearGradient(colors: [Color.clear], startPoint: .top, endPoint: .bottom))
-                            )
-                            .onTapGesture {
-                                selectedDayIndex = day.id
-                                habitStore.triggerHaptic(.light)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                        }
+                        .background(Color(hex: "#1A1E30"))
+                        .cornerRadius(20)
+                        .onAppear {
+                            DispatchQueue.main.async {
+                                proxy.scrollTo(habitStore.todayKey, anchor: .leading)
+                            }
+                        }
+                        .onChange(of: activeDateKey) { newDateKey in
+                            if newDateKey == habitStore.todayKey {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                    proxy.scrollTo(habitStore.todayKey, anchor: .leading)
+                                }
                             }
                         }
                     }
-                    .padding(8)
-                    .background(Color(hex: "#1A1E30"))
-                    .cornerRadius(20)
                     
                     // Motivational Progress Card
                     let completionPct = habitStore.completionPercentage(on: activeDateKey)
