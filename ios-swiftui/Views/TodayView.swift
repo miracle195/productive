@@ -26,10 +26,13 @@ public struct TodayView: View {
         let now = Date()
         
         let targetStartWeekday: Int
-        switch habitStore.weekStartDay {
-        case "Sunday": targetStartWeekday = 1
-        case "Saturday": targetStartWeekday = 7
-        default: targetStartWeekday = 2 // Monday
+        let startLower = habitStore.weekStartDay.lowercased()
+        if startLower.contains("sun") {
+            targetStartWeekday = 1
+        } else if startLower.contains("sat") {
+            targetStartWeekday = 7
+        } else {
+            targetStartWeekday = 2 // Monday
         }
         
         let currentWeekday = calendar.component(.weekday, from: now)
@@ -43,7 +46,7 @@ public struct TodayView: View {
         }
         
         let dayLetterFormatter = DateFormatter()
-        dayLetterFormatter.dateFormat = "EEEEE"
+        dayLetterFormatter.dateFormat = "EEE"
         dayLetterFormatter.locale = Locale(identifier: "en_US_POSIX")
         
         let dayNumberFormatter = DateFormatter()
@@ -94,6 +97,17 @@ public struct TodayView: View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
+                    
+                    // Date & Active Screen Header
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text((activeDay?.fullDateName ?? "Today").uppercased())
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.secondary)
+                        Text(isViewingToday ? "Today's Habits" : "\(activeDay?.dayLetter ?? "") \(activeDay?.dayNumber ?? "") Habits")
+                            .font(.system(size: 28, weight: .heavy))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.top, 4)
                     
                     // Past/Future Date Inspection Banner
                     if !isViewingToday, let day = activeDay {

@@ -537,9 +537,10 @@ function getWeekDaysConfig(startDay) {
   const now = new Date();
   const dayOfWeek = now.getDay(); // 0 is Sun, 1 is Mon, 6 is Sat
   
+  const s = (startDay || '').toLowerCase();
   let targetStart = 1; // default Monday
-  if (startDay === 'sunday') targetStart = 0;
-  else if (startDay === 'saturday') targetStart = 6;
+  if (s.includes('sun')) targetStart = 0;
+  else if (s.includes('sat')) targetStart = 6;
   
   let diff = dayOfWeek - targetStart;
   if (diff < 0) diff += 7;
@@ -548,7 +549,7 @@ function getWeekDaysConfig(startDay) {
   startOfWeek.setDate(now.getDate() - diff);
   startOfWeek.setHours(0, 0, 0, 0);
   
-  const dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const dayLetters = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const fullDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   
@@ -582,7 +583,7 @@ function renderWeekRibbon() {
     const isToday = d.isToday;
     const isActive = d.dateKey === state.selectedDay;
     const hasCompletions = state.habits.some(h => h.history && h.history[d.dateKey] && h.history[d.dateKey].done);
-    html += '<div class="day-pill ' + (isActive ? 'active ' : '') + (isToday ? 'today ' : '') + (hasCompletions ? 'completed ' : '') + '" data-datekey="' + d.dateKey + '" onclick="selectDay(\'' + d.dateKey + '\')">';
+    html += '<div class="day-pill ' + (isActive ? 'active ' : '') + (isToday ? 'today ' : '') + (hasCompletions ? 'completed ' : '') + '" data-datekey="' + d.dateKey + '" onclick="selectDay(\'' + d.dateKey + '\')" title="' + d.fullDateName + '">';
     html += '<span class="day-name">' + d.name + '</span>';
     html += '<span class="day-num">' + d.day + '</span>';
     html += '<span class="day-dot" style="' + (hasCompletions ? 'background: #0FC580; opacity: 1;' : '') + '"></span>';
@@ -613,6 +614,18 @@ function renderTodayScreen() {
   if (!container) return;
 
   renderDateBanner();
+
+  const headerDayName = document.getElementById('today-day-name');
+  const headerDateTitle = document.getElementById('today-date-title');
+  const days = getWeekDaysConfig(state.weekStartDay);
+  const activeDayObj = days.find(d => d.dateKey === state.selectedDay);
+  
+  if (headerDayName && activeDayObj) {
+    headerDayName.textContent = activeDayObj.fullDateName.toUpperCase();
+  }
+  if (headerDateTitle) {
+    headerDateTitle.textContent = state.isDayToday() ? "Today's Habits" : (activeDayObj ? (activeDayObj.name + ' ' + activeDayObj.day + " Habits") : "Habit Timeline");
+  }
 
   const rate = state.getCompletionRate();
   const total = state.habits.length;
