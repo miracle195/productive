@@ -588,3 +588,20 @@ extension Color {
         )
     }
 }
+
+// MARK: - Responsive 120Hz Tactile Spring Button Style
+
+public struct TactileScaleButtonStyle: ButtonStyle {
+    public var pressedScale: CGFloat = 0.92
+    
+    public init(pressedScale: CGFloat = 0.92) {
+        self.pressedScale = pressedScale
+    }
+    
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? pressedScale : 1.0)
+            .opacity(configuration.isPressed ? 0.88 : 1.0)
+            .animation(.snappy(duration: 0.16, extraBounce: 0.08), value: configuration.isPressed)
+    }
+}

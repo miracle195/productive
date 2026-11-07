@@ -136,6 +136,30 @@ public struct AddHabitSheet: View {
     
     private var presetsBrowserView: some View {
         VStack(spacing: 0) {
+            // Pinned Search & Horizontal-Only Category Strip
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                TextField("Search 83 curated habits...", text: $presetSearchText)
+                    .font(.subheadline)
+                if !presetSearchText.isEmpty {
+                    Button {
+                        presetSearchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+            .padding(.horizontal, 16)
+            .padding(.top, 2)
+            
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     categoryChip(id: nil, title: "All", icon: "sparkles")
@@ -143,9 +167,13 @@ public struct AddHabitSheet: View {
                         categoryChip(id: cat.id, title: cat.name, icon: cat.icon)
                     }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 16)
                 .padding(.vertical, 8)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+            
+            Divider()
+                .opacity(0.45)
             
             List {
                 Section(header: Text("Tap a habit to customize, or tap + Add")) {
@@ -206,7 +234,8 @@ public struct AddHabitSheet: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .searchable(text: $presetSearchText, prompt: "Search 83 curated habits")
+            .listSectionSpacing(10)
+            .contentMargins(.top, 6, for: .scrollContent)
         }
     }
     
@@ -416,6 +445,8 @@ public struct AddHabitSheet: View {
                 .padding(.vertical, 4)
             }
         }
+        .listSectionSpacing(12)
+        .contentMargins(.top, 6, for: .scrollContent)
     }
     
     // MARK: - Helpers

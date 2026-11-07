@@ -176,6 +176,8 @@ struct OnboardingView: View {
                     }
                 }
             }
+            .listSectionSpacing(12)
+            .contentMargins(.top, 6, for: .scrollContent)
             .navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom) {
                 Button {

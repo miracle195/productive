@@ -54,10 +54,46 @@ public class HabitStore: ObservableObject {
     private var timerCancellable: AnyCancellable? = nil
     
     private let legacyStorageKey = "productive_habits_store_v2"
+    private let persistenceQueue = DispatchQueue(label: "com.apalon.productive.persistence", qos: .utility)
+    
+    #if os(iOS)
+    private let notificationGenerator = UINotificationFeedbackGenerator()
+    private let lightImpactGenerator = UIImpactFeedbackGenerator(style: .light)
+    private let mediumImpactGenerator = UIImpactFeedbackGenerator(style: .medium)
+    private let heavyImpactGenerator = UIImpactFeedbackGenerator(style: .heavy)
+    #endif
     
     public static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+    
+    public static let dayLetterFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+    
+    public static let dayNumberFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+    
+    public static let fullDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE, MMM d"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+    
+    public static let shortHeaderDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE, MMM d"
         formatter.locale = Locale(identifier: "en_US_POSIX")
         return formatter
     }()
@@ -82,6 +118,11 @@ public class HabitStore: ObservableObject {
     
     public init() {
         loadSavedData()
+        #if os(iOS)
+        notificationGenerator.prepare()
+        lightImpactGenerator.prepare()
+        mediumImpactGenerator.prepare()
+        #endif
         NotificationManager.shared.onMarkHabitDone = { [weak self] habitId in
             self?.toggleHabit(id: habitId)
         }
@@ -115,13 +156,20 @@ public class HabitStore: ObservableObject {
     }
     
     public func saveHabits() {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        if let encoded = try? encoder.encode(habits) {
-            try? encoded.write(to: storeFileURL, options: [.atomic])
-        }
-        if let cEncoded = try? encoder.encode(challenges) {
-            try? cEncoded.write(to: challengesFileURL, options: [.atomic])
+        let habitsSnapshot = habits
+        let challengesSnapshot = challenges
+        let storeURL = storeFileURL
+        let challengesURL = challengesFileURL
+        
+        persistenceQueue.async {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            if let encoded = try? encoder.encode(habitsSnapshot) {
+                try? encoded.write(to: storeURL, options: [.atomic])
+            }
+            if let cEncoded = try? encoder.encode(challengesSnapshot) {
+                try? cEncoded.write(to: challengesURL, options: [.atomic])
+            }
         }
     }
     
@@ -326,12 +374,16 @@ public class HabitStore: ObservableObject {
         max(0, effectiveTargetAmount(for: habit, on: dateKey) - habit.targetAmount)
     }
     
-    public func completionPercentage(on dateKey: String) -> Int {
-        let d = date(from: dateKey)
-        let due = habitsDue(on: d)
+    public func completionPercentage(on date: Date, dateKey: String) -> Int {
+        let due = habitsDue(on: date)
         guard !due.isEmpty else { return 0 }
         let satisfied = due.filter { $0.isCompleted(on: dateKey) || $0.isSkipped(on: dateKey) }.count
         return Int((Double(satisfied) / Double(due.count)) * 100)
+    }
+    
+    public func completionPercentage(on dateKey: String) -> Int {
+        let d = date(from: dateKey)
+        return completionPercentage(on: d, dateKey: dateKey)
     }
     
     public var completionPercentage: Int {
@@ -923,17 +975,23 @@ public class HabitStore: ObservableObject {
         guard soundHapticsEnabled else { return }
         switch haptic {
         case .success:
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            notificationGenerator.notificationOccurred(.success)
+            notificationGenerator.prepare()
         case .warning:
-            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            notificationGenerator.notificationOccurred(.warning)
+            notificationGenerator.prepare()
         case .error:
-            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            notificationGenerator.notificationOccurred(.error)
+            notificationGenerator.prepare()
         case .light:
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            lightImpactGenerator.impactOccurred()
+            lightImpactGenerator.prepare()
         case .medium:
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            mediumImpactGenerator.impactOccurred()
+            mediumImpactGenerator.prepare()
         case .heavy:
-            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            heavyImpactGenerator.impactOccurred()
+            heavyImpactGenerator.prepare()
         }
         #endif
     }

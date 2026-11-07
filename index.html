@@ -15,7 +15,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=3.0.5">
+  <link rel="stylesheet" href="styles.css?v=3.1.0">
 </head>
 <body>
 
@@ -30,8 +30,8 @@
       <div class="brand-badge">
         <div class="brand-logo-icon">P</div>
         <div class="brand-info">
-          <h1>Productive 3.0 <span class="badge-pill">Native SwiftUI • iOS 18 Sim</span></h1>
-          <p>Live 1:1 Simulator synced with <code>ios-swiftui/</code> (All 16 Upgrades Active)</p>
+          <h1>Productive 3.1 <span class="badge-pill">Native SwiftUI • 120Hz Pinned UI</span></h1>
+          <p>Live 1:1 Simulator synced with <code>ios-swiftui/</code> (Pinned Deck & Zero-Waste Layout)</p>
         </div>
       </div>
 
@@ -236,83 +236,90 @@
                 </div>
               </div>
 
-              <!-- SCREEN 1: TODAY SCREEN (NATIVE INSET-GROUPED LIST) -->
-              <div class="screen-view active" id="screen-today">
-                <div class="app-nav-header">
-                  <div class="nav-date-group">
-                    <p id="today-day-name">TODAY</p>
-                    <h2 id="today-date-title">Today</h2>
+              <!-- SCREEN 1: TODAY SCREEN (PINNED CONTROL DECK + DEDICATED HABITS SCROLL) -->
+              <div class="screen-view pinned-screen active" id="screen-today">
+                <div class="screen-pinned-deck">
+                  <div class="app-nav-header compact-nav">
+                    <div class="nav-date-group" onclick="openCalendarJumpModal()" style="cursor:pointer;" title="Tap to jump to any date">
+                      <p id="today-day-name">TODAY</p>
+                      <h2 id="today-date-title">Today</h2>
+                    </div>
+                    <div class="header-actions" style="display:flex; align-items:center; gap:6px;">
+                      <button class="shield-pill" id="freeze-shield-pill" title="Streak Freeze Shields (Earned every 7-day streak!)">
+                        ❄️ <span id="shield-count-text">2</span>
+                      </button>
+                      <button class="round-action-btn compact-circle-btn" id="today-search-toggle-btn" onclick="toggleTodaySearchBar()" title="Search Habits">
+                        🔍
+                      </button>
+                      <button class="round-action-btn compact-circle-btn" onclick="openCalendarJumpModal()" title="Graphical Calendar DatePicker">
+                        🗓️
+                      </button>
+                      <button class="round-action-btn compact-add-btn" onclick="openAddHabitSheet()" title="Add New Habit" aria-label="Add Habit">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round">
+                          <line x1="12" y1="5" x2="12" y2="19"></line>
+                          <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                  <div class="header-actions" style="display:flex; align-items:center; gap:6px;">
-                    <button class="shield-pill" onclick="openCalendarJumpModal()" title="Graphical Calendar DatePicker">
-                      🗓️
-                    </button>
-                    <button class="shield-pill" id="freeze-shield-pill" title="Streak Freeze Shields (Earned every 7-day streak!)">
-                      ❄️ <span id="shield-count-text">2</span>
-                    </button>
-                    <button class="round-action-btn" onclick="openAddHabitSheet()" title="Add New Habit" aria-label="Add Habit">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                      </svg>
-                    </button>
+
+                  <!-- On-Demand Collapsible Search Bar -->
+                  <div class="ios-search-row" id="today-search-row" style="display:none;">
+                    <span style="font-size:12px; color:var(--app-text-muted);">🔍</span>
+                    <input type="search" id="today-search-input" placeholder="Search habits or reflection notes..." oninput="onTodaySearch(this.value)">
                   </div>
-                </div>
 
-                <!-- Native Pull-Down Search Bar -->
-                <div class="ios-search-row">
-                  <span style="font-size:13px; color:var(--app-text-muted);">🔍</span>
-                  <input type="search" id="today-search-input" placeholder="Search habits or reflection notes..." oninput="onTodaySearch(this.value)">
-                </div>
+                  <!-- Vacation Mode Banner -->
+                  <div class="vacation-banner" id="vacation-banner" style="display:none;">
+                    <span>🏖️ Vacation Mode — Streaks Protected</span>
+                    <button onclick="toggleVacationMode()">Resume</button>
+                  </div>
 
-                <!-- Vacation Mode Banner -->
-                <div class="vacation-banner" id="vacation-banner" style="display:none;">
-                  <span>🏖️ Vacation Mode Active — Streaks Protected</span>
-                  <button onclick="toggleVacationMode()">Resume</button>
-                </div>
+                  <!-- Past/Future Date Banner -->
+                  <div class="date-view-banner" id="date-view-banner" style="display: none;"></div>
 
-                <!-- Past/Future Date Banner -->
-                <div class="date-view-banner" id="date-view-banner" style="display: none;"></div>
+                  <!-- Horizontal-Only Scrollable Timeline Ribbon -->
+                  <div class="week-ribbon" id="week-ribbon-container"></div>
 
-                <!-- Horizontal Scrollable Timeline Ribbon -->
-                <div class="week-ribbon" id="week-ribbon-container"></div>
+                  <!-- Compact Jewel-Like Daily Focus Card -->
+                  <div class="progress-hero-card compact-focus-card">
+                    <div class="hero-content">
+                      <div class="hero-text">
+                        <div class="hero-title-inline">
+                          <h3 id="hero-motivation-title">Daily Focus</h3>
+                          <div class="streak-chip" id="hero-streak-chip">
+                            <span>🔥 0d</span>
+                          </div>
+                        </div>
+                        <p id="hero-motivation-sub">0 of 0 scheduled habits done</p>
+                      </div>
 
-                <!-- Apple Fitness-Style Daily Ring Card -->
-                <div class="progress-hero-card">
-                  <div class="hero-content">
-                    <div class="hero-text">
-                      <h3 id="hero-motivation-title">Daily Focus</h3>
-                      <p id="hero-motivation-sub">0 of 0 scheduled habits done</p>
-                      <div class="streak-chip" id="hero-streak-chip">
-                        <span>🔥 0d Top Streak</span>
+                      <div class="progress-gauge-box">
+                        <svg class="gauge-svg" viewBox="0 0 80 80">
+                          <defs>
+                            <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stop-color="#007AFF"/>
+                              <stop offset="100%" stop-color="#5856D6"/>
+                            </linearGradient>
+                          </defs>
+                          <circle class="gauge-bg" cx="40" cy="40" r="35"/>
+                          <circle class="gauge-val" id="hero-gauge-val" cx="40" cy="40" r="35"/>
+                        </svg>
+                        <div class="gauge-center-text" id="hero-gauge-text">0%</div>
                       </div>
                     </div>
+                  </div>
 
-                    <div class="progress-gauge-box">
-                      <svg class="gauge-svg" viewBox="0 0 80 80">
-                        <defs>
-                          <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#007AFF"/>
-                            <stop offset="100%" stop-color="#5856D6"/>
-                          </linearGradient>
-                        </defs>
-                        <circle class="gauge-bg" cx="40" cy="40" r="35"/>
-                        <circle class="gauge-val" id="hero-gauge-val" cx="40" cy="40" r="35"/>
-                      </svg>
-                      <div class="gauge-center-text" id="hero-gauge-text">0%</div>
-                    </div>
+                  <!-- Sliding Segmented Filter Control -->
+                  <div class="ios-segmented compact-segmented" id="today-filter-bar">
+                    <button class="ios-seg-btn active" data-filter="due" onclick="setTodayFilter('due')">Due</button>
+                    <button class="ios-seg-btn" data-filter="all" onclick="setTodayFilter('all')">All Active</button>
+                    <button class="ios-seg-btn" data-filter="quit_limit" onclick="setTodayFilter('quit_limit')">Quit & Limit</button>
                   </div>
                 </div>
 
-                <!-- Schedule Filter Segmented Control -->
-                <div class="ios-segmented" id="today-filter-bar">
-                  <button class="ios-seg-btn active" data-filter="due" onclick="setTodayFilter('due')">Due</button>
-                  <button class="ios-seg-btn" data-filter="all" onclick="setTodayFilter('all')">All Active</button>
-                  <button class="ios-seg-btn" data-filter="quit_limit" onclick="setTodayFilter('quit_limit')">Quit & Limit</button>
-                </div>
-
-                <!-- Grouped Habits Container (Swipe left or tap ••• for native actions!) -->
-                <div id="today-habits-container"></div>
+                <!-- Dedicated Habits Scroll Region (ONLY this area scrolls up/down!) -->
+                <div class="screen-scroll-body" id="today-habits-container"></div>
 
                 <!-- Floating Active Focus Timer Mini-Player -->
                 <div class="floating-timer-bar" id="floating-timer-bar" onclick="reopenActiveTimerModal()">
@@ -392,35 +399,42 @@
               </div>
 
               <!-- SCREEN 3: INSIGHTS (NATIVE SWIFT CHARTS) -->
-              <div class="screen-view" id="screen-insights">
-                <div class="app-nav-header">
-                  <div class="nav-date-group">
-                    <p>SWIFT CHARTS ANALYTICS</p>
-                    <h2>Insights</h2>
+              <div class="screen-view pinned-screen" id="screen-insights">
+                <div class="screen-pinned-deck">
+                  <div class="app-nav-header compact-nav">
+                    <div class="nav-date-group">
+                      <p>SWIFT CHARTS ANALYTICS</p>
+                      <h2>Insights</h2>
+                    </div>
                   </div>
                 </div>
-                <div id="insights-content-container"></div>
+                <div class="screen-scroll-body" id="insights-content-container"></div>
               </div>
 
               <!-- SCREEN 4: CHALLENGES & MILESTONE BADGES -->
-              <div class="screen-view" id="screen-challenges">
-                <div class="app-nav-header">
-                  <div class="nav-date-group">
-                    <p>PROGRAMS & TROPHIES</p>
-                    <h2>Challenges</h2>
+              <div class="screen-view pinned-screen" id="screen-challenges">
+                <div class="screen-pinned-deck">
+                  <div class="app-nav-header compact-nav">
+                    <div class="nav-date-group">
+                      <p>PROGRAMS & TROPHIES</p>
+                      <h2>Challenges</h2>
+                    </div>
                   </div>
                 </div>
-                <div id="challenges-content-container"></div>
+                <div class="screen-scroll-body" id="challenges-content-container"></div>
               </div>
 
               <!-- SCREEN 5: SETTINGS SCREEN -->
-              <div class="screen-view" id="screen-settings">
-                <div class="app-nav-header">
-                  <div class="nav-date-group">
-                    <p>CUPERTINO PREFERENCES</p>
-                    <h2>Settings</h2>
+              <div class="screen-view pinned-screen" id="screen-settings">
+                <div class="screen-pinned-deck">
+                  <div class="app-nav-header compact-nav">
+                    <div class="nav-date-group">
+                      <p>CUPERTINO PREFERENCES</p>
+                      <h2>Settings</h2>
+                    </div>
                   </div>
                 </div>
+                <div class="screen-scroll-body">
 
                 <div class="settings-section-title">APPEARANCE & HAPTICS</div>
                 <div class="settings-group">
@@ -602,6 +616,7 @@
                 </div>
 
                 <div style="height: 30px;"></div>
+                </div>
               </div>
 
             </div>
@@ -877,6 +892,6 @@
 
   </div>
 
-  <script src="app.js?v=3.0.5"></script>
+  <script src="app.js?v=3.1.0"></script>
 </body>
 </html>

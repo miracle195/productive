@@ -24,6 +24,7 @@
 		A10000102C00000000000010 /* FocusTimerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000102C00000000000010 /* FocusTimerSheet.swift */; };
 		A10000112C00000000000011 /* RoutinePlayerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000112C00000000000011 /* RoutinePlayerSheet.swift */; };
 		A10000122C00000000000012 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000122C00000000000012 /* InsightsView.swift */; };
+		A10000132C00000000000013 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10000132C00000000000013 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -46,6 +47,7 @@
 		B10000102C00000000000010 /* FocusTimerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/FocusTimerSheet.swift; sourceTree = "<group>"; };
 		B10000112C00000000000011 /* RoutinePlayerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/RoutinePlayerSheet.swift; sourceTree = "<group>"; };
 		B10000122C00000000000012 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/InsightsView.swift; sourceTree = "<group>"; };
+		B10000132C00000000000013 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +81,7 @@
 				B10000082C00000000000008 /* ChallengesView.swift */,
 				B10000092C00000000000009 /* SettingsView.swift */,
 				B100000A2C0000000000000A /* DynamicIslandActivity.swift */,
+				B10000132C00000000000013 /* Assets.xcassets */,
 				B100000B2C0000000000000B /* Info.plist */,
 				E10000022C00000000000002 /* Products */,
 			);
@@ -149,6 +152,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A10000132C00000000000013 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -239,7 +243,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGNING_REQUIRED = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Info.plist;
@@ -247,7 +251,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.0.0;
+				MARKETING_VERSION = 3.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.apalon.productive.tracker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -263,7 +267,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGNING_REQUIRED = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Info.plist;
@@ -271,7 +275,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.0.0;
+				MARKETING_VERSION = 3.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.apalon.productive.tracker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

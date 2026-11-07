@@ -1,8 +1,8 @@
 //
 //  HabitCardView.swift
-//  Productive - Semantic Cupertino Habit Row Component
-//  Supports SF Symbol Bounce, Numeric Rolling Counters, Subtasks, Rollover Quotas,
-//  Quit Abstinence Counters, Daily Limit Gauges, Reps Steppers & Focus Timer Trigger
+//  Productive - High-Responsiveness Semantic Cupertino Habit Row
+//  120Hz Tactile Spring Controls, Clean Chevron-Free Alignment, Custom Smooth Progress Track,
+//  Subtasks, Rollover Quotas, Quit Abstinence, Daily Limit Gauges & Reps Steppers
 //
 
 import SwiftUI
@@ -11,6 +11,7 @@ public struct HabitCardView: View {
     @EnvironmentObject var habitStore: HabitStore
     public let habit: Habit
     public var dateKey: String = ""
+    public var onOpenDetail: (() -> Void)? = nil
     public var onOpenTimer: (() -> Void)? = nil
     
     private var activeDateKey: String {
@@ -45,127 +46,181 @@ public struct HabitCardView: View {
         habit.reps(on: activeDateKey)
     }
     
-    public init(habit: Habit, dateKey: String = "", onOpenTimer: (() -> Void)? = nil) {
+    private var accentColor: Color {
+        Color(hex: habit.colorHex)
+    }
+    
+    public init(
+        habit: Habit,
+        dateKey: String = "",
+        onOpenDetail: (() -> Void)? = nil,
+        onOpenTimer: (() -> Void)? = nil
+    ) {
         self.habit = habit
         self.dateKey = dateKey
+        self.onOpenDetail = onOpenDetail
         self.onOpenTimer = onOpenTimer
     }
     
     public var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Top Row: Icon, Name & Metadata, Primary Action Control
+        VStack(alignment: .leading, spacing: 8) {
+            // Top Row: Tappable Icon + Title Area (Opens Overview) & Dedicated Instant Check Ring
             HStack(spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color(hex: habit.colorHex))
-                        .frame(width: 42, height: 42)
-                    
-                    Image(systemName: habit.icon)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .symbolEffect(.bounce, value: isCompleted)
-                }
-                
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Text(habit.name)
-                            .font(.system(.body, design: .rounded).weight(.bold))
-                            .foregroundStyle(isCompleted || isSkipped ? .secondary : .primary)
-                            .strikethrough(isCompleted && habit.polarity == .build)
-                            .lineLimit(1)
+                Button {
+                    habitStore.triggerHaptic(.light)
+                    onOpenDetail?()
+                } label: {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [accentColor, accentColor.opacity(0.78)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 40, height: 40)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .stroke(Color.white.opacity(0.2), lineWidth: 0.7)
+                                )
+                            
+                            Image(systemName: habit.icon)
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .symbolEffect(.bounce, value: isCompleted)
+                        }
                         
-                        if let mood = habit.mood(on: activeDateKey) {
-                            Text(mood.emoji)
-                                .font(.caption)
+                        VStack(alignment: .leading, spacing: 2.5) {
+                            HStack(spacing: 5) {
+                                Text(habit.name)
+                                    .font(.system(size: 15.5, weight: .bold, design: .rounded))
+                                    .foregroundStyle(isCompleted || isSkipped ? .secondary : .primary)
+                                    .strikethrough(isCompleted && habit.polarity == .build)
+                                    .lineLimit(1)
+                                
+                                if let mood = habit.mood(on: activeDateKey) {
+                                    Text(mood.emoji)
+                                        .font(.caption)
+                                }
+                                if !habit.note(on: activeDateKey).isEmpty {
+                                    Image(systemName: "note.text")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            
+                            // Metadata Pills
+                            HStack(spacing: 6) {
+                                if habit.polarity == .quit {
+                                    Label("Quit", systemImage: "hand.raised.fill")
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(.pink)
+                                } else if habit.polarity == .limit {
+                                    Label("Max \(Int(habit.targetAmount)) \(habit.unit)", systemImage: "gauge.with.dots.needle.33percent")
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(.purple)
+                                } else {
+                                    Text(habit.frequency.rawValue)
+                                        .font(.caption2.weight(.medium))
+                                        .foregroundStyle(.secondary)
+                                }
+                                
+                                if isSkipped {
+                                    Label(habit.history[activeDateKey]?.usedFreezeShield == true ? "Frozen" : "Skipped", systemImage: "snowflake")
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(.cyan)
+                                } else if rolloverExtra > 0 {
+                                    Label("+\(Int(rolloverExtra)) rollover", systemImage: "arrow.triangle.2.circlepath")
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(.purple)
+                                }
+                                
+                                HStack(spacing: 2) {
+                                    Image(systemName: "flame.fill")
+                                    Text("\(habit.streak)d")
+                                        .contentTransition(.numericText())
+                                }
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.orange)
+                            }
                         }
-                        if !habit.note(on: activeDateKey).isEmpty {
-                            Image(systemName: "note.text")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
+                        
+                        Spacer(minLength: 4)
                     }
-                    
-                    // Metadata Pills
-                    HStack(spacing: 6) {
-                        if habit.polarity == .quit {
-                            Label("Quit", systemImage: "hand.raised.fill")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(.pink)
-                        } else if habit.polarity == .limit {
-                            Label("Max \(Int(habit.targetAmount)) \(habit.unit)", systemImage: "gauge.with.dots.needle.33percent")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(.purple)
-                        } else {
-                            Text(habit.frequency.rawValue)
-                                .font(.caption2.weight(.medium))
-                                .foregroundStyle(.secondary)
-                        }
-                        
-                        if isSkipped {
-                            Label(habit.history[activeDateKey]?.usedFreezeShield == true ? "Frozen" : "Skipped", systemImage: "snowflake")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(.cyan)
-                        } else if rolloverExtra > 0 {
-                            Label("+\(Int(rolloverExtra)) rollover", systemImage: "arrow.triangle.2.circlepath")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(.purple)
-                        }
-                        
-                        HStack(spacing: 2) {
-                            Image(systemName: "flame.fill")
-                            Text("\(habit.streak)d")
-                                .contentTransition(.numericText())
-                        }
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.orange)
-                    }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.98))
                 
-                Spacer(minLength: 4)
-                
-                // Trailing Checkmark / Lock / Shield Action
+                // Dedicated Instant Checkmark / Lock Ring (Zero NavigationLink interference!)
                 if isLockedMissed {
                     Image(systemName: "lock.fill")
                         .font(.subheadline)
                         .foregroundStyle(.red)
-                        .frame(width: 34, height: 34)
+                        .frame(width: 36, height: 36)
                         .background(.red.opacity(0.12), in: Circle())
                 } else {
                     Button {
-                        habitStore.toggleHabit(id: habit.id, on: activeDateKey)
+                        withAnimation(.snappy(duration: 0.2)) {
+                            habitStore.toggleHabit(id: habit.id, on: activeDateKey)
+                        }
                     } label: {
-                        Image(systemName: isCompleted ? "checkmark.circle.fill" : (isSkipped ? "forward.circle.fill" : "circle"))
-                            .font(.system(size: 28, weight: .semibold))
-                            .foregroundStyle(isCompleted ? Color.green : (isSkipped ? Color.cyan : Color.secondary.opacity(0.45)))
-                            .symbolEffect(.bounce, value: isCompleted)
+                        ZStack {
+                            if isCompleted {
+                                Circle()
+                                    .fill(Color.green.gradient)
+                                    .frame(width: 30, height: 30)
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 13.5, weight: .heavy))
+                                    .foregroundStyle(.white)
+                            } else if isSkipped {
+                                Circle()
+                                    .fill(Color.cyan.opacity(0.2))
+                                    .frame(width: 30, height: 30)
+                                Image(systemName: "forward.fill")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(.cyan)
+                            } else {
+                                Circle()
+                                    .stroke(Color.secondary.opacity(0.38), lineWidth: 2.2)
+                                    .frame(width: 28, height: 28)
+                            }
+                        }
+                        .frame(width: 38, height: 38)
+                        .contentShape(Circle())
                     }
-                    .buttonStyle(.borderless)
+                    .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.86))
                 }
             }
             
             // Subtasks Checklist (if configured)
             if !habit.subtasks.isEmpty && !isSkipped {
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 4) {
                     ForEach(habit.subtasks) { subtask in
                         let subDone = habit.history[activeDateKey]?.completedSubtaskIds.contains(subtask.id) ?? false
                         Button {
-                            habitStore.toggleSubtask(habitId: habit.id, subtaskId: subtask.id, on: activeDateKey)
+                            withAnimation(.snappy(duration: 0.18)) {
+                                habitStore.toggleSubtask(habitId: habit.id, subtaskId: subtask.id, on: activeDateKey)
+                            }
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: subDone ? "checkmark.square.fill" : "square")
                                     .font(.caption)
-                                    .foregroundStyle(subDone ? Color(hex: habit.colorHex) : .secondary)
+                                    .foregroundStyle(subDone ? accentColor : .secondary)
                                 Text(subtask.title)
                                     .font(.caption)
                                     .strikethrough(subDone)
                                     .foregroundStyle(subDone ? .secondary : .primary)
                                 Spacer()
                             }
+                            .padding(.vertical, 1)
+                            .contentShape(Rectangle())
                         }
-                        .buttonStyle(.borderless)
+                        .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.97))
                     }
                 }
-                .padding(.leading, 54)
+                .padding(.leading, 52)
             }
             
             // Polarity & Tracking Mode Interactive Controls
@@ -181,8 +236,26 @@ public struct HabitCardView: View {
                 timerControlsRow
             }
         }
-        .padding(.vertical, 4)
         .opacity(isSkipped ? 0.72 : 1.0)
+    }
+    
+    // MARK: - Smooth Capsule Progress Track
+    
+    private func smoothProgressTrack(fraction: Double, color: Color) -> some View {
+        GeometryReader { geo in
+            let clamped = min(1.0, max(0.0, fraction))
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.primary.opacity(0.08))
+                    .frame(height: 5.5)
+                
+                Capsule()
+                    .fill(color.gradient)
+                    .frame(width: max(clamped > 0 ? 6 : 0, geo.size.width * clamped), height: 5.5)
+                    .animation(.snappy(duration: 0.24), value: clamped)
+            }
+        }
+        .frame(height: 5.5)
     }
     
     // MARK: - Mode Subviews
@@ -203,78 +276,100 @@ public struct HabitCardView: View {
             } label: {
                 Text("Log Slip")
                     .font(.caption2.weight(.bold))
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(.red.opacity(0.14), in: Capsule())
             }
-            .buttonStyle(.bordered)
-            .tint(.red)
-            .controlSize(.mini)
+            .buttonStyle(TactileScaleButtonStyle())
         }
-        .padding(.leading, 54)
+        .padding(.leading, 52)
     }
     
     private var limitControlsRow: some View {
         let ratio = min(1.0, currentAmount / max(1, habit.targetAmount))
         let overBudget = currentAmount > habit.targetAmount
+        let barColor: Color = overBudget ? .red : (ratio > 0.75 ? .orange : .green)
         
-        return VStack(spacing: 6) {
+        return VStack(spacing: 5) {
             HStack {
                 Text("\(Int(currentAmount)) / \(Int(habit.targetAmount)) \(habit.unit) cap")
                     .font(.caption.weight(.semibold))
                     .contentTransition(.numericText())
                     .foregroundStyle(overBudget ? .red : .secondary)
                 Spacer()
-                Button("+1 \(habit.unit)") {
-                    habitStore.incrementAmount(id: habit.id, step: max(1, habit.stepAmount), on: activeDateKey)
+                Button {
+                    withAnimation(.snappy(duration: 0.2)) {
+                        habitStore.incrementAmount(id: habit.id, step: max(1, habit.stepAmount), on: activeDateKey)
+                    }
+                } label: {
+                    Text("+\(Int(max(1, habit.stepAmount))) \(habit.unit)")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 4)
+                        .background(Color.primary.opacity(0.08), in: Capsule())
                 }
-                .font(.caption2.weight(.bold))
-                .buttonStyle(.bordered)
-                .controlSize(.mini)
+                .buttonStyle(TactileScaleButtonStyle())
             }
-            ProgressView(value: ratio)
-                .tint(overBudget ? .red : (ratio > 0.75 ? .orange : .green))
+            smoothProgressTrack(fraction: ratio, color: barColor)
         }
-        .padding(.leading, 54)
+        .padding(.leading, 52)
     }
     
     private var amountControlsRow: some View {
         let pct = min(1.0, currentAmount / max(1, effectiveTarget))
         
         return VStack(spacing: 6) {
-            HStack {
+            HStack(alignment: .center) {
                 Text("\(Int(currentAmount)) / \(Int(effectiveTarget)) \(habit.unit)")
                     .font(.caption.weight(.semibold))
                     .contentTransition(.numericText())
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text("\(Int(pct * 100))%")
-                    .font(.caption.weight(.bold))
+                    .font(.caption.weight(.heavy))
                     .contentTransition(.numericText())
-                    .foregroundStyle(Color(hex: habit.colorHex))
+                    .foregroundStyle(accentColor)
             }
             
-            ProgressView(value: pct)
-                .tint(Color(hex: habit.colorHex))
+            smoothProgressTrack(fraction: pct, color: accentColor)
             
             if !isCompleted && !isLockedMissed {
-                HStack(spacing: 8) {
-                    Button("+\(Int(habit.stepAmount)) \(habit.unit)") {
-                        habitStore.incrementAmount(id: habit.id, step: habit.stepAmount, on: activeDateKey)
+                HStack(spacing: 7) {
+                    Button {
+                        withAnimation(.snappy(duration: 0.2)) {
+                            habitStore.incrementAmount(id: habit.id, step: habit.stepAmount, on: activeDateKey)
+                        }
+                    } label: {
+                        Text("+\(Int(habit.stepAmount)) \(habit.unit)")
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .foregroundStyle(accentColor)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4.5)
+                            .background(accentColor.opacity(0.14), in: Capsule())
                     }
-                    .font(.caption2.weight(.bold))
-                    .buttonStyle(.bordered)
-                    .controlSize(.mini)
+                    .buttonStyle(TactileScaleButtonStyle())
                     
-                    Button("+\(Int(habit.stepAmount * 2)) \(habit.unit)") {
-                        habitStore.incrementAmount(id: habit.id, step: habit.stepAmount * 2, on: activeDateKey)
+                    Button {
+                        withAnimation(.snappy(duration: 0.2)) {
+                            habitStore.incrementAmount(id: habit.id, step: habit.stepAmount * 2, on: activeDateKey)
+                        }
+                    } label: {
+                        Text("+\(Int(habit.stepAmount * 2)) \(habit.unit)")
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .foregroundStyle(accentColor)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4.5)
+                            .background(accentColor.opacity(0.14), in: Capsule())
                     }
-                    .font(.caption2.weight(.bold))
-                    .buttonStyle(.bordered)
-                    .controlSize(.mini)
+                    .buttonStyle(TactileScaleButtonStyle())
                     
                     Spacer()
                 }
             }
         }
-        .padding(.leading, 54)
+        .padding(.leading, 52)
     }
     
     private var repsControlsRow: some View {
@@ -282,40 +377,50 @@ public struct HabitCardView: View {
             HStack(spacing: 4) {
                 ForEach(1...min(10, max(1, habit.targetReps)), id: \.self) { idx in
                     Circle()
-                        .fill(idx <= currentReps ? Color(hex: habit.colorHex) : Color.secondary.opacity(0.2))
+                        .fill(idx <= currentReps ? accentColor : Color.secondary.opacity(0.22))
                         .frame(width: 7, height: 7)
+                        .animation(.snappy(duration: 0.18), value: currentReps)
                 }
             }
             
             Spacer()
             
             if !isLockedMissed {
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Button {
-                        habitStore.stepReps(id: habit.id, delta: -1, on: activeDateKey)
+                        withAnimation(.snappy(duration: 0.18)) {
+                            habitStore.stepReps(id: habit.id, delta: -1, on: activeDateKey)
+                        }
                     } label: {
-                        Image(systemName: "minus.circle.fill")
-                            .font(.title3)
+                        Image(systemName: "minus")
+                            .font(.system(size: 11, weight: .heavy))
                             .foregroundStyle(.secondary)
+                            .frame(width: 26, height: 26)
+                            .background(Color.primary.opacity(0.08), in: Circle())
                     }
-                    .buttonStyle(.borderless)
+                    .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.88))
                     
                     Text("\(currentReps)/\(habit.targetReps)")
-                        .font(.caption.monospacedDigit().weight(.bold))
+                        .font(.caption.monospacedDigit().weight(.heavy))
                         .contentTransition(.numericText())
+                        .frame(minWidth: 28)
                     
                     Button {
-                        habitStore.stepReps(id: habit.id, delta: 1, on: activeDateKey)
+                        withAnimation(.snappy(duration: 0.18)) {
+                            habitStore.stepReps(id: habit.id, delta: 1, on: activeDateKey)
+                        }
                     } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title3)
-                            .foregroundStyle(Color(hex: habit.colorHex))
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .heavy))
+                            .foregroundStyle(.white)
+                            .frame(width: 26, height: 26)
+                            .background(accentColor, in: Circle())
                     }
-                    .buttonStyle(.borderless)
+                    .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.88))
                 }
             }
         }
-        .padding(.leading, 54)
+        .padding(.leading, 52)
     }
     
     private var timerControlsRow: some View {
@@ -329,18 +434,22 @@ public struct HabitCardView: View {
             Spacer()
             
             Button {
+                habitStore.triggerHaptic(.light)
                 onOpenTimer?()
             } label: {
-                Label(
-                    isThisRunning ? "Focusing..." : (isCompleted ? "Focus Again" : "Start Timer"),
-                    systemImage: isThisRunning ? "waveform" : "play.fill"
-                )
-                .font(.caption2.weight(.bold))
+                HStack(spacing: 4) {
+                    Image(systemName: isThisRunning ? "waveform" : "play.fill")
+                        .font(.system(size: 10, weight: .bold))
+                    Text(isThisRunning ? "Focusing..." : (isCompleted ? "Focus Again" : "Start Timer"))
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 11)
+                .padding(.vertical, 5)
+                .background(accentColor.gradient, in: Capsule())
             }
-            .buttonStyle(.borderedProminent)
-            .tint(Color(hex: habit.colorHex))
-            .controlSize(.mini)
+            .buttonStyle(TactileScaleButtonStyle())
         }
-        .padding(.leading, 54)
+        .padding(.leading, 52)
     }
 }

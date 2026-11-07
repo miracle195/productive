@@ -21,7 +21,22 @@ struct SettingsView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
+            VStack(spacing: 0) {
+                // Pinned Non-Scrolling Settings Header
+                HStack {
+                    Text("Settings")
+                        .font(.system(size: 26, weight: .heavy, design: .rounded))
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 6)
+                .padding(.bottom, 8)
+                .background(Color(.systemGroupedBackground))
+                
+                Divider()
+                    .opacity(0.45)
+                
+                Form {
                 // Appearance & Feedback
                 Section(header: Text("Appearance & Haptics")) {
                     Picker("Appearance", selection: $habitStore.appTheme) {
@@ -207,7 +222,7 @@ struct SettingsView: View {
                     HStack {
                         Text("Version")
                         Spacer()
-                        Text("3.0.0 Native SwiftUI")
+                        Text("3.1.0 Native SwiftUI")
                             .foregroundStyle(.secondary)
                     }
                     
@@ -219,7 +234,12 @@ struct SettingsView: View {
                     }
                 }
             }
-            .navigationTitle("Settings")
+            .listSectionSpacing(12)
+            .contentMargins(.top, 6, for: .scrollContent)
+            .scrollContentBackground(.hidden)
+            }
+            .background(Color(.systemGroupedBackground))
+            .toolbar(.hidden, for: .navigationBar)
             .fileImporter(
                 isPresented: $showingFileImporter,
                 allowedContentTypes: [.json, .plainText],

@@ -20,7 +20,32 @@ public struct ChallengesView: View {
     
     public var body: some View {
         NavigationStack {
-            List {
+            VStack(spacing: 0) {
+                // Pinned Non-Scrolling Challenges Header
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Challenges")
+                            .font(.system(size: 26, weight: .heavy, design: .rounded))
+                        let unlockedCount = habitStore.achievementBadges.filter(\.isUnlocked).count
+                        Text("\(joinedChallenges.count) active • \(unlockedCount)/\(habitStore.achievementBadges.count) badges unlocked")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "trophy.circle.fill")
+                        .font(.system(size: 32))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.orange)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 6)
+                .padding(.bottom, 10)
+                .background(Color(.systemGroupedBackground))
+                
+                Divider()
+                    .opacity(0.45)
+                
+                List {
                 // Active Challenges
                 if !joinedChallenges.isEmpty {
                     Section(header: Text("Active Challenges")) {
@@ -137,9 +162,14 @@ public struct ChallengesView: View {
                     .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                     .listRowBackground(Color.clear)
                 }
+                }
+                .listStyle(.insetGrouped)
+                .listSectionSpacing(12)
+                .contentMargins(.top, 6, for: .scrollContent)
+                .scrollContentBackground(.hidden)
             }
-            .listStyle(.insetGrouped)
-            .navigationTitle("Challenges")
+            .background(Color(.systemGroupedBackground))
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 }

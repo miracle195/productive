@@ -2634,3 +2634,155 @@ body {
   background: var(--app-accent-blue);
   color: #FFFFFF;
 }
+
+/* ==========================================================================
+   v3.1 PINNED NON-SCROLLING DECK, DIRECTIONAL SCROLL ISOLATION & 120HZ UI
+   ========================================================================== */
+.screen-view.pinned-screen {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden !important;
+  padding: 6px 16px 0 16px;
+}
+
+.screen-pinned-deck {
+  flex-shrink: 0;
+  width: 100%;
+  padding-bottom: 6px;
+  border-bottom: 0.5px solid var(--app-divider);
+}
+
+.screen-scroll-body {
+  flex: 1 1 0%;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  padding-top: 6px;
+  padding-bottom: 84px;
+}
+.screen-scroll-body::-webkit-scrollbar {
+  display: none;
+}
+
+.app-nav-header.compact-nav {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+.app-nav-header.compact-nav .nav-date-group h2 {
+  font-size: 23px;
+  line-height: 1.1;
+}
+.app-nav-header.compact-nav .nav-date-group p {
+  font-size: 10.5px;
+  margin-bottom: 1px;
+}
+
+.compact-circle-btn {
+  width: 32px;
+  height: 32px;
+  font-size: 13px;
+}
+.compact-add-btn {
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(135deg, #007AFF, #5856D6);
+  border: none;
+  color: #FFFFFF;
+  box-shadow: 0 4px 10px rgba(0, 122, 255, 0.32);
+}
+
+/* Horizontal-only date ribbon with tight vertical rhythm */
+.screen-pinned-deck .week-ribbon {
+  padding: 5px 8px;
+  margin-bottom: 8px;
+  border-radius: 15px;
+  gap: 6px;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+}
+.screen-pinned-deck .day-pill {
+  flex: 0 0 44px;
+  width: 44px;
+  padding: 5px 3px;
+  gap: 2px;
+  border-radius: 12px;
+}
+.screen-pinned-deck .day-pill .day-num {
+  font-size: 14px;
+}
+
+/* Compact Jewel-Like Daily Focus Card (Zero unused space) */
+.progress-hero-card.compact-focus-card {
+  min-height: 0;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  border-radius: 16px;
+}
+.hero-title-inline {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+.compact-focus-card .hero-text h3 {
+  font-size: 14.5px;
+  margin-bottom: 0;
+}
+.compact-focus-card .hero-text p {
+  font-size: 11.5px;
+}
+.compact-focus-card .streak-chip {
+  margin-top: 0;
+  padding: 2px 7px;
+  font-size: 10.5px;
+  border-radius: 999px;
+}
+.compact-focus-card .progress-gauge-box,
+.compact-focus-card .gauge-svg {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+}
+.compact-focus-card .gauge-center-text {
+  font-size: 11.5px;
+}
+
+.ios-segmented.compact-segmented {
+  margin-bottom: 2px;
+  padding: 2.5px;
+}
+.ios-segmented.compact-segmented .ios-seg-btn {
+  padding: 5px 6px;
+  font-size: 11.5px;
+}
+
+/* Tighter Habit Section Spacing & Snappy 120Hz Press Feedback */
+.screen-scroll-body .section-header {
+  margin: 6px 0 6px 0;
+}
+.screen-scroll-body .ios-grouped-list {
+  margin-bottom: 10px;
+}
+.habit-swipe-wrapper {
+  touch-action: pan-y;
+}
+.habit-check-btn,
+.amount-chip,
+.reps-step-btn,
+.mini-pill-btn,
+.ios-seg-btn,
+.day-pill {
+  transition: transform 0.14s cubic-bezier(0.22, 1, 0.36, 1), background 0.16s ease, opacity 0.16s ease;
+}
+.habit-check-btn:active,
+.amount-chip:active,
+.reps-step-btn:active,
+.mini-pill-btn:active {
+  transform: scale(0.9);
+}

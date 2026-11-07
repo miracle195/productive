@@ -1036,8 +1036,8 @@ function renderTodayScreen() {
 
   if (gaugeVal) gaugeVal.style.strokeDashoffset = 220 - (220 * rate) / 100;
   if (gaugeText) gaugeText.textContent = rate + '%';
-  if (heroSub) heroSub.textContent = dueHabits.length > 0 ? (doneDue + ' of ' + dueHabits.length + ' scheduled habits done') : 'No habits scheduled yet';
-  if (heroStreak) heroStreak.innerHTML = '<span>🔥 ' + topStreak + 'd Top Streak</span>';
+  if (heroSub) heroSub.textContent = dueHabits.length > 0 ? (doneDue + ' of ' + dueHabits.length + ' scheduled habits done') : 'Tap + to schedule your first habit';
+  if (heroStreak) heroStreak.innerHTML = '<span>🔥 ' + topStreak + 'd</span>';
   if (heroTitle) {
     if (state.activeHabits.length === 0) heroTitle.textContent = 'Ready to Plan ✨';
     else if (rate === 100 && dueHabits.length > 0) heroTitle.textContent = 'All Goals Complete! 🎉';
@@ -3072,6 +3072,26 @@ function triggerActionButton() {
   } else {
     showToast('All due habits completed for today! 🎉');
   }
+}
+
+function toggleTodaySearchBar() {
+  const row = document.getElementById('today-search-row');
+  const input = document.getElementById('today-search-input');
+  const btn = document.getElementById('today-search-toggle-btn');
+  if (!row) return;
+  const isHidden = row.style.display === 'none' || !row.style.display;
+  if (isHidden) {
+    row.style.display = 'flex';
+    if (btn) btn.textContent = '✕';
+    if (input && input.focus) input.focus();
+  } else {
+    row.style.display = 'none';
+    if (btn) btn.textContent = '🔍';
+    if (input) input.value = '';
+    state.searchQuery = '';
+    renderTodayScreen();
+  }
+  sound.playClick();
 }
 
 function showToast(message) {

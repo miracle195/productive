@@ -24,14 +24,12 @@ public struct InsightsView: View {
     private var weeklyPoints: [DailyAdherencePoint] {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
-        let fmt = DateFormatter()
-        fmt.dateFormat = "EEE"
         
         return (-6...0).compactMap { offset in
             guard let date = cal.date(byAdding: .day, value: offset, to: today) else { return nil }
             let key = HabitStore.dateFormatter.string(from: date)
-            let pct = habitStore.completionPercentage(on: key)
-            return DailyAdherencePoint(id: key, label: fmt.string(from: date), percent: pct)
+            let pct = habitStore.completionPercentage(on: date, dateKey: key)
+            return DailyAdherencePoint(id: key, label: HabitStore.dayLetterFormatter.string(from: date), percent: pct)
         }
     }
     
@@ -56,7 +54,7 @@ public struct InsightsView: View {
         return (-83...0).compactMap { offset in
             guard let d = cal.date(byAdding: .day, value: offset, to: today) else { return nil }
             let key = HabitStore.dateFormatter.string(from: d)
-            return (key: key, ratio: Double(habitStore.completionPercentage(on: key)) / 100.0)
+            return (key: key, ratio: Double(habitStore.completionPercentage(on: d, dateKey: key)) / 100.0)
         }
     }
     
@@ -64,29 +62,46 @@ public struct InsightsView: View {
     
     public var body: some View {
         NavigationStack {
-            List {
-                // Summary KPI Header
-                Section {
-                    HStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 4) {
+            VStack(spacing: 0) {
+                // Pinned Non-Scrolling Header + KPI Summary Strip
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Insights")
+                        .font(.system(size: 26, weight: .heavy, design: .rounded))
+                        .padding(.top, 6)
+                    
+                    HStack(spacing: 14) {
+                        VStack(alignment: .leading, spacing: 3) {
                             Text("7-Day Consistency")
-                                .font(.subheadline.weight(.semibold))
+                                .font(.caption.weight(.bold))
                                 .foregroundStyle(.secondary)
-                            Text("\(averageWeeklyRate)%")
-                                .font(.system(size: 38, weight: .heavy, design: .rounded))
-                                .contentTransition(.numericText())
-                            let totalLogs = habitStore.habits.reduce(0) { $0 + $1.totalLogs }
-                            Text("\(totalLogs) lifetime completions across \(habitStore.activeHabits.count) active habits")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Text("\(averageWeeklyRate)%")
+                                    .font(.system(size: 30, weight: .heavy, design: .rounded))
+                                    .contentTransition(.numericText())
+                                let totalLogs = habitStore.habits.reduce(0) { $0 + $1.totalLogs }
+                                Text("\(totalLogs) lifetime logs • \(habitStore.activeHabits.count) active")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                         Spacer()
                         Image(systemName: "chart.bar.doc.horizontal.fill")
-                            .font(.system(size: 36))
+                            .font(.system(size: 28))
                             .foregroundStyle(Color.accentColor)
                     }
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+                .background(Color(.systemGroupedBackground))
+                
+                Divider()
+                    .opacity(0.45)
+                
+                // Dedicated Vertically-Scrolling Charts & Heatmap Area
+                List {
                 
                 // Native Swift Charts: 7-Day Adherence BarMark + RuleMark
                 Section(header: Text("Last 7 Days Adherence")) {
@@ -198,9 +213,14 @@ public struct InsightsView: View {
                         }
                     }
                 }
+                }
+                .listStyle(.insetGrouped)
+                .listSectionSpacing(12)
+                .contentMargins(.top, 6, for: .scrollContent)
+                .scrollContentBackground(.hidden)
             }
-            .listStyle(.insetGrouped)
-            .navigationTitle("Insights")
+            .background(Color(.systemGroupedBackground))
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
     

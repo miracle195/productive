@@ -46,73 +46,88 @@ public struct HabitDetailView: View {
     public var body: some View {
         Group {
             if let habit = habit {
-                List {
-                    // Hero Section
-                    Section {
-                        VStack(spacing: 12) {
+                VStack(spacing: 0) {
+                    // Pinned Compact Hero Header (Stays steady while metrics & heatmap scroll below)
+                    VStack(spacing: 8) {
+                        HStack(spacing: 14) {
                             ZStack {
-                                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                    .fill(Color(hex: habit.colorHex))
-                                    .frame(width: 72, height: 72)
-                                    .shadow(color: Color(hex: habit.colorHex).opacity(0.35), radius: 12, y: 6)
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(Color(hex: habit.colorHex).gradient)
+                                    .frame(width: 54, height: 54)
+                                    .shadow(color: Color(hex: habit.colorHex).opacity(0.3), radius: 8, y: 4)
                                 
                                 Image(systemName: habit.icon)
-                                    .font(.system(size: 32, weight: .semibold))
+                                    .font(.system(size: 24, weight: .semibold))
                                     .foregroundStyle(.white)
                             }
                             
-                            Text(habit.name)
-                                .font(.system(.title2, design: .rounded).weight(.heavy))
-                                .multilineTextAlignment(.center)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(habit.name)
+                                    .font(.system(.title3, design: .rounded).weight(.heavy))
+                                    .lineLimit(2)
+                                
+                                Text("\(habit.frequency.rawValue) • \(habit.timeOfDay.rawValue) • \(habit.summaryGoalLabel)")
+                                    .font(.caption.weight(.medium))
+                                    .foregroundStyle(.secondary)
+                            }
                             
-                            Text("\(habit.frequency.rawValue) • \(habit.timeOfDay.rawValue) • \(habit.summaryGoalLabel)")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            
-                            HStack(spacing: 10) {
-                                Button {
-                                    if habit.trackingType == .timer {
-                                        showingTimerSheet = true
-                                    } else {
+                            Spacer(minLength: 0)
+                        }
+                        
+                        HStack(spacing: 8) {
+                            Button {
+                                if habit.trackingType == .timer {
+                                    showingTimerSheet = true
+                                } else {
+                                    withAnimation(.snappy(duration: 0.2)) {
                                         habitStore.toggleHabit(id: habit.id)
                                     }
-                                } label: {
-                                    Label(
-                                        habit.isCompleted(on: habitStore.todayKey) ? "Completed Today" : (habit.trackingType == .timer ? "Start Focus Timer" : "Check In Today"),
-                                        systemImage: habit.isCompleted(on: habitStore.todayKey) ? "checkmark.circle.fill" : "bolt.fill"
-                                    )
-                                    .font(.subheadline.weight(.bold))
                                 }
-                                .buttonStyle(.borderedProminent)
-                                .tint(Color(hex: habit.colorHex))
-                                .buttonBorderShape(.capsule)
-                                
-                                Button {
-                                    journalDateKey = habitStore.todayKey
-                                } label: {
-                                    Label("Log Note", systemImage: "square.and.pencil")
-                                        .font(.subheadline.weight(.semibold))
-                                }
-                                .buttonStyle(.bordered)
-                                .buttonBorderShape(.capsule)
+                            } label: {
+                                Label(
+                                    habit.isCompleted(on: habitStore.todayKey) ? "Completed Today" : (habit.trackingType == .timer ? "Start Focus Timer" : "Check In Today"),
+                                    systemImage: habit.isCompleted(on: habitStore.todayKey) ? "checkmark.circle.fill" : "bolt.fill"
+                                )
+                                .font(.caption.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
                             }
-                            .padding(.top, 4)
+                            .buttonStyle(.borderedProminent)
+                            .tint(Color(hex: habit.colorHex))
+                            .buttonBorderShape(.capsule)
+                            
+                            Button {
+                                journalDateKey = habitStore.todayKey
+                            } label: {
+                                Label("Log Note", systemImage: "square.and.pencil")
+                                    .font(.caption.weight(.bold))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                            }
+                            .buttonStyle(.bordered)
+                            .buttonBorderShape(.capsule)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color(.systemGroupedBackground))
                     
-                    // Key Metrics Grid
-                    Section(header: Text("Performance Metrics")) {
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                            MetricTile(title: "Current Streak", value: "\(habit.streak)d", icon: "flame.fill", tint: .orange)
-                            MetricTile(title: "Best Streak", value: "\(habit.bestStreak)d", icon: "crown.fill", tint: .yellow)
-                            MetricTile(title: "Total Logs", value: "\(habit.totalLogs)", icon: "checkmark.seal.fill", tint: .green)
-                            MetricTile(title: "28d Rate", value: "\(consistency28Day(for: habit))%", icon: "chart.line.uptrend.xyaxis", tint: .blue)
+                    Divider()
+                        .opacity(0.45)
+                    
+                    // Dedicated Scrollable Analytics, Heatmap & Journal Region
+                    List {
+                        // Key Metrics Grid
+                        Section(header: Text("Performance Metrics")) {
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                MetricTile(title: "Current Streak", value: "\(habit.streak)d", icon: "flame.fill", tint: .orange)
+                                MetricTile(title: "Best Streak", value: "\(habit.bestStreak)d", icon: "crown.fill", tint: .yellow)
+                                MetricTile(title: "Total Logs", value: "\(habit.totalLogs)", icon: "checkmark.seal.fill", tint: .green)
+                                MetricTile(title: "28d Rate", value: "\(consistency28Day(for: habit))%", icon: "chart.line.uptrend.xyaxis", tint: .blue)
+                            }
+                            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                            .listRowBackground(Color.clear)
                         }
-                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                        .listRowBackground(Color.clear)
-                    }
                     
                     // Real 28-Day Interactive Calendar Heatmap
                     Section(
@@ -216,8 +231,12 @@ public struct HabitDetailView: View {
                             Label("Delete Habit", systemImage: "trash")
                         }
                     }
+                    }
+                    .listStyle(.insetGrouped)
+                    .listSectionSpacing(12)
+                    .contentMargins(.top, 6, for: .scrollContent)
                 }
-                .listStyle(.insetGrouped)
+                .toolbar(.visible, for: .navigationBar)
                 .navigationTitle("Overview")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
