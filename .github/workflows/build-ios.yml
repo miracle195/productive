@@ -51,7 +51,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: v2.4.0-ios
-        name: Productive v2.4.0 iOS (iPhone 15 Pro Ready)
+        tag_name: v3.0.0-ios
+        name: Productive v3.0.0 Native SwiftUI iOS (iPhone 15 Pro Ready)
         files: ios-swiftui/build/Productive.ipa
       continue-on-error: true

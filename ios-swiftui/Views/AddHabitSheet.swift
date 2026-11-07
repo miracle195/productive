@@ -1,20 +1,25 @@
 //
 //  AddHabitSheet.swift
-//  Cupertino Bottom Sheet for Presets and Custom Multi-Mode Habit Builder
-//  Includes all 14 Curated Categories, 83 Native Presets, and Deep Customization
+//  Productive - Native Habit Creator & Editor Sheet
+//  Supports Searchable 83 Presets, Full Edit Mode, Build/Quit/Limit Polarity,
+//  Custom Weekdays, Subtask Checklists, Reminders & SF Symbol Picker
 //
 
 import SwiftUI
 
 public struct AddHabitSheet: View {
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var habitStore: HabitStore
     
-    @State private var selectedTab = 0 // 0: Presets, 1: Custom Builder
-    @State private var selectedCategoryId: Int? = nil // nil = All Categories
+    public var editingHabit: Habit? = nil
     
-    // Custom Builder States
+    @State private var selectedTab = 0 // 0: Presets, 1: Builder
+    @State private var selectedCategoryId: Int? = nil
+    @State private var presetSearchText: String = ""
+    
+    // Builder Form States
     @State private var habitName: String = ""
+    @State private var polarity: HabitPolarity = .build
     @State private var trackingType: HabitTrackingType = .binary
     @State private var targetAmount: Double = 2000
     @State private var unit: String = "ml"
@@ -22,410 +27,474 @@ public struct AddHabitSheet: View {
     @State private var targetReps: Int = 3
     @State private var targetDurationMinutes: Int = 15
     @State private var frequency: HabitFrequency = .daily
+    @State private var customWeekdays: Set<Int> = [2, 3, 4, 5, 6]
     @State private var strictness: HabitStrictness = .strict
     @State private var selectedTimeOfDay: TimeOfDay = .morning
-    @State private var selectedColorHex: String = "#5700CB"
+    @State private var selectedColorHex: String = "#007AFF"
     @State private var selectedIcon: String = "sparkles"
     
-    let colorPalette = ["#5700CB", "#0062E4", "#0FC580", "#FF7450", "#F8BD32", "#F63566", "#923DFF", "#234AD9"]
-    let availableUnits = ["ml", "L", "glasses", "cups", "pages", "mins", "km", "steps"]
-    let availableIcons = ["sparkles", "drop.fill", "figure.run", "figure.walk", "figure.strengthtraining.traditional", "book.closed.fill", "moon.fill", "pill.fill", "heart.fill", "sun.max.fill", "fork.knife", "cup.and.saucer.fill", "dollarsign.circle.fill", "house.fill"]
+    // Subtasks & Reminders
+    @State private var subtasks: [HabitSubtask] = []
+    @State private var newSubtaskTitle: String = ""
+    @State private var reminderEnabled: Bool = false
+    @State private var reminderTime: Date = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+    
+    let colorPalette = ["#007AFF", "#5700CB", "#0FC580", "#FF7450", "#F8BD32", "#F63566", "#923DFF", "#00B4DB"]
+    let availableUnits = ["ml", "L", "glasses", "cups", "pages", "mins", "km", "steps", "times"]
+    let availableIcons = [
+        "sparkles", "drop.fill", "figure.run", "figure.walk",
+        "figure.strengthtraining.traditional", "book.closed.fill", "moon.stars.fill", "pills.fill",
+        "heart.fill", "sun.max.fill", "fork.knife", "cup.and.saucer.fill",
+        "dollarsign.circle.fill", "house.fill", "hand.raised.fill", "brain.head.profile"
+    ]
+    let weekdayOptions: [(id: Int, label: String)] = [
+        (2, "Mon"), (3, "Tue"), (4, "Wed"), (5, "Thu"), (6, "Fri"), (7, "Sat"), (1, "Sun")
+    ]
+    
+    public init(editingHabit: Habit? = nil) {
+        self.editingHabit = editingHabit
+    }
+    
+    var isEditing: Bool { editingHabit != nil }
     
     var filteredPresets: [PresetModel] {
+        var list = PresetsData.presets
         if let catId = selectedCategoryId {
-            return PresetsData.presets.filter { $0.categoryIds.contains(catId) }
+            list = list.filter { $0.categoryIds.contains(catId) }
         }
-        return PresetsData.presets
+        if !presetSearchText.trimmingCharacters(in: .whitespaces).isEmpty {
+            let q = presetSearchText.lowercased()
+            list = list.filter { $0.name.lowercased().contains(q) }
+        }
+        return list
     }
     
     public var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Segmented Switcher
-                Picker("Creation Mode", selection: $selectedTab) {
-                    Text("✨ Presets (\(PresetsData.presets.count))").tag(0)
-                    Text("🛠️ Custom Builder").tag(1)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
-                
-                if selectedTab == 0 {
-                    // TAB 1: PRESETS EXPLORER WITH CATEGORY FILTER
-                    VStack(spacing: 0) {
-                        // Category Selector Chips
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                // "All" Chip
-                                Button {
-                                    selectedCategoryId = nil
-                                    habitStore.triggerHaptic(.light)
-                                } label: {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "sparkles")
-                                            .font(.system(size: 11))
-                                        Text("All (\(PresetsData.presets.count))")
-                                            .font(.system(size: 12, weight: .bold))
-                                    }
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 7)
-                                    .background(selectedCategoryId == nil ?
-                                                LinearGradient(colors: [Color(hex: "#5700CB"), Color(hex: "#0062E4")], startPoint: .leading, endPoint: .trailing) :
-                                                LinearGradient(colors: [Color.white.opacity(0.08)], startPoint: .top, endPoint: .bottom))
-                                    .foregroundColor(selectedCategoryId == nil ? .white : .secondary)
-                                    .cornerRadius(12)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(selectedCategoryId == nil ? Color.white.opacity(0.3) : Color.clear, lineWidth: 1)
-                                    )
-                                }
-                                
-                                ForEach(PresetsData.categories) { cat in
-                                    let isSelected = (selectedCategoryId == cat.id)
-                                    let count = PresetsData.presets.filter { $0.categoryIds.contains(cat.id) }.count
-                                    Button {
-                                        selectedCategoryId = cat.id
-                                        habitStore.triggerHaptic(.light)
-                                    } label: {
-                                        HStack(spacing: 6) {
-                                            Image(systemName: cat.icon)
-                                                .font(.system(size: 11))
-                                            Text("\(cat.name) (\(count))")
-                                                .font(.system(size: 12, weight: .bold))
-                                        }
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 7)
-                                        .background(isSelected ?
-                                                    LinearGradient(colors: [Color(hex: "#5700CB"), Color(hex: "#0062E4")], startPoint: .leading, endPoint: .trailing) :
-                                                    LinearGradient(colors: [Color.white.opacity(0.08)], startPoint: .top, endPoint: .bottom))
-                                        .foregroundColor(isSelected ? .white : .secondary)
-                                        .cornerRadius(12)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .stroke(isSelected ? Color.white.opacity(0.3) : Color.clear, lineWidth: 1)
-                                        )
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 8)
-                        }
-                        .background(Color(.secondarySystemBackground).opacity(0.5))
-                        
-                        // Presets List
-                        List {
-                            Section(header: Text("TAP TO CUSTOMIZE • OR USE + ADD TO QUICK-LOG").font(.system(size: 11, weight: .bold))) {
-                                ForEach(filteredPresets) { preset in
-                                    HStack(spacing: 12) {
-                                        // Card body: Tap to customize configuration
-                                        HStack(spacing: 12) {
-                                            ZStack {
-                                                RoundedRectangle(cornerRadius: 10)
-                                                    .fill(Color(hex: preset.colorHex))
-                                                    .frame(width: 36, height: 36)
-                                                Image(systemName: preset.icon)
-                                                    .foregroundColor(.white)
-                                                    .font(.system(size: 16))
-                                            }
-                                            
-                                            VStack(alignment: .leading, spacing: 3) {
-                                                Text(preset.name)
-                                                    .font(.system(size: 15, weight: .bold))
-                                                    .foregroundColor(.primary)
-                                                
-                                                HStack(spacing: 6) {
-                                                    Text(preset.timeOfDay.rawValue)
-                                                        .font(.system(size: 11))
-                                                        .foregroundColor(.secondary)
-                                                    Text("•")
-                                                        .foregroundColor(.secondary)
-                                                    Text(preset.trackingType.rawValue)
-                                                        .font(.system(size: 11, weight: .semibold))
-                                                        .foregroundColor(Color(hex: "#007AFF"))
-                                                    
-                                                    if preset.trackingType == .amount {
-                                                        Text("(\(Int(preset.targetAmount)) \(preset.unit))")
-                                                            .font(.system(size: 10))
-                                                            .foregroundColor(.secondary)
-                                                    } else if preset.trackingType == .reps {
-                                                        Text("(\(preset.targetReps)x)")
-                                                            .font(.system(size: 10))
-                                                            .foregroundColor(.secondary)
-                                                    } else if preset.trackingType == .timer {
-                                                        Text("(\(preset.targetDurationMinutes)m)")
-                                                            .font(.system(size: 10))
-                                                            .foregroundColor(.secondary)
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        .contentShape(Rectangle())
-                                        .onTapGesture {
-                                            // Pre-fill Custom Builder with preset configuration
-                                            habitName = preset.name
-                                            selectedIcon = preset.icon
-                                            selectedColorHex = preset.colorHex
-                                            selectedTimeOfDay = preset.timeOfDay
-                                            trackingType = preset.trackingType
-                                            targetAmount = preset.targetAmount
-                                            unit = preset.unit
-                                            stepAmount = preset.stepAmount
-                                            targetReps = preset.targetReps
-                                            targetDurationMinutes = preset.targetDurationMinutes
-                                            selectedTab = 1 // Switch to Custom Builder
-                                            habitStore.triggerHaptic(.light)
-                                        }
-                                        
-                                        Spacer()
-                                        
-                                        // Direct Add Button
-                                        Button {
-                                            habitStore.addHabit(
-                                                name: preset.name,
-                                                icon: preset.icon,
-                                                colorHex: preset.colorHex,
-                                                timeOfDay: preset.timeOfDay,
-                                                trackingType: preset.trackingType,
-                                                targetAmount: preset.targetAmount,
-                                                unit: preset.unit,
-                                                stepAmount: preset.stepAmount,
-                                                targetReps: preset.targetReps,
-                                                targetDurationMinutes: preset.targetDurationMinutes
-                                            )
-                                            dismiss()
-                                        } label: {
-                                            Text("+ Add")
-                                                .font(.system(size: 12, weight: .bold))
-                                                .padding(.horizontal, 10)
-                                                .padding(.vertical, 5)
-                                                .background(Color(hex: "#007AFF"))
-                                                .foregroundColor(.white)
-                                                .cornerRadius(10)
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                    .padding(.vertical, 3)
-                                }
-                            }
-                        }
-                        .listStyle(.insetGrouped)
+                if !isEditing {
+                    Picker("Mode", selection: $selectedTab) {
+                        Text("Presets (\(PresetsData.presets.count))").tag(0)
+                        Text("Custom Builder").tag(1)
                     }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                }
+                
+                if selectedTab == 0 && !isEditing {
+                    presetsBrowserView
                 } else {
-                    // TAB 2: CUSTOM HABIT BUILDER
-                    Form {
-                        Section(header: Text("HABIT DETAILS")) {
-                            TextField("Habit Name (e.g. Drink 2L Water)", text: $habitName)
-                            
-                            Picker("Tracking Type", selection: $trackingType) {
-                                ForEach(HabitTrackingType.allCases) { type in
-                                    Text(type.rawValue).tag(type)
-                                }
-                            }
+                    customBuilderForm
+                }
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle(isEditing ? "Edit Habit" : "New Habit")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                if selectedTab == 1 || isEditing {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(isEditing ? "Save" : "Create") {
+                            saveHabitFromForm()
                         }
-                        
-                        // Mode Specific Settings
-                        if trackingType == .amount {
-                            Section(header: Text("AMOUNT TARGET & UNIT")) {
-                                HStack {
-                                    Text("Daily Target")
-                                    Spacer()
-                                    TextField("Amount", value: $targetAmount, format: .number)
-                                        .keyboardType(.decimalPad)
-                                        .multilineTextAlignment(.trailing)
-                                }
-                                
-                                Picker("Unit", selection: $unit) {
-                                    ForEach(availableUnits, id: \.self) { u in
-                                        Text(u).tag(u)
-                                    }
-                                }
-                                
-                                HStack {
-                                    Text("Quick Step Increment")
-                                    Spacer()
-                                    TextField("Step", value: $stepAmount, format: .number)
-                                        .keyboardType(.decimalPad)
-                                        .multilineTextAlignment(.trailing)
-                                }
-                            }
-                        } else if trackingType == .reps {
-                            Section(header: Text("REPETITIONS PER DAY")) {
-                                HStack(spacing: 14) {
-                                    Button(action: {
-                                        if targetReps > 1 {
-                                            targetReps -= 1
-                                            habitStore.triggerHaptic(.light)
-                                        }
-                                    }) {
-                                        Image(systemName: "minus.circle.fill")
-                                            .font(.system(size: 28))
-                                            .foregroundColor(Color(hex: "#007AFF"))
-                                    }
-                                    .buttonStyle(.borderless)
-                                    
-                                    TextField("Reps", value: $targetReps, format: .number)
-                                        .font(.system(size: 18, weight: .bold))
-                                        .keyboardType(.numberPad)
-                                        .multilineTextAlignment(.center)
-                                        .frame(width: 60)
-                                        .padding(.vertical, 6)
-                                        .background(Color(.secondarySystemBackground))
-                                        .cornerRadius(8)
-                                    
-                                    Button(action: {
-                                        if targetReps < 99 {
-                                            targetReps += 1
-                                            habitStore.triggerHaptic(.light)
-                                        }
-                                    }) {
-                                        Image(systemName: "plus.circle.fill")
-                                            .font(.system(size: 28))
-                                            .foregroundColor(Color(hex: "#007AFF"))
-                                    }
-                                    .buttonStyle(.borderless)
-                                    
-                                    Spacer()
-                                    
-                                    Text("\(targetReps) times / day")
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(.vertical, 4)
-                            }
-                        } else if trackingType == .timer {
-                            Section(header: Text("TIMER DURATION")) {
-                                Picker("Target Duration", selection: $targetDurationMinutes) {
-                                    Text("5 mins").tag(5)
-                                    Text("10 mins").tag(10)
-                                    Text("15 mins").tag(15)
-                                    Text("20 mins").tag(20)
-                                    Text("30 mins").tag(30)
-                                    Text("45 mins").tag(45)
-                                    Text("60 mins").tag(60)
-                                }
-                            }
-                        }
-                        
-                        // Recurrence & Strictness
-                        Section(header: Text("RECURRENCE & EXPIRATION RULES")) {
-                            Picker("How Often", selection: $frequency) {
-                                ForEach(HabitFrequency.allCases) { freq in
-                                    Text(freq.rawValue).tag(freq)
-                                }
-                            }
-                            
-                            Picker("Strictness Mode", selection: $strictness) {
-                                ForEach(HabitStrictness.allCases) { st in
-                                    Text(st.rawValue).tag(st)
-                                }
-                            }
-                            
-                            if strictness == .strict {
-                                Text("⚡ Fatal: If the day passes without logging, streak breaks and retroactive logging is locked.")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(Color(hex: "#FF5A5F"))
-                            } else if strictness == .flexible {
-                                Text("🛡️ Flexible: Allows backfilling missed days within grace period.")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(Color(hex: "#0FC580"))
-                            } else {
-                                Text("🔄 Rollover: Uncompleted quota rolls over to the next day.")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(Color(hex: "#923DFF"))
-                            }
-                        }
-                        
-                        // Time of Day & Appearance
-                        Section(header: Text("TIME & APPEARANCE")) {
-                            Picker("Time of Day", selection: $selectedTimeOfDay) {
-                                ForEach(TimeOfDay.allCases) { time in
-                                    Text(time.rawValue).tag(time)
-                                }
-                            }
-                            
-                            HStack {
-                                Text("Color Accent")
-                                Spacer()
-                                ForEach(colorPalette, id: \.self) { hex in
-                                    Circle()
-                                        .fill(Color(hex: hex))
-                                        .frame(width: 26, height: 26)
-                                        .overlay(
-                                            Circle()
-                                                .stroke(Color.white, lineWidth: selectedColorHex == hex ? 2.5 : 0)
-                                        )
-                                        .onTapGesture {
-                                            selectedColorHex = hex
-                                            habitStore.triggerHaptic(.light)
-                                        }
-                                }
-                            }
-                            
-                            HStack {
-                                Text("Icon Symbol")
-                                Spacer()
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 12) {
-                                        ForEach(availableIcons, id: \.self) { icon in
-                                            ZStack {
-                                                Circle()
-                                                    .fill(selectedIcon == icon ? Color(hex: selectedColorHex) : Color.white.opacity(0.1))
-                                                    .frame(width: 32, height: 32)
-                                                Image(systemName: icon)
-                                                    .font(.system(size: 14))
-                                                    .foregroundColor(selectedIcon == icon ? .white : .secondary)
-                                            }
-                                            .onTapGesture {
-                                                selectedIcon = icon
-                                                habitStore.triggerHaptic(.light)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // Submit Button
-                        Section {
-                            Button {
-                                guard !habitName.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-                                habitStore.addHabit(
-                                    name: habitName,
-                                    icon: selectedIcon,
-                                    colorHex: selectedColorHex,
-                                    timeOfDay: selectedTimeOfDay,
-                                    trackingType: trackingType,
-                                    targetAmount: targetAmount,
-                                    unit: unit,
-                                    stepAmount: stepAmount,
-                                    targetReps: targetReps,
-                                    targetDurationMinutes: targetDurationMinutes,
-                                    frequency: frequency,
-                                    strictness: strictness,
-                                    repeatSchedule: frequency.rawValue
-                                )
-                                dismiss()
-                            } label: {
-                                Text("Create Habit")
-                                    .font(.system(size: 16, weight: .bold))
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .tint(Color(hex: "#5700CB"))
-                        }
+                        .fontWeight(.bold)
+                        .disabled(habitName.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
                 }
             }
-            .navigationTitle("New Habit")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+            .onAppear {
+                if let h = editingHabit {
+                    selectedTab = 1
+                    habitName = h.name
+                    polarity = h.polarity
+                    trackingType = h.trackingType
+                    targetAmount = h.targetAmount
+                    unit = h.unit
+                    stepAmount = h.stepAmount
+                    targetReps = h.targetReps
+                    targetDurationMinutes = h.targetDurationMinutes
+                    frequency = h.frequency
+                    customWeekdays = Set(h.customWeekdays)
+                    strictness = h.strictness
+                    selectedTimeOfDay = h.timeOfDay
+                    selectedColorHex = h.colorHex
+                    selectedIcon = h.icon
+                    subtasks = h.subtasks
+                    reminderEnabled = h.reminderEnabled
+                    reminderTime = Calendar.current.date(bySettingHour: h.reminderHour, minute: h.reminderMinute, second: 0, of: Date()) ?? Date()
+                } else {
+                    strictness = HabitStrictness(rawValue: habitStore.defaultStrictnessRaw) ?? .strict
                 }
             }
         }
+    }
+    
+    // MARK: - Tab 1: Curated Presets Browser
+    
+    private var presetsBrowserView: some View {
+        VStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    categoryChip(id: nil, title: "All", icon: "sparkles")
+                    ForEach(PresetsData.categories) { cat in
+                        categoryChip(id: cat.id, title: cat.name, icon: cat.icon)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+            }
+            
+            List {
+                Section(header: Text("Tap a habit to customize, or tap + Add")) {
+                    ForEach(filteredPresets) { preset in
+                        HStack(spacing: 12) {
+                            Button {
+                                prefillFromPreset(preset)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .fill(Color(hex: preset.colorHex))
+                                            .frame(width: 36, height: 36)
+                                        Image(systemName: preset.icon)
+                                            .foregroundStyle(.white)
+                                            .font(.subheadline.weight(.semibold))
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(preset.name)
+                                            .font(.system(.subheadline, design: .rounded).weight(.bold))
+                                            .foregroundStyle(.primary)
+                                        Text("\(preset.timeOfDay.rawValue) • \(preset.trackingType.rawValue)")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            
+                            Spacer()
+                            
+                            Button {
+                                let defaultStrict = HabitStrictness(rawValue: habitStore.defaultStrictnessRaw) ?? .strict
+                                habitStore.addHabit(
+                                    name: preset.name,
+                                    icon: preset.icon,
+                                    colorHex: preset.colorHex,
+                                    timeOfDay: preset.timeOfDay,
+                                    trackingType: preset.trackingType,
+                                    targetAmount: preset.targetAmount,
+                                    unit: preset.unit,
+                                    stepAmount: preset.stepAmount,
+                                    targetReps: preset.targetReps,
+                                    targetDurationMinutes: preset.targetDurationMinutes,
+                                    strictness: defaultStrict
+                                )
+                                dismiss()
+                            } label: {
+                                Label("Add", systemImage: "plus")
+                                    .font(.caption.weight(.bold))
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .buttonBorderShape(.capsule)
+                            .controlSize(.small)
+                        }
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .searchable(text: $presetSearchText, prompt: "Search 83 curated habits")
+        }
+    }
+    
+    private func categoryChip(id: Int?, title: String, icon: String) -> some View {
+        let isSelected = (selectedCategoryId == id)
+        return Button {
+            selectedCategoryId = id
+            habitStore.triggerHaptic(.light)
+        } label: {
+            Label(title, systemImage: icon)
+                .font(.caption.weight(.bold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(
+                    isSelected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(Color(.secondarySystemGroupedBackground)),
+                    in: Capsule()
+                )
+                .foregroundStyle(isSelected ? .white : .primary)
+        }
+        .buttonStyle(.plain)
+    }
+    
+    // MARK: - Tab 2: Native Form Builder
+    
+    private var customBuilderForm: some View {
+        Form {
+            Section(header: Text("Goal Type & Name")) {
+                TextField("Habit Name (e.g. Drink 2L Water, Zero Sugar)", text: $habitName)
+                    .font(.body.weight(.medium))
+                
+                Picker("Habit Polarity", selection: $polarity) {
+                    ForEach(HabitPolarity.allCases) { pol in
+                        Label(pol.rawValue, systemImage: pol.icon).tag(pol)
+                    }
+                }
+                
+                if polarity == .build {
+                    Picker("Tracking Mode", selection: $trackingType) {
+                        ForEach(HabitTrackingType.allCases) { type in
+                            Label(type.rawValue, systemImage: type.icon).tag(type)
+                        }
+                    }
+                }
+            }
+            
+            // Target Configuration
+            if polarity == .limit || (polarity == .build && trackingType == .amount) {
+                Section(header: Text(polarity == .limit ? "Daily Maximum Cap" : "Daily Target & Unit")) {
+                    HStack {
+                        Text(polarity == .limit ? "Stay At or Under" : "Daily Target")
+                        Spacer()
+                        TextField("Target", value: $targetAmount, format: .number)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    
+                    Picker("Unit", selection: $unit) {
+                        ForEach(availableUnits, id: \.self) { u in
+                            Text(u).tag(u)
+                        }
+                    }
+                    
+                    HStack {
+                        Text("Quick Increment Step")
+                        Spacer()
+                        TextField("Step", value: $stepAmount, format: .number)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
+            } else if polarity == .build && trackingType == .reps {
+                Section(header: Text("Repetitions")) {
+                    Stepper("Target: \(targetReps) reps / day", value: $targetReps, in: 1...50)
+                }
+            } else if polarity == .build && trackingType == .timer {
+                Section(header: Text("Focus Timer Duration")) {
+                    Stepper("Duration: \(targetDurationMinutes) mins", value: $targetDurationMinutes, in: 1...180, step: 5)
+                }
+            }
+            
+            // Schedule, Custom Days & Strictness
+            Section(header: Text("Schedule & Streak Rules")) {
+                Picker("Frequency", selection: $frequency) {
+                    ForEach(HabitFrequency.allCases) { freq in
+                        Text(freq.rawValue).tag(freq)
+                    }
+                }
+                
+                if frequency == .customDays {
+                    HStack(spacing: 6) {
+                        ForEach(weekdayOptions, id: \.id) { day in
+                            let on = customWeekdays.contains(day.id)
+                            Button {
+                                if on && customWeekdays.count > 1 {
+                                    customWeekdays.remove(day.id)
+                                } else {
+                                    customWeekdays.insert(day.id)
+                                }
+                            } label: {
+                                Text(String(day.label.prefix(1)))
+                                    .font(.caption.weight(.bold))
+                                    .frame(maxWidth: .infinity, minHeight: 32)
+                                    .background(on ? Color.accentColor : Color(.tertiarySystemGroupedBackground), in: Circle())
+                                    .foregroundStyle(on ? .white : .primary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                
+                Picker("Time of Day", selection: $selectedTimeOfDay) {
+                    ForEach(TimeOfDay.allCases) { t in
+                        Label(t.rawValue, systemImage: t.icon).tag(t)
+                    }
+                }
+                
+                Picker("Strictness", selection: $strictness) {
+                    ForEach(HabitStrictness.allCases) { st in
+                        Label(st.badgeText, systemImage: st.symbolName).tag(st)
+                    }
+                }
+            }
+            
+            // Sub-Checklist Builder
+            Section(
+                header: Text("Sub-Checklist Steps (Optional)"),
+                footer: Text("Checking off all sub-steps automatically marks the habit complete.")
+            ) {
+                ForEach(subtasks) { step in
+                    HStack {
+                        Image(systemName: "checkmark.square")
+                            .foregroundStyle(.secondary)
+                        Text(step.title)
+                        Spacer()
+                        Button(role: .destructive) {
+                            subtasks.removeAll { $0.id == step.id }
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .foregroundStyle(.red)
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+                
+                HStack {
+                    TextField("Add step (e.g. Cleanser, Floss...)", text: $newSubtaskTitle)
+                    Button("Add") {
+                        let clean = newSubtaskTitle.trimmingCharacters(in: .whitespaces)
+                        guard !clean.isEmpty else { return }
+                        subtasks.append(HabitSubtask(title: clean))
+                        newSubtaskTitle = ""
+                    }
+                    .disabled(newSubtaskTitle.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+            
+            // Smart Reminder Notification
+            Section(header: Text("Local Notification Reminder")) {
+                Toggle("Daily Reminder", isOn: $reminderEnabled)
+                if reminderEnabled {
+                    DatePicker("Reminder Time", selection: $reminderTime, displayedComponents: .hourAndMinute)
+                }
+            }
+            
+            // Color & Icon Appearance
+            Section(header: Text("Icon & Accent Color")) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(colorPalette, id: \.self) { hex in
+                            Button {
+                                selectedColorHex = hex
+                            } label: {
+                                Circle()
+                                    .fill(Color(hex: hex))
+                                    .frame(width: 32, height: 32)
+                                    .overlay(
+                                        Image(systemName: "checkmark")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundStyle(.white)
+                                            .opacity(selectedColorHex == hex ? 1 : 0)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 8), spacing: 10) {
+                    ForEach(availableIcons, id: \.self) { icon in
+                        let chosen = (selectedIcon == icon)
+                        Button {
+                            selectedIcon = icon
+                        } label: {
+                            Image(systemName: icon)
+                                .font(.system(size: 16, weight: .semibold))
+                                .frame(width: 34, height: 34)
+                                .background(
+                                    chosen ? Color(hex: selectedColorHex) : Color(.tertiarySystemGroupedBackground),
+                                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                )
+                                .foregroundStyle(chosen ? .white : .primary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+        }
+    }
+    
+    // MARK: - Helpers
+    
+    private func prefillFromPreset(_ preset: PresetModel) {
+        habitName = preset.name
+        selectedIcon = preset.icon
+        selectedColorHex = preset.colorHex
+        selectedTimeOfDay = preset.timeOfDay
+        trackingType = preset.trackingType
+        targetAmount = preset.targetAmount
+        unit = preset.unit
+        stepAmount = preset.stepAmount
+        targetReps = preset.targetReps
+        targetDurationMinutes = preset.targetDurationMinutes
+        if preset.name.lowercased().contains("zero ") || preset.name.lowercased().contains("avoid ") || preset.name.lowercased().contains("no ") {
+            polarity = .quit
+        } else if preset.name.lowercased().contains("limit ") {
+            polarity = .limit
+        } else {
+            polarity = .build
+        }
+        selectedTab = 1
+        habitStore.triggerHaptic(.light)
+    }
+    
+    private func saveHabitFromForm() {
+        let cleanName = habitName.trimmingCharacters(in: .whitespaces)
+        guard !cleanName.isEmpty else { return }
+        
+        let comps = Calendar.current.dateComponents([.hour, .minute], from: reminderTime)
+        let rHour = comps.hour ?? 9
+        let rMin = comps.minute ?? 0
+        let effectiveType: HabitTrackingType = polarity == .limit ? .amount : (polarity == .quit ? .binary : trackingType)
+        
+        if var existing = editingHabit {
+            existing.name = cleanName
+            existing.polarity = polarity
+            existing.trackingType = effectiveType
+            existing.targetAmount = targetAmount
+            existing.unit = unit
+            existing.stepAmount = stepAmount
+            existing.targetReps = targetReps
+            existing.targetDurationMinutes = targetDurationMinutes
+            existing.frequency = frequency
+            existing.customWeekdays = Array(customWeekdays).sorted()
+            existing.repeatSchedule = frequency.rawValue
+            existing.strictness = strictness
+            existing.timeOfDay = selectedTimeOfDay
+            existing.colorHex = selectedColorHex
+            existing.icon = selectedIcon
+            existing.subtasks = subtasks
+            existing.reminderEnabled = reminderEnabled
+            existing.reminderHour = rHour
+            existing.reminderMinute = rMin
+            habitStore.updateHabit(existing)
+        } else {
+            habitStore.addHabit(
+                name: cleanName,
+                icon: selectedIcon,
+                colorHex: selectedColorHex,
+                timeOfDay: selectedTimeOfDay,
+                polarity: polarity,
+                trackingType: effectiveType,
+                targetAmount: targetAmount,
+                unit: unit,
+                stepAmount: stepAmount,
+                targetReps: targetReps,
+                targetDurationMinutes: targetDurationMinutes,
+                frequency: frequency,
+                customWeekdays: Array(customWeekdays).sorted(),
+                strictness: strictness,
+                repeatSchedule: frequency.rawValue,
+                subtasks: subtasks,
+                reminderEnabled: reminderEnabled,
+                reminderHour: rHour,
+                reminderMinute: rMin
+            )
+        }
+        dismiss()
     }
 }

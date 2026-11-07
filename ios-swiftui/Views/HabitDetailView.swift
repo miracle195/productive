@@ -1,133 +1,300 @@
 //
 //  HabitDetailView.swift
-//  Detailed Habit Performance, Streak Stats, and Monthly Heatmap
+//  Productive - Live Habit Performance, Real Monthly Heatmap, Edit/Archive & Reflection Journal
 //
 
 import SwiftUI
 
 public struct HabitDetailView: View {
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var habitStore: HabitStore
+    
+    public let habitId: UUID
+    
     @State private var showingDeleteAlert = false
-    public let habit: Habit
+    @State private var showingEditSheet = false
+    @State private var showingTimerSheet = false
+    @State private var journalDateKey: String? = nil
+    
+    private var habit: Habit? {
+        habitStore.habits.first(where: { $0.id == habitId })
+    }
+    
+    public init(habitId: UUID) {
+        self.habitId = habitId
+    }
+    
+    public init(habit: Habit) {
+        self.habitId = habit.id
+    }
+    
+    private var last28Dates: [(dateKey: String, dayNum: String, isToday: Bool)] {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let numFmt = DateFormatter()
+        numFmt.dateFormat = "d"
+        return (-27...0).compactMap { offset in
+            guard let d = cal.date(byAdding: .day, value: offset, to: today) else { return nil }
+            return (
+                dateKey: HabitStore.dateFormatter.string(from: d),
+                dayNum: numFmt.string(from: d),
+                isToday: offset == 0
+            )
+        }
+    }
     
     public var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 24) {
-                // Hero Header
-                VStack(spacing: 12) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 26)
-                            .fill(Color(hex: habit.colorHex))
-                            .frame(width: 80, height: 80)
-                            .shadow(color: Color(hex: habit.colorHex).opacity(0.4), radius: 15, y: 8)
-                        
-                        Image(systemName: habit.icon)
-                            .font(.system(size: 38))
-                            .foregroundColor(.white)
+        Group {
+            if let habit = habit {
+                List {
+                    // Hero Section
+                    Section {
+                        VStack(spacing: 12) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                    .fill(Color(hex: habit.colorHex))
+                                    .frame(width: 72, height: 72)
+                                    .shadow(color: Color(hex: habit.colorHex).opacity(0.35), radius: 12, y: 6)
+                                
+                                Image(systemName: habit.icon)
+                                    .font(.system(size: 32, weight: .semibold))
+                                    .foregroundStyle(.white)
+                            }
+                            
+                            Text(habit.name)
+                                .font(.system(.title2, design: .rounded).weight(.heavy))
+                                .multilineTextAlignment(.center)
+                            
+                            Text("\(habit.frequency.rawValue) • \(habit.timeOfDay.rawValue) • \(habit.summaryGoalLabel)")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            
+                            HStack(spacing: 10) {
+                                Button {
+                                    if habit.trackingType == .timer {
+                                        showingTimerSheet = true
+                                    } else {
+                                        habitStore.toggleHabit(id: habit.id)
+                                    }
+                                } label: {
+                                    Label(
+                                        habit.isCompleted(on: habitStore.todayKey) ? "Completed Today" : (habit.trackingType == .timer ? "Start Focus Timer" : "Check In Today"),
+                                        systemImage: habit.isCompleted(on: habitStore.todayKey) ? "checkmark.circle.fill" : "bolt.fill"
+                                    )
+                                    .font(.subheadline.weight(.bold))
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(Color(hex: habit.colorHex))
+                                .buttonBorderShape(.capsule)
+                                
+                                Button {
+                                    journalDateKey = habitStore.todayKey
+                                } label: {
+                                    Label("Log Note", systemImage: "square.and.pencil")
+                                        .font(.subheadline.weight(.semibold))
+                                }
+                                .buttonStyle(.bordered)
+                                .buttonBorderShape(.capsule)
+                            }
+                            .padding(.top, 4)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
                     }
                     
-                    Text(habit.name)
-                        .font(.system(size: 22, weight: .heavy))
-                        .foregroundColor(.white)
+                    // Key Metrics Grid
+                    Section(header: Text("Performance Metrics")) {
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                            MetricTile(title: "Current Streak", value: "\(habit.streak)d", icon: "flame.fill", tint: .orange)
+                            MetricTile(title: "Best Streak", value: "\(habit.bestStreak)d", icon: "crown.fill", tint: .yellow)
+                            MetricTile(title: "Total Logs", value: "\(habit.totalLogs)", icon: "checkmark.seal.fill", tint: .green)
+                            MetricTile(title: "28d Rate", value: "\(consistency28Day(for: habit))%", icon: "chart.line.uptrend.xyaxis", tint: .blue)
+                        }
+                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                        .listRowBackground(Color.clear)
+                    }
                     
-                    Text("\(habit.repeatSchedule) • \(habit.timeOfDay.rawValue.uppercased()) • Goal: \(habit.goalText)")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-                }
-                .padding(.top, 10)
-                
-                // 2x2 Stats Grid
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-                    StatCard(label: "CURRENT STREAK", value: "\(habit.streak)d", color: Color(hex: "#FF7450"))
-                    StatCard(label: "BEST STREAK", value: "\(habit.bestStreak)d", color: .white)
-                    StatCard(label: "TOTAL LOGS", value: "\(habit.totalLogs)", color: .white)
-                    StatCard(label: "CONSISTENCY", value: "94%", color: Color(hex: "#0FC580"))
-                }
-                
-                // Monthly Heatmap Card
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Completion Heatmap (Last 28 Days)")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white)
+                    // Real 28-Day Interactive Calendar Heatmap
+                    Section(
+                        header: Text("Last 28 Days (Tap any date to add/view note)"),
+                        footer: Text("Green = Completed • Cyan = Skipped / Shielded • Red = Missed Strict Day")
+                    ) {
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
+                            ForEach(last28Dates, id: \.dateKey) { item in
+                                let rec = habit.history[item.dateKey]
+                                let done = rec?.isCompleted == true
+                                let skipped = (rec?.isSkipped == true) || (rec?.usedFreezeShield == true)
+                                let lockedMiss = habitStore.isLockedByStrictMode(habit, on: item.dateKey)
+                                
+                                Button {
+                                    journalDateKey = item.dateKey
+                                } label: {
+                                    VStack(spacing: 2) {
+                                        Text(item.dayNum)
+                                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                                        if let mood = rec?.mood {
+                                            Text(mood.emoji)
+                                                .font(.system(size: 8))
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, minHeight: 38)
+                                    .background(
+                                        done ? Color.green :
+                                        skipped ? Color.cyan.opacity(0.35) :
+                                        lockedMiss ? Color.red.opacity(0.22) :
+                                        Color(.tertiarySystemGroupedBackground),
+                                        in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    )
+                                    .foregroundStyle(done ? .white : .primary)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                            .stroke(item.isToday ? Color.accentColor : Color.clear, lineWidth: 2)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 6)
+                    }
                     
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
-                        ForEach(1...28, id: \.self) { day in
-                            Text("\(day)")
-                                .font(.system(size: 12, weight: .bold))
-                                .frame(maxWidth: .infinity, minHeight: 36)
-                                .background(day <= habit.streak ? Color(hex: "#0FC580") : Color.white.opacity(0.08))
-                                .foregroundColor(day <= habit.streak ? .white : .secondary)
-                                .cornerRadius(8)
+                    // Reflection & Mood Journal Feed
+                    let journalRecords = habit.history
+                        .filter { !$0.value.note.isEmpty || $0.value.mood != nil }
+                        .sorted { $0.key > $1.key }
+                    
+                    Section(header: Text("Reflection Journal (\(journalRecords.count))")) {
+                        if journalRecords.isEmpty {
+                            Text("No reflection notes yet. Tap \"Log Note\" or any date above to track mood & insights.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(journalRecords, id: \.key) { entry in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text(entry.key)
+                                            .font(.caption.weight(.bold))
+                                            .foregroundStyle(.secondary)
+                                        if let mood = entry.value.mood {
+                                            Text("\(mood.emoji) \(mood.rawValue)")
+                                                .font(.caption.weight(.semibold))
+                                        }
+                                        Spacer()
+                                        if entry.value.isCompleted {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.caption)
+                                                .foregroundStyle(.green)
+                                        }
+                                    }
+                                    if !entry.value.note.isEmpty {
+                                        Text(entry.value.note)
+                                            .font(.subheadline)
+                                    }
+                                }
+                                .padding(.vertical, 2)
+                            }
+                        }
+                    }
+                    
+                    // Management Actions
+                    Section {
+                        Button {
+                            showingEditSheet = true
+                        } label: {
+                            Label("Edit Habit Configuration", systemImage: "slider.horizontal.3")
+                        }
+                        
+                        Button {
+                            habitStore.toggleArchiveHabit(id: habit.id)
+                            dismiss()
+                        } label: {
+                            Label(habit.isArchived ? "Unarchive Habit" : "Archive / Pause Habit", systemImage: "archivebox")
+                        }
+                        
+                        Button(role: .destructive) {
+                            showingDeleteAlert = true
+                        } label: {
+                            Label("Delete Habit", systemImage: "trash")
                         }
                     }
                 }
-                .padding(18)
-                .background(Color(hex: "#1A1E30"))
-                .cornerRadius(20)
-                
-                // Check-in Action Button
-                Button {
-                    habitStore.toggleHabit(id: habit.id)
-                } label: {
-                    HStack {
-                        Image(systemName: habit.isCompleted ? "checkmark.circle.fill" : "circle")
-                        Text(habit.isCompleted ? "Completed Today! 🎉" : "Log Check-in Now")
+                .listStyle(.insetGrouped)
+                .navigationTitle("Overview")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Edit") {
+                            showingEditSheet = true
+                        }
                     }
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(LinearGradient(colors: [Color(hex: "#5700CB"), Color(hex: "#0062E4")], startPoint: .leading, endPoint: .trailing))
-                    .cornerRadius(18)
                 }
-                
-                // Delete Habit Button
-                Button(role: .destructive) {
-                    showingDeleteAlert = true
-                } label: {
-                    HStack {
-                        Image(systemName: "trash")
-                        Text("Delete Habit")
+                .sheet(isPresented: $showingEditSheet) {
+                    AddHabitSheet(editingHabit: habit)
+                        .environmentObject(habitStore)
+                        .presentationDetents([.large])
+                        .presentationDragIndicator(.visible)
+                }
+                .sheet(isPresented: $showingTimerSheet) {
+                    FocusTimerSheet(habit: habit)
+                        .environmentObject(habitStore)
+                        .presentationDetents([.medium, .large])
+                        .presentationDragIndicator(.visible)
+                }
+                .sheet(isPresented: Binding(
+                    get: { journalDateKey != nil },
+                    set: { if !$0 { journalDateKey = nil } }
+                )) {
+                    if let key = journalDateKey {
+                        JournalEntrySheet(habit: habit, dateKey: key)
+                            .environmentObject(habitStore)
+                            .presentationDetents([.medium])
+                            .presentationDragIndicator(.visible)
                     }
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color(hex: "#FF5A5F"))
                 }
-                .padding(.top, 8)
+                .alert("Delete Habit?", isPresented: $showingDeleteAlert) {
+                    Button("Delete", role: .destructive) {
+                        habitStore.deleteHabit(id: habit.id)
+                        dismiss()
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("This permanently deletes \"\(habit.name)\" and all of its historical logs.")
+                }
+            } else {
+                ContentUnavailableView("Habit Removed", systemImage: "checkmark.circle")
             }
-            .padding(20)
         }
-        .background(Color(hex: "#121524").ignoresSafeArea())
-        .navigationBarTitleDisplayMode(.inline)
-        .alert("Delete Habit", isPresented: $showingDeleteAlert) {
-            Button("Delete", role: .destructive) {
-                habitStore.deleteHabit(id: habit.id)
-                dismiss()
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Are you sure you want to delete \"\(habit.name)\"? All history and streak data for this habit will be removed.")
-        }
+    }
+    
+    private func consistency28Day(for habit: Habit) -> Int {
+        let completedOrSkipped = last28Dates.filter {
+            habit.isCompleted(on: $0.dateKey) || habit.isSkipped(on: $0.dateKey)
+        }.count
+        return Int((Double(completedOrSkipped) / 28.0) * 100)
     }
 }
 
-struct StatCard: View {
-    let label: String
+private struct MetricTile: View {
+    let title: String
     let value: String
-    let color: Color
+    let icon: String
+    let tint: Color
     
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(label)
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(.secondary)
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .foregroundStyle(tint)
+                Text(title)
+                    .foregroundStyle(.secondary)
+            }
+            .font(.caption.weight(.semibold))
+            
             Text(value)
-                .font(.system(size: 26, weight: .heavy))
-                .foregroundColor(color)
+                .font(.system(.title2, design: .rounded).weight(.heavy))
+                .contentTransition(.numericText())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Color(hex: "#1A1E30"))
-        .cornerRadius(18)
+        .padding(14)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }

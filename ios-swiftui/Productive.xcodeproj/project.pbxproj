@@ -18,6 +18,12 @@
 		A10000092C00000000000009 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000092C00000000000009 /* SettingsView.swift */; };
 		A100000A2C0000000000000A /* DynamicIslandActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000A2C0000000000000A /* DynamicIslandActivity.swift */; };
 		A100000C2C0000000000000C /* PresetsData.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000C2C0000000000000C /* PresetsData.swift */; };
+		A100000D2C0000000000000D /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000D2C0000000000000D /* NotificationManager.swift */; };
+		A100000E2C0000000000000E /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000E2C0000000000000E /* HealthKitManager.swift */; };
+		A100000F2C0000000000000F /* HabitAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000F2C0000000000000F /* HabitAppIntents.swift */; };
+		A10000102C00000000000010 /* FocusTimerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000102C00000000000010 /* FocusTimerSheet.swift */; };
+		A10000112C00000000000011 /* RoutinePlayerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000112C00000000000011 /* RoutinePlayerSheet.swift */; };
+		A10000122C00000000000012 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000122C00000000000012 /* InsightsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,6 +40,12 @@
 		B100000A2C0000000000000A /* DynamicIslandActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Widgets/DynamicIslandActivity.swift; sourceTree = "<group>"; };
 		B100000B2C0000000000000B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B100000C2C0000000000000C /* PresetsData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/PresetsData.swift; sourceTree = "<group>"; };
+		B100000D2C0000000000000D /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/NotificationManager.swift; sourceTree = "<group>"; };
+		B100000E2C0000000000000E /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/HealthKitManager.swift; sourceTree = "<group>"; };
+		B100000F2C0000000000000F /* HabitAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intents/HabitAppIntents.swift; sourceTree = "<group>"; };
+		B10000102C00000000000010 /* FocusTimerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/FocusTimerSheet.swift; sourceTree = "<group>"; };
+		B10000112C00000000000011 /* RoutinePlayerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/RoutinePlayerSheet.swift; sourceTree = "<group>"; };
+		B10000122C00000000000012 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/InsightsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,15 +64,21 @@
 			children = (
 				B10000012C00000000000001 /* ProductiveApp.swift */,
 				B10000022C00000000000002 /* Habit.swift */,
+				B100000C2C0000000000000C /* PresetsData.swift */,
 				B10000032C00000000000003 /* HabitStore.swift */,
+				B100000D2C0000000000000D /* NotificationManager.swift */,
+				B100000E2C0000000000000E /* HealthKitManager.swift */,
+				B100000F2C0000000000000F /* HabitAppIntents.swift */,
 				B10000042C00000000000004 /* TodayView.swift */,
 				B10000052C00000000000005 /* HabitCardView.swift */,
 				B10000062C00000000000006 /* HabitDetailView.swift */,
 				B10000072C00000000000007 /* AddHabitSheet.swift */,
+				B10000102C00000000000010 /* FocusTimerSheet.swift */,
+				B10000112C00000000000011 /* RoutinePlayerSheet.swift */,
+				B10000122C00000000000012 /* InsightsView.swift */,
 				B10000082C00000000000008 /* ChallengesView.swift */,
 				B10000092C00000000000009 /* SettingsView.swift */,
 				B100000A2C0000000000000A /* DynamicIslandActivity.swift */,
-				B100000C2C0000000000000C /* PresetsData.swift */,
 				B100000B2C0000000000000B /* Info.plist */,
 				E10000022C00000000000002 /* Products */,
 			);
@@ -152,6 +170,12 @@
 				A10000092C00000000000009 /* SettingsView.swift in Sources */,
 				A100000A2C0000000000000A /* DynamicIslandActivity.swift in Sources */,
 				A100000C2C0000000000000C /* PresetsData.swift in Sources */,
+				A100000D2C0000000000000D /* NotificationManager.swift in Sources */,
+				A100000E2C0000000000000E /* HealthKitManager.swift in Sources */,
+				A100000F2C0000000000000F /* HabitAppIntents.swift in Sources */,
+				A10000102C00000000000010 /* FocusTimerSheet.swift in Sources */,
+				A10000112C00000000000011 /* RoutinePlayerSheet.swift in Sources */,
+				A10000122C00000000000012 /* InsightsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -215,7 +239,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGNING_REQUIRED = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Info.plist;
@@ -223,7 +247,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.4.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.apalon.productive.tracker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -239,7 +263,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGNING_REQUIRED = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Info.plist;
@@ -247,7 +271,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.4.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.apalon.productive.tracker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

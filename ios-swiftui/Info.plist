@@ -17,9 +17,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.4.0</string>
+	<string>3.0.0</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>2</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
@@ -39,5 +39,9 @@
 	</array>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Productive reads water intake, step counts, exercise minutes, and mindful sessions to sync automatic habit progress.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Productive updates habit wellness metrics when synced with Apple Health.</string>
 </dict>
 </plist>

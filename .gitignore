@@ -4,6 +4,7 @@ build/
 *.ipa
 node_modules/
 .system_generated/
+scratch/
 
 # Decompiled android binaries
 *.dex

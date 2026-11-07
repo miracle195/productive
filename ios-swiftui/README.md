@@ -1,77 +1,75 @@
-# Productive for iPhone 15 Pro (100% Native Swift & SwiftUI)
+# Productive v3.0 for iPhone 15 Pro (100% Native Swift & SwiftUI)
 
-This directory contains the **complete, 100% native Swift & SwiftUI application** converted from Apalon's Productive Habit Tracker (`com.apalon.to.do.list`). Architected for **iOS 17 and iOS 18** on **iPhone 15 Pro**, featuring **SwiftUI**, **Combine/Observable**, **ActivityKit Dynamic Island**, **Cupertino Design System**, and **SF Symbols**.
+This directory contains the **complete, 100% native Swift & SwiftUI habit tracker** (`com.apalon.productive.tracker`) architected for **iOS 17 and iOS 18** on **iPhone 15 Pro**, built with **SwiftUI**, **Swift Charts**, **ActivityKit Dynamic Island**, **AppIntents (Siri & Action Button)**, **UserNotifications**, **HealthKit**, and semantic Cupertino materials.
 
 ---
 
-## 📱 Complete Native Swift Architecture
+## 📱 Native SwiftUI v3.0 Architecture
 
 ```
 ios-swiftui/
-├── Productive.xcodeproj             # Fully configured Xcode Project ready to open & build
-├── project.yml                      # Declarative XcodeGen specification
-├── Info.plist                       # Target configuration, bundle identifier & capabilities
+├── Productive.xcodeproj             # Xcode 15.4+ Project (all 17 Swift sources registered)
+├── project.yml                      # Declarative XcodeGen specification (v3.0.0)
+├── Info.plist                       # Bundle configuration, Live Activities & HealthKit usage keys
 │
-├── ProductiveApp.swift              # App Entry Point, Tab View & First-Launch Setup Wizard (OnboardingView)
+├── ProductiveApp.swift              # Entry point, System/Dark/Light scheme, 4-Tab Bar & Onboarding Form
 │
 ├── Models/
-│   ├── Habit.swift                  # Habit, Tracking Types, Strictness, Frequency & Per-Date Day Record
-│   └── PresetsData.swift            # 14 Curated Categories & All 83 Curated Presets from Apalon Productive
+│   ├── Habit.swift                  # Polarity (Build/Quit/Limit), Schedules, Subtasks, Moods, Challenges & Badges
+│   └── PresetsData.swift            # 14 Curated Categories & 83 Native SF Symbol Presets
 │
 ├── ViewModels/
-│   └── HabitStore.swift             # Observable Central State, Streaks, Isolation, Haptics & JSON Import/Export
+│   └── HabitStore.swift             # File-persisted v3 Engine, Streaks, Rollover, Freeze Shields & Live Focus Timer
+│
+├── Services/
+│   ├── NotificationManager.swift    # UNUserNotificationCenter reminders, Digests & Lock Screen Quick Actions
+│   └── HealthKitManager.swift       # Entitlement-safe Apple HealthKit sync bridge
+│
+├── Intents/
+│   └── HabitAppIntents.swift        # Siri, Shortcuts & iPhone 15 Pro Action Button AppIntents
 │
 ├── Views/
-│   ├── TodayView.swift              # Timeline Ribbon (Today on left, coming days on right, swipe right for backed days)
-│   ├── HabitCardView.swift          # Card component: Checkmark, Progress Bar, Reps Steppers & Countdown Timer
-│   ├── HabitDetailView.swift        # Performance metrics, streaks, 28-day completion heatmap, delete alert
-│   ├── AddHabitSheet.swift          # Category-filtered presets explorer (83 presets), quick add & custom builder
-│   ├── SettingsView.swift           # Calendar start day, strictness, theme, audio/haptics, JSON backup/restore
-│   └── ChallengesView.swift         # Challenges roadmap and weekly insights
+│   ├── TodayView.swift              # InsetGrouped List, Swipe Actions, Context Menus, Search, Calendar & Mini-Player
+│   ├── HabitCardView.swift          # Semantic row with SF Symbol bounce, numeric transitions, subtasks & steppers
+│   ├── HabitDetailView.swift        # Real 28-day date-keyed interactive heatmap, reflection journal & Edit/Archive
+│   ├── AddHabitSheet.swift          # Searchable 83 presets + Custom/Edit Form (Polarity, Weekdays, Subtasks, Alerts)
+│   ├── FocusTimerSheet.swift        # Countdown / Pomodoro 25m / Stopwatch dial + Mood & Note JournalEntrySheet
+│   ├── RoutinePlayerSheet.swift     # Guided step-by-step Morning/Afternoon/Evening Routine playlist player
+│   ├── InsightsView.swift           # Native Swift Charts (BarMark + RuleMark, SectorMark Donut) & 84-day heatmap
+│   ├── ChallengesView.swift         # Joinable 7/14/21/30d multi-day challenges & 8 Milestone Achievement Badges
+│   └── SettingsView.swift           # Cupertino Form, Vacation Mode, Shields, Notifications, Archive, ShareLink JSON/CSV
 │
 └── Widgets/
-    └── DynamicIslandActivity.swift  # iPhone 15 Pro Dynamic Island ActivityKit Live Activity Widget
+    └── DynamicIslandActivity.swift  # ActivityKit Live Activity & LiveActivityManager synced with Focus Timers
 ```
 
 ---
 
-## ✨ Features Implemented in Full Swift
+## ✨ Key Capabilities in v3.0
 
-1. **Continuous Horizontally Scrollable Calendar Ribbon (`TodayView.swift`)**:
-   - Anchored with **Today as the first pill on the left**.
-   - **Coming days** (+1, +2, +3... +14 days ahead) extend directly to the right.
-   - **Swipe right** to inspect backed (past) days (-1, -2, -3... -21 days ago) and check history.
-   - Smooth animation returns to Today upon tapping "Back to Today".
+1. **True Cupertino UX & System Integration**:
+   - Semantic Apple colors (`Color(.systemGroupedBackground)`, `Color(.secondarySystemGroupedBackground)`, `.regularMaterial`) with `System` / `Dark` / `Light` appearance.
+   - `.insetGrouped` `List` with leading/trailing `.swipeActions`, long-press `.contextMenu`, `.onMove` drag reordering, `.searchable` pull-down filter, and `.datePickerStyle(.graphical)` date jump.
+   - iOS 17/18 `.symbolEffect(.bounce)`, `.contentTransition(.numericText())`, and sheet `.presentationDetents`.
+   - 4-tab layout (`Today` with live remaining `.badge`, `Insights`, `Challenges`, `Settings`).
 
-2. **Complete 14 Categories & 83 Native Presets (`PresetsData.swift`, `AddHabitSheet.swift`)**:
-   - Filter presets by 14 categories (`Must Have`, `Productive Morning`, `Better Sleep`, `Get Stuff Done`, `Healthy Eating`, `Stay Fit & Active`, etc.).
-   - Tap `+ Add` to instantly add a preset to the timeline.
-   - Tap the card to open it in the Custom Builder with all values pre-populated for full customization.
-
-3. **Multi-Mode Habit Engine (`Habit.swift`, `HabitCardView.swift`)**:
-   - **Simple Check**: 1-tap checkmark.
-   - **Amount & Unit**: Target amount (e.g. 2000 ml, 30 mins, 20 pages), progress bar, and quick increment chips.
-   - **Multiple Reps**: Visual rep dots with `[-]` and `[+]` steppers.
-   - **Duration Timer**: Interactive Play/Pause countdown timer with remaining time and auto-completion.
-
-4. **First-Launch Initialization Wizard (`ProductiveApp.swift`)**:
-   - Automatically guides the user on first launch to configure First Day of Week, App Theme, Strictness Mode, and Sound/Haptics before entering the timeline.
-
-5. **Strict Per-Date History Isolation (`HabitStore.swift`)**:
-   - Every calendar date (`YYYY-MM-DD`) has independent logs, amount values, and completion statuses.
-
-6. **Backup & Restore (`SettingsView.swift`)**:
-   - 1-click JSON export and import with validation and haptic feedback.
+2. **Deep Habit Coach Engine**:
+   - **Polarity Modes**: `Build Habit`, `Quit / Abstain` (clean-day streak + slip logging), and `Daily Limit` (stay at/under budget).
+   - **Smart Scheduling & Quotas**: Daily, Weekdays, Weekends, Every 2/3 Days, 3x/Week, Specific Custom Weekdays, Strict past-day locks, Flexible backfill, and **Rollover** quota carry-forward.
+   - **Streak Protection**: Skip / Rest days, global **Vacation Mode**, and earnable **Streak Freeze Shields** (`+1` every 7-day streak milestone).
+   - **Interactive Focus Timer & Guided Routines**: Timestamp-accurate Countdown, Pomodoro 25m, and Stopwatch with floating mini-player + step-by-step `▶ Routine` playlist player and Sub-Checklists.
+   - **Reflection Journal, Challenges & Analytics**: Per-day Mood tags & notes, joinable multi-day challenges, 8 dynamic Milestone Badges, native `Charts`, and `ShareLink` JSON/CSV export + `.fileImporter`.
 
 ---
 
-## 🚀 How to Run & Build
+## 🚀 How to Build & Simulate
 
-### In Xcode (macOS):
-1. Double-click `ios-swiftui/Productive.xcodeproj` to open directly in Xcode.
-2. Select target device: **iPhone 15 Pro** (or any iOS 17+ device/simulator).
-3. Press `Cmd + R` to run!
+### 1. Live HTML iPhone 15 Pro Simulator (Root Workspace)
+Open `../index.html` in any browser to test the 1:1 interactive counterpart alongside Swift development:
+- Click **`🌱 Demo`** in the top Studio Toolbar to populate realistic multi-day habits, streaks, notes, and challenges.
+- Click **`🔔 Push`** to test Lock Screen interactive notification quick actions (`✓ Mark Completed`, `⏰ Snooze 15m`).
+- Click **`⚡ Action`** (or the left hardware Action Button on the iPhone frame) to trigger `LogNextHabitIntent`.
+- Regenerate `app.js` anytime after editing `build_full_app.js` via `node build_full_app.js`.
 
-### Automated Cloud CI/CD (GitHub Actions):
-- Every push to `main` automatically runs `.github/workflows/build-ios.yml` on macOS runners, building the signed/unsigned archive and producing `Productive.ipa`.
-- The output is automatically copied to your Desktop: `C:\Users\JUSTME\Desktop\Productive.ipa`.
+### 2. Xcode & GitHub Actions IPA Build
+- Open `ios-swiftui/Productive.xcodeproj` in Xcode 15.4+ on macOS (`Cmd + R`), or push to `main` to trigger `../.github/workflows/build-ios.yml` to archive and package `Productive.ipa`.

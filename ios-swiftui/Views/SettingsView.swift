@@ -1,31 +1,44 @@
 //
 //  SettingsView.swift
-//  Productive - Daily Habit Tracker
-//  Cupertino Grouped Settings Screen for iPhone 15 Pro
+//  Productive - Native Cupertino Settings, Notifications, HealthKit, Archive & ShareLink Backups
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject var habitStore: HabitStore
+    @StateObject private var notificationManager = NotificationManager.shared
+    @StateObject private var healthManager = HealthKitManager.shared
+    
     @AppStorage("productive_has_completed_onboarding") private var hasCompletedOnboarding: Bool = true
-    @State private var showingExportSheet: Bool = false
-    @State private var exportedJSON: String = ""
-    @State private var showingImportSheet: Bool = false
-    @State private var importText: String = ""
+    @State private var showingFileImporter: Bool = false
     @State private var showingResetAlert: Bool = false
-    @State private var showingToast: Bool = false
-    @State private var toastMessage: String = ""
+    @State private var toastMessage: String? = nil
     
     let weekDays = ["Monday", "Sunday", "Saturday"]
-    let themeOptions = ["Dark", "Light", "System"]
+    let themeOptions = ["System", "Dark", "Light"]
     
     var body: some View {
         NavigationStack {
             Form {
-                // Calendar Preferences
-                Section(header: Text("CALENDAR PREFERENCES"), footer: Text("Changes the first column day in your weekly adherence ribbon.")) {
-                    Picker("Start Day of Week", selection: $habitStore.weekStartDay) {
+                // Appearance & Feedback
+                Section(header: Text("Appearance & Haptics")) {
+                    Picker("Appearance", selection: $habitStore.appTheme) {
+                        ForEach(themeOptions, id: \.self) { theme in
+                            Text(theme).tag(theme)
+                        }
+                    }
+                    
+                    Toggle("Sounds & Tactile Haptics", isOn: $habitStore.soundHapticsEnabled)
+                }
+                
+                // Calendar & Strictness
+                Section(
+                    header: Text("Calendar & Schedule"),
+                    footer: Text("Strict locks missed past days; Rollover carries unfinished quotas into tomorrow.")
+                ) {
+                    Picker("First Day of Week", selection: $habitStore.weekStartDay) {
                         ForEach(weekDays, id: \.self) { day in
                             Text(day).tag(day)
                         }
@@ -33,236 +46,229 @@ struct SettingsView: View {
                     
                     Picker("Default Habit Strictness", selection: $habitStore.defaultStrictnessRaw) {
                         ForEach(HabitStrictness.allCases) { st in
-                            Text(st.badgeText).tag(st.rawValue)
+                            Label(st.badgeText, systemImage: st.symbolName).tag(st.rawValue)
                         }
                     }
                 }
                 
-                // Appearance & Sound
-                Section(header: Text("APPEARANCE & SOUND")) {
-                    Picker("App Theme", selection: $habitStore.appTheme) {
-                        ForEach(themeOptions, id: \.self) { theme in
-                            Text(theme).tag(theme)
-                        }
+                // Streak Protection & Vacation Mode
+                Section(
+                    header: Text("Streak Protection"),
+                    footer: Text("Earn +1 Streak Freeze Shield automatically every time any habit hits a 7-day streak milestone.")
+                ) {
+                    Toggle(isOn: $habitStore.vacationModeEnabled) {
+                        Label("Vacation / Pause Mode", systemImage: "beach.umbrella.fill")
                     }
                     
-                    Toggle("Audio & Haptics", isOn: $habitStore.soundHapticsEnabled)
+                    HStack {
+                        Label("Streak Freeze Shields", systemImage: "snowflake")
+                        Spacer()
+                        Text("\(habitStore.streakFreezeShields) available")
+                            .foregroundStyle(.cyan)
+                            .fontWeight(.bold)
+                    }
                 }
                 
-                // Data Management
-                Section(header: Text("DATA MANAGEMENT & BACKUP")) {
-                    Button(action: {
-                        if let json = habitStore.exportJSON() {
-                            exportedJSON = json
-                            showingExportSheet = true
-                        }
-                    }) {
-                        HStack {
-                            Label("Export Data Backup (JSON)", systemImage: "arrow.down.doc.fill")
-                                .foregroundColor(.blue)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(Color(.tertiaryLabel))
-                        }
-                    }
-                    
-                    Button(action: {
-                        importText = ""
-                        showingImportSheet = true
-                    }) {
-                        HStack {
-                            Label("Import Data Backup", systemImage: "arrow.up.doc.fill")
-                                .foregroundColor(.green)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(Color(.tertiaryLabel))
+                // Notifications & Daily Digests
+                Section(
+                    header: Text("Notifications & Lock Screen Actions"),
+                    footer: Text("Supports interactive Lock Screen quick actions: Mark Completed & Snooze 15m.")
+                ) {
+                    HStack {
+                        Label("Push Notifications", systemImage: "bell.badge.fill")
+                        Spacer()
+                        if notificationManager.isAuthorized {
+                            Text("Authorized")
+                                .font(.subheadline)
+                                .foregroundStyle(.green)
+                        } else {
+                            Button("Enable") {
+                                notificationManager.requestPermission()
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
                         }
                     }
                     
-                    Button(role: .destructive, action: {
+                    Toggle("Morning Kickoff (8:00 AM)", isOn: $habitStore.morningDigestEnabled)
+                        .onChange(of: habitStore.morningDigestEnabled) { _, _ in
+                            notificationManager.configureDailyDigests(
+                                morningEnabled: habitStore.morningDigestEnabled,
+                                eveningEnabled: habitStore.eveningDigestEnabled
+                            )
+                        }
+                    
+                    Toggle("Evening Wrap-Up (8:30 PM)", isOn: $habitStore.eveningDigestEnabled)
+                        .onChange(of: habitStore.eveningDigestEnabled) { _, _ in
+                            notificationManager.configureDailyDigests(
+                                morningEnabled: habitStore.morningDigestEnabled,
+                                eveningEnabled: habitStore.eveningDigestEnabled
+                            )
+                        }
+                }
+                
+                // Apple HealthKit & Siri Shortcuts
+                Section(
+                    header: Text("Apple Ecosystem"),
+                    footer: Text("Action Button & Siri Shortcuts are automatically registered via AppIntents.")
+                ) {
+                    HStack {
+                        Label("Apple Health Sync", systemImage: "heart.text.square.fill")
+                            .foregroundStyle(.pink)
+                        Spacer()
+                        if healthManager.isSyncEnabled {
+                            Text("Active")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.green)
+                        } else {
+                            Button("Connect") {
+                                healthManager.requestConnect { _, msg in
+                                    showToast(msg)
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+                    }
+                    
+                    HStack {
+                        Label("Action Button & Siri", systemImage: "button.vertical.left.press.fill")
+                        Spacer()
+                        Text("Ready")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                
+                // Archived Habits Manager
+                if !habitStore.archivedHabits.isEmpty {
+                    Section(header: Text("Archived Habits (\(habitStore.archivedHabits.count))")) {
+                        ForEach(habitStore.archivedHabits) { archived in
+                            HStack {
+                                Image(systemName: archived.icon)
+                                    .foregroundStyle(Color(hex: archived.colorHex))
+                                Text(archived.name)
+                                    .font(.subheadline.weight(.medium))
+                                Spacer()
+                                Button("Restore") {
+                                    habitStore.toggleArchiveHabit(id: archived.id)
+                                    showToast("Restored \(archived.name)")
+                                }
+                                .font(.caption.weight(.bold))
+                                .buttonStyle(.bordered)
+                                .controlSize(.mini)
+                            }
+                        }
+                    }
+                }
+                
+                // Native iOS ShareLink & Files Importer
+                Section(header: Text("Backup & Portability")) {
+                    if let jsonBackup = habitStore.exportJSON() {
+                        ShareLink(
+                            item: jsonBackup,
+                            subject: Text("Productive Full JSON Backup"),
+                            message: Text("Productive Habit Tracker backup"),
+                            preview: SharePreview("Productive_Backup.json", image: Image(systemName: "externaldrive.fill.badge.checkmark"))
+                        ) {
+                            Label("Share JSON Backup (Files / AirDrop)", systemImage: "square.and.arrow.up")
+                        }
+                    }
+                    
+                    ShareLink(
+                        item: habitStore.exportCSV(),
+                        subject: Text("Productive Habits CSV Export"),
+                        preview: SharePreview("Productive_Habits.csv", image: Image(systemName: "tablecells.fill"))
+                    ) {
+                        Label("Export Spreadsheet (.CSV)", systemImage: "tablecells")
+                    }
+                    
+                    Button {
+                        showingFileImporter = true
+                    } label: {
+                        Label("Import Backup from Files", systemImage: "square.and.arrow.down")
+                    }
+                    
+                    Button(role: .destructive) {
                         showingResetAlert = true
-                    }) {
-                        Label("Reset All Data to Defaults", systemImage: "trash.fill")
+                    } label: {
+                        Label("Reset All Data & Preferences", systemImage: "trash")
                     }
                 }
                 
-                // Setup Wizard
-                Section(header: Text("SETUP & CONFIGURATION")) {
-                    Button(action: {
+                // Setup & Version
+                Section(header: Text("About")) {
+                    Button {
                         hasCompletedOnboarding = false
-                    }) {
-                        Label("Re-run Initial Setup Wizard", systemImage: "sparkles")
-                            .foregroundColor(.blue)
+                    } label: {
+                        Label("Re-run Setup Wizard", systemImage: "sparkles")
                     }
-                }
-                
-                // App Information
-                Section(header: Text("ABOUT PRODUCTIVE")) {
+                    
                     HStack {
                         Text("Version")
                         Spacer()
-                        Text("2.4.0 (iOS 18 Native)")
-                            .foregroundColor(.secondary)
+                        Text("3.0.0 Native SwiftUI")
+                            .foregroundStyle(.secondary)
                     }
                     
                     HStack {
-                        Text("Stored Habits")
+                        Text("Active / Archived Habits")
                         Spacer()
-                        Text("\(habitStore.habits.count) active habits")
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    HStack {
-                        Text("Titanium Experience")
-                        Spacer()
-                        Text("iPhone 15 Pro")
-                            .foregroundColor(.blue)
+                        Text("\(habitStore.activeHabits.count) active • \(habitStore.archivedHabits.count) archived")
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
             .navigationTitle("Settings")
+            .fileImporter(
+                isPresented: $showingFileImporter,
+                allowedContentTypes: [.json, .plainText],
+                allowsMultipleSelection: false
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    guard let url = urls.first else { return }
+                    let secured = url.startAccessingSecurityScopedResource()
+                    defer { if secured { url.stopAccessingSecurityScopedResource() } }
+                    if let data = try? Data(contentsOf: url),
+                       let str = String(data: data, encoding: .utf8),
+                       habitStore.importJSON(str) {
+                        showToast("Backup restored!")
+                    } else {
+                        showToast("Could not decode backup file")
+                    }
+                case .failure:
+                    showToast("Import cancelled")
+                }
+            }
             .alert("Reset All Data?", isPresented: $showingResetAlert) {
                 Button("Cancel", role: .cancel) {}
-                Button("Reset Defaults", role: .destructive) {
+                Button("Reset Everything", role: .destructive) {
                     habitStore.resetDefaults()
                     hasCompletedOnboarding = false
-                    triggerToast("All habits reset to defaults")
                 }
             } message: {
-                Text("This will restore default settings and restart the setup wizard.")
-            }
-            .sheet(isPresented: $showingExportSheet) {
-                ExportSheetView(jsonText: exportedJSON)
-            }
-            .sheet(isPresented: $showingImportSheet) {
-                ImportSheetView(
-                    importText: $importText,
-                    onImport: { json in
-                        if habitStore.importJSON(json) {
-                            showingImportSheet = false
-                            triggerToast("Data restored successfully!")
-                        } else {
-                            triggerToast("Invalid JSON backup format")
-                        }
-                    }
-                )
+                Text("This permanently clears all habits, logs, and challenge progress.")
             }
             .overlay(alignment: .top) {
-                if showingToast {
-                    Text(toastMessage)
-                        .font(.system(size: 13, weight: .semibold))
-                        .padding(.horizontal, 16)
+                if let msg = toastMessage {
+                    Text(msg)
+                        .font(.caption.weight(.bold))
+                        .padding(.horizontal, 14)
                         .padding(.vertical, 8)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(20)
-                        .shadow(radius: 8)
+                        .background(.regularMaterial, in: Capsule())
+                        .shadow(radius: 6)
+                        .padding(.top, 8)
                         .transition(.move(edge: .top).combined(with: .opacity))
-                        .padding(.top, 10)
                 }
             }
         }
     }
     
-    private func triggerToast(_ msg: String) {
-        toastMessage = msg
-        withAnimation { showingToast = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            withAnimation { showingToast = false }
-        }
-    }
-}
-
-struct ExportSheetView: View {
-    let jsonText: String
-    @Environment(\.dismiss) var dismiss
-    
-    var body: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Copy or share your JSON backup data:")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal)
-                    .padding(.top)
-                
-                TextEditor(text: .constant(jsonText))
-                    .font(.system(size: 12, design: .monospaced))
-                    .padding(8)
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(12)
-                    .padding(.horizontal)
-                
-                HStack {
-                    Button(action: {
-                        UIPasteboard.general.string = jsonText
-                        dismiss()
-                    }) {
-                        Label("Copy to Clipboard", systemImage: "doc.on.doc.fill")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(14)
-                    }
-                }
-                .padding()
-            }
-            .navigationTitle("Export Data")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
-    }
-}
-
-struct ImportSheetView: View {
-    @Binding var importText: String
-    var onImport: (String) -> Void
-    @Environment(\.dismiss) var dismiss
-    
-    var body: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Paste your exported JSON backup data here to restore your habits:")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal)
-                    .padding(.top)
-                
-                TextEditor(text: $importText)
-                    .font(.system(size: 12, design: .monospaced))
-                    .padding(8)
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(12)
-                    .padding(.horizontal)
-                
-                Button(action: {
-                    onImport(importText)
-                }) {
-                    Label("Restore Habits", systemImage: "arrow.up.arrow.down.circle.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(importText.isEmpty ? Color.gray : Color.green)
-                        .foregroundColor(.white)
-                        .cornerRadius(14)
-                }
-                .disabled(importText.isEmpty)
-                .padding()
-            }
-            .navigationTitle("Import Data")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { dismiss() }
-                }
-            }
+    private func showToast(_ msg: String) {
+        withAnimation { toastMessage = msg }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+            withAnimation { toastMessage = nil }
         }
     }
 }

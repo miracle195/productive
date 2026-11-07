@@ -1,21 +1,28 @@
 //
 //  ProductiveApp.swift
-//  Productive - Daily Habit Tracker for iPhone 15 Pro
-//  Created for iOS 17 / 18 with SwiftData and Dynamic Island
-//  Supports First-Time Launch Initial Configuration Wizard
+//  Productive - Native SwiftUI Daily Habit Coach for iOS 17 / 18
+//  4-Tab Cupertino Navigation, Semantic System/Dark/Light Themes & First-Launch Setup
 //
 
 import SwiftUI
 
 @main
 struct ProductiveApp: App {
-    @StateObject private var habitStore = HabitStore()
+    @StateObject private var habitStore = HabitStore.shared
+    
+    private var resolvedColorScheme: ColorScheme? {
+        switch habitStore.appTheme {
+        case "Light": return .light
+        case "Dark": return .dark
+        default: return nil // Respects iOS System Appearance
+        }
+    }
     
     var body: some Scene {
         WindowGroup {
             MainTabView()
                 .environmentObject(habitStore)
-                .preferredColorScheme(habitStore.appTheme == "Light" ? .light : .dark)
+                .preferredColorScheme(resolvedColorScheme)
         }
     }
 }
@@ -26,8 +33,8 @@ struct MainTabView: View {
     @State private var selectedTab: TabItem = .today
     @State private var showingAddSheet: Bool = false
     
-    enum TabItem {
-        case today, settings
+    enum TabItem: Hashable {
+        case today, insights, challenges, settings
     }
     
     var body: some View {
@@ -38,9 +45,22 @@ struct MainTabView: View {
                 TabView(selection: $selectedTab) {
                     TodayView(showingAddSheet: $showingAddSheet)
                         .tabItem {
-                            Label("Today", systemImage: "calendar")
+                            Label("Today", systemImage: "checklist")
                         }
+                        .badge(habitStore.remainingDueTodayCount)
                         .tag(TabItem.today)
+                    
+                    InsightsView()
+                        .tabItem {
+                            Label("Insights", systemImage: "chart.bar.xaxis")
+                        }
+                        .tag(TabItem.insights)
+                    
+                    ChallengesView()
+                        .tabItem {
+                            Label("Challenges", systemImage: "trophy.fill")
+                        }
+                        .tag(TabItem.challenges)
                     
                     SettingsView()
                         .tabItem {
@@ -48,242 +68,137 @@ struct MainTabView: View {
                         }
                         .tag(TabItem.settings)
                 }
-                .tint(Color(hex: "#007AFF"))
                 .sheet(isPresented: $showingAddSheet) {
                     AddHabitSheet()
                         .environmentObject(habitStore)
+                        .presentationDetents([.large])
+                        .presentationDragIndicator(.visible)
+                        .presentationCornerRadius(28)
                 }
             }
         }
-        .animation(.easeInOut(duration: 0.35), value: hasCompletedOnboarding)
+        .animation(.snappy(duration: 0.35), value: hasCompletedOnboarding)
     }
 }
 
-//
-//  OnboardingView.swift
-//  First-Launch Initialization & Configuration Page
-//  Allows user to set up Start Day of the Week, Theme, Strictness, and Haptics
-//
+// MARK: - Native Cupertino Onboarding Setup Sheet / View
+
 struct OnboardingView: View {
     @EnvironmentObject var habitStore: HabitStore
     @Binding var hasCompletedOnboarding: Bool
     
     let weekDays = ["Monday", "Sunday", "Saturday"]
+    let themes = ["System", "Dark", "Light"]
     
     var body: some View {
         NavigationStack {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 22) {
-                    // Hero Header
-                    VStack(spacing: 12) {
+            Form {
+                Section {
+                    VStack(spacing: 14) {
                         ZStack {
-                            Circle()
-                                .fill(LinearGradient(colors: [Color(hex: "#5700CB"), Color(hex: "#0062E4")], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                .frame(width: 84, height: 84)
-                                .shadow(color: Color(hex: "#5700CB").opacity(0.4), radius: 16, y: 8)
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color(hex: "#5700CB"), Color(hex: "#007AFF")],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 76, height: 76)
+                                .shadow(color: Color.blue.opacity(0.28), radius: 14, y: 6)
                             
                             Image(systemName: "sparkles")
-                                .font(.system(size: 40))
-                                .foregroundColor(.white)
+                                .font(.system(size: 34, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .symbolEffect(.bounce, value: habitStore.appTheme)
                         }
-                        .padding(.top, 16)
                         
                         Text("Welcome to Productive")
-                            .font(.system(size: 26, weight: .heavy))
-                            .foregroundColor(.white)
+                            .font(.system(.title2, design: .rounded).weight(.heavy))
+                            .foregroundStyle(.primary)
                         
-                        Text("Personalize your experience before starting. You can adjust these anytime in Settings.")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
+                        Text("Tailor your native iOS habit coach. You can change any of these anytime in Settings.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
                     }
-                    
-                    // Card 1: Start Day of the Week
-                    VStack(alignment: .leading, spacing: 14) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "calendar")
-                                .foregroundColor(Color(hex: "#007AFF"))
-                            Text("FIRST DAY OF THE WEEK")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        HStack(spacing: 8) {
-                            ForEach(weekDays, id: \.self) { day in
-                                let isSelected = (habitStore.weekStartDay == day)
-                                Button {
-                                    habitStore.weekStartDay = day
-                                    habitStore.triggerHaptic(.light)
-                                } label: {
-                                    VStack(spacing: 4) {
-                                        Text(day)
-                                            .font(.system(size: 13, weight: .bold))
-                                            .foregroundColor(isSelected ? .white : .primary)
-                                        
-                                        Text(day == "Monday" ? "Work week" : day == "Sunday" ? "Traditional" : "Weekend")
-                                            .font(.system(size: 10))
-                                            .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 14)
-                                            .fill(isSelected ?
-                                                  LinearGradient(colors: [Color(hex: "#5700CB"), Color(hex: "#0062E4")], startPoint: .leading, endPoint: .trailing) :
-                                                  LinearGradient(colors: [Color.white.opacity(0.06)], startPoint: .top, endPoint: .bottom))
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 14)
-                                            .stroke(isSelected ? Color.white.opacity(0.3) : Color.clear, lineWidth: 1)
-                                    )
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
-                        }
-                    }
-                    .padding(18)
-                    .background(Color(hex: "#1A1E30"))
-                    .cornerRadius(20)
-                    
-                    // Card 2: App Theme
-                    VStack(alignment: .leading, spacing: 14) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "paintpalette.fill")
-                                .foregroundColor(Color(hex: "#923DFF"))
-                            Text("APP THEME")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        HStack(spacing: 12) {
-                            ForEach(["Dark", "Light"], id: \.self) { theme in
-                                let isSelected = (habitStore.appTheme == theme)
-                                Button {
-                                    habitStore.appTheme = theme
-                                    habitStore.triggerHaptic(.light)
-                                } label: {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: theme == "Dark" ? "moon.fill" : "sun.max.fill")
-                                            .foregroundColor(theme == "Dark" ? Color(hex: "#923DFF") : Color(hex: "#F8BD32"))
-                                        Text(theme)
-                                            .font(.system(size: 15, weight: .bold))
-                                            .foregroundColor(isSelected ? .white : .primary)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 14)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 14)
-                                            .fill(isSelected ?
-                                                  LinearGradient(colors: [Color(hex: "#5700CB"), Color(hex: "#0062E4")], startPoint: .leading, endPoint: .trailing) :
-                                                  LinearGradient(colors: [Color.white.opacity(0.06)], startPoint: .top, endPoint: .bottom))
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 14)
-                                            .stroke(isSelected ? Color.white.opacity(0.3) : Color.clear, lineWidth: 1)
-                                    )
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
-                        }
-                    }
-                    .padding(18)
-                    .background(Color(hex: "#1A1E30"))
-                    .cornerRadius(20)
-                    
-                    // Card 3: Default Habit Strictness
-                    VStack(alignment: .leading, spacing: 14) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "bolt.fill")
-                                .foregroundColor(Color(hex: "#FF7450"))
-                            Text("DEFAULT STRICTNESS MODE")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        VStack(spacing: 8) {
-                            ForEach(HabitStrictness.allCases) { st in
-                                let isSelected = (habitStore.defaultStrictnessRaw == st.rawValue)
-                                Button {
-                                    habitStore.defaultStrictnessRaw = st.rawValue
-                                    habitStore.triggerHaptic(.light)
-                                } label: {
-                                    HStack {
-                                        Text(st.badgeText)
-                                            .font(.system(size: 14, weight: .bold))
-                                            .foregroundColor(isSelected ? .white : .primary)
-                                        Spacer()
-                                        if isSelected {
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .foregroundColor(Color(hex: "#0FC580"))
-                                        }
-                                    }
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 12)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(isSelected ? Color.white.opacity(0.12) : Color.white.opacity(0.04))
-                                    )
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
-                        }
-                    }
-                    .padding(18)
-                    .background(Color(hex: "#1A1E30"))
-                    .cornerRadius(20)
-                    
-                    // Card 4: Audio & Haptics Toggle
-                    HStack {
-                        HStack(spacing: 10) {
-                            Image(systemName: "waveform")
-                                .foregroundColor(Color(hex: "#0FC580"))
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Tactile Haptics & Audio")
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundColor(.white)
-                                Text("Feel every milestone and check-in")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        Spacer()
-                        Toggle("", isOn: $habitStore.soundHapticsEnabled)
-                            .labelsHidden()
-                            .tint(Color(hex: "#007AFF"))
-                    }
-                    .padding(18)
-                    .background(Color(hex: "#1A1E30"))
-                    .cornerRadius(20)
-                    
-                    // Floating Action Button: Get Started
-                    Button {
-                        habitStore.triggerHaptic(.success)
-                        withAnimation(.easeInOut(duration: 0.35)) {
-                            hasCompletedOnboarding = true
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Text("Get Started")
-                                .font(.system(size: 16, weight: .heavy))
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 15, weight: .bold))
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(LinearGradient(colors: [Color(hex: "#5700CB"), Color(hex: "#0062E4")], startPoint: .leading, endPoint: .trailing))
-                        .cornerRadius(18)
-                        .shadow(color: Color(hex: "#5700CB").opacity(0.5), radius: 14, y: 6)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .padding(.top, 8)
-                    .padding(.bottom, 30)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .listRowBackground(Color.clear)
                 }
-                .padding(.horizontal, 20)
+                
+                Section(
+                    header: Label("Appearance", systemImage: "paintbrush.pointed.fill"),
+                    footer: Text("System automatically matches your iPhone's Light & Dark schedule.")
+                ) {
+                    Picker("Appearance", selection: $habitStore.appTheme) {
+                        ForEach(themes, id: \.self) { theme in
+                            Text(theme).tag(theme)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                
+                Section(header: Label("Calendar & Schedule", systemImage: "calendar")) {
+                    Picker("First Day of Week", selection: $habitStore.weekStartDay) {
+                        ForEach(weekDays, id: \.self) { day in
+                            Text(day).tag(day)
+                        }
+                    }
+                    
+                    Picker("Default Strictness", selection: $habitStore.defaultStrictnessRaw) {
+                        ForEach(HabitStrictness.allCases) { st in
+                            Label(st.badgeText, systemImage: st.symbolName).tag(st.rawValue)
+                        }
+                    }
+                }
+                
+                Section(
+                    header: Label("Feedback & Reminders", systemImage: "bell.badge.fill"),
+                    footer: Text("Includes 2 complimentary Streak Freeze Shields to protect life days.")
+                ) {
+                    Toggle("Tactile Haptics & Sounds", isOn: $habitStore.soundHapticsEnabled)
+                    
+                    Button {
+                        NotificationManager.shared.requestPermission()
+                    } label: {
+                        HStack {
+                            Label("Enable Smart Reminders", systemImage: "app.badge.checkmark")
+                            Spacer()
+                            if NotificationManager.shared.isAuthorized {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                            } else {
+                                Text("Allow")
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                        }
+                    }
+                }
             }
-            .background(Color(hex: "#121524").ignoresSafeArea())
-            .navigationBarHidden(true)
+            .navigationBarTitleDisplayMode(.inline)
+            .safeAreaInset(edge: .bottom) {
+                Button {
+                    habitStore.triggerHaptic(.success)
+                    withAnimation(.snappy) {
+                        hasCompletedOnboarding = true
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("Continue to Today")
+                            .font(.system(.headline, design: .rounded).weight(.bold))
+                        Image(systemName: "arrow.right")
+                            .font(.subheadline.weight(.bold))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                }
+                .background(.bar)
+            }
         }
     }
 }
