@@ -17,13 +17,6 @@ public struct DayModel: Identifiable, Equatable {
     public let isToday: Bool
 }
 
-private struct TodayPillMinXPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 16
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}
-
 public struct TodayView: View {
     @EnvironmentObject var habitStore: HabitStore
     @Binding var showingAddSheet: Bool
@@ -40,10 +33,8 @@ public struct TodayView: View {
     @State private var calendarPickerDate: Date = Date()
     @State private var listEditMode: EditMode = .inactive
     
-    // Date Ribbon Refocus & Reorder Animation States
+    // Date Ribbon Refocus State
     @State private var refocusTodayToken: Int = 0
-    @State private var refocusWaveActive: Bool = false
-    @State private var isRibbonScrolledFromToday: Bool = false
     @State private var calendarScrollTargetKey: String? = nil
     
     // Navigation & Sheet Presentation States
@@ -219,28 +210,21 @@ public struct TodayView: View {
         }
     }
     
-    // MARK: - Animated Return-to-Today Refocus & Leading Reorder
+    // MARK: - Return-to-Today Refocus Action
     
     private func refocusToToday() {
         habitStore.triggerHaptic(.medium)
-        withAnimation(.spring(response: 0.46, dampingFraction: 0.78)) {
+        withAnimation(.spring(response: 0.40, dampingFraction: 0.82)) {
             selectedDateKey = habitStore.todayKey
-            isRibbonScrolledFromToday = false
-            refocusWaveActive = true
             refocusTodayToken += 1
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.46) {
-            withAnimation(.spring(response: 0.36, dampingFraction: 0.84)) {
-                refocusWaveActive = false
-            }
         }
     }
     
-    // MARK: - Pinned Top Control Deck (Balanced Cupertino Breathing Room)
+    // MARK: - Pinned Top Control Deck (Balanced Breathing Room & Solid Layout)
     
     private var pinnedTopDeck: some View {
-        VStack(spacing: 13) {
-            // 1. Sleek Header Row with Return-to-Today Refocus Action
+        VStack(spacing: 12) {
+            // 1. Sleek Header Row with Return-to-Today Action (Zero layout shift!)
             HStack(alignment: .center, spacing: 10) {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(alignment: .center, spacing: 8) {
@@ -250,11 +234,10 @@ public struct TodayView: View {
                             Text(isViewingToday ? "Today" : "Timeline")
                                 .font(.system(size: 28, weight: .heavy, design: .rounded))
                                 .foregroundStyle(.primary)
-                                .contentTransition(.interpolate)
                         }
                         .buttonStyle(.plain)
                         
-                        if !isViewingToday || isRibbonScrolledFromToday {
+                        if !isViewingToday {
                             Button {
                                 refocusToToday()
                             } label: {
@@ -448,27 +431,27 @@ public struct TodayView: View {
                 .padding(.horizontal, 16)
             }
             
-            // 3. Horizontal-Only Date Ribbon — TODAY Anchored First on Leading Edge
+            // 3. Horizontal-Only Date Ribbon inside Groupbox (Matches HTML .week-ribbon 1:1!)
             ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8.5) {
+                    HStack(spacing: 7) {
                         ForEach(timelineDays) { day in
                             dayRibbonPill(for: day)
                         }
                     }
-                    .padding(.vertical, 3)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
                 }
-                .contentMargins(.horizontal, 16, for: .scrollContent)
-                .coordinateSpace(name: "todayRibbonViewport")
                 .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
-                .onPreferenceChange(TodayPillMinXPreferenceKey.self) { minX in
-                    let movedAway = !(minX >= -6 && minX <= 36)
-                    if movedAway != isRibbonScrolledFromToday && !refocusWaveActive {
-                        withAnimation(.snappy(duration: 0.2)) {
-                            isRibbonScrolledFromToday = movedAway
-                        }
-                    }
-                }
+                .background(
+                    Color(.secondarySystemGroupedBackground),
+                    in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.primary.opacity(0.07), lineWidth: 0.8)
+                )
+                .padding(.horizontal, 16)
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                         proxy.scrollTo(habitStore.todayKey, anchor: .leading)
@@ -478,13 +461,13 @@ public struct TodayView: View {
                     }
                 }
                 .onChange(of: refocusTodayToken) { _, _ in
-                    withAnimation(.spring(response: 0.46, dampingFraction: 0.78)) {
+                    withAnimation(.spring(response: 0.42, dampingFraction: 0.80)) {
                         proxy.scrollTo(habitStore.todayKey, anchor: .leading)
                     }
                 }
                 .onChange(of: calendarScrollTargetKey) { _, targetKey in
                     guard let key = targetKey else { return }
-                    withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
+                    withAnimation(.spring(response: 0.40, dampingFraction: 0.82)) {
                         proxy.scrollTo(key, anchor: key == habitStore.todayKey ? .leading : .center)
                     }
                     calendarScrollTargetKey = nil
@@ -501,51 +484,45 @@ public struct TodayView: View {
                     .padding(.horizontal, 16)
             }
         }
-        .padding(.bottom, 13)
+        .padding(.bottom, 12)
         .background(Color(.systemGroupedBackground))
     }
     
     private func dayRibbonPill(for day: DayModel) -> some View {
         let isSelected = (day.dateKey == activeDateKey)
         let dayPct = habitStore.completionPercentage(on: day.date, dateKey: day.dateKey)
-        let waveScale: CGFloat = {
-            guard refocusWaveActive else { return 1.0 }
-            if day.isToday { return 1.07 }
-            if day.id < 0 { return 0.90 }
-            if day.id <= 7 { return 0.94 }
-            return 1.0
-        }()
-        let waveOffsetX: CGFloat = {
-            guard refocusWaveActive else { return 0 }
-            if day.id >= 1 && day.id <= 7 { return CGFloat(day.id) * 5.0 }
-            if day.id < 0 { return -6.0 }
-            return 0
-        }()
-        let waveDelay: Double = (day.id >= 1 && day.id <= 7) ? Double(day.id) * 0.022 : 0.0
         
         return Button {
-            withAnimation(.spring(response: 0.34, dampingFraction: 0.82)) {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
                 selectedDateKey = day.dateKey
             }
             habitStore.triggerHaptic(.light)
         } label: {
-            VStack(spacing: 4) {
+            VStack(spacing: 3.5) {
                 Text(day.dayLetter)
                     .font(.system(size: 9.5, weight: .bold, design: .rounded))
-                    .foregroundStyle(isSelected ? Color.white.opacity(0.94) : (day.isToday ? Color.accentColor : Color.secondary))
+                    .foregroundStyle(
+                        isSelected ? Color.white.opacity(0.95) :
+                        day.isToday ? Color.accentColor :
+                        Color.secondary
+                    )
                 
                 Text(day.dayNumber)
                     .font(.system(size: 15, weight: .heavy, design: .rounded))
-                    .foregroundStyle(isSelected ? Color.white : Color.primary)
+                    .foregroundStyle(
+                        isSelected ? Color.white :
+                        day.isToday ? Color.accentColor :
+                        Color.primary
+                    )
                 
                 Circle()
                     .fill(dayPct == 100 ? Color.green : (dayPct > 0 ? Color.orange : Color.clear))
                     .frame(width: 4.5, height: 4.5)
             }
-            .frame(width: 49, height: 58)
+            .frame(width: 47, height: 56)
             .background {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 14.5, style: .continuous)
+                    RoundedRectangle(cornerRadius: 13.5, style: .continuous)
                         .fill(
                             LinearGradient(
                                 colors: [Color(hex: "#007AFF"), Color(hex: "#3867FF")],
@@ -553,40 +530,18 @@ public struct TodayView: View {
                                 endPoint: .bottom
                             )
                         )
-                        .shadow(
-                            color: Color(hex: "#007AFF").opacity(refocusWaveActive && day.isToday ? 0.45 : 0.24),
-                            radius: refocusWaveActive && day.isToday ? 9 : 5,
-                            y: 2
-                        )
+                        .shadow(color: Color(hex: "#007AFF").opacity(0.32), radius: 6, y: 2)
                         .matchedGeometryEffect(id: "selectedDayPillBG", in: dayRibbonNamespace)
-                } else {
-                    RoundedRectangle(cornerRadius: 14.5, style: .continuous)
-                        .fill(Color(.secondarySystemGroupedBackground))
                 }
             }
-            .overlay(
-                RoundedRectangle(cornerRadius: 14.5, style: .continuous)
-                    .stroke(
-                        isSelected ? Color.white.opacity(0.24) : (day.isToday ? Color.accentColor.opacity(0.32) : Color.primary.opacity(0.06)),
-                        lineWidth: day.isToday && !isSelected ? 1.1 : 0.8
-                    )
-            )
+            .overlay {
+                if day.isToday && !isSelected {
+                    RoundedRectangle(cornerRadius: 13.5, style: .continuous)
+                        .stroke(Color.accentColor.opacity(0.42), lineWidth: 1.1)
+                }
+            }
         }
         .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.94))
-        .scaleEffect(waveScale)
-        .offset(x: waveOffsetX)
-        .opacity(refocusWaveActive && day.id < 0 ? 0.45 : 1.0)
-        .animation(.spring(response: 0.44, dampingFraction: 0.76).delay(waveDelay), value: refocusWaveActive)
-        .background {
-            if day.isToday {
-                GeometryReader { geo in
-                    Color.clear.preference(
-                        key: TodayPillMinXPreferenceKey.self,
-                        value: geo.frame(in: .named("todayRibbonViewport")).minX
-                    )
-                }
-            }
-        }
         .id(day.dateKey)
     }
     
