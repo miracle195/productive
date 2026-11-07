@@ -915,19 +915,61 @@ function getTimelineDays() {
   return days;
 }
 
-function scrollRibbonToToday(smooth = true) {
+function getTodayLeadingScrollTarget(container) {
+  if (!container || !container.querySelector) return 0;
+  const todayEl = container.querySelector('.day-pill.today');
+  if (!todayEl) return 0;
+  return Math.max(0, todayEl.offsetLeft - 9);
+}
+
+function syncReturnTodayPillVisibility() {
+  const pill = document.getElementById('return-today-pill');
+  if (!pill || !pill.style) return;
+  const container = document.getElementById('week-ribbon-container');
+  let scrolledFromToday = false;
+  if (container && container.dataset && container.dataset.initializedScroll === 'true') {
+    const target = getTodayLeadingScrollTarget(container);
+    scrolledFromToday = Math.abs((container.scrollLeft || 0) - target) > 24;
+  }
+  pill.style.display = (!state.isDayToday() || scrolledFromToday) ? 'inline-flex' : 'none';
+}
+
+function scrollRibbonToToday(smooth = true, withRefocusWave = false) {
   const container = document.getElementById('week-ribbon-container');
   if (!container || !container.querySelector) return;
   const todayEl = container.querySelector('.day-pill.today');
-  if (todayEl && container.scrollTo) {
-    const targetScroll = Math.max(0, todayEl.offsetLeft - container.offsetLeft - 8);
-    container.scrollTo({ left: targetScroll, behavior: smooth ? 'smooth' : 'auto' });
+  if (todayEl) {
+    const targetScroll = getTodayLeadingScrollTarget(container);
+    if (container.scrollTo) {
+      container.scrollTo({ left: targetScroll, behavior: smooth ? 'smooth' : 'auto' });
+    } else {
+      container.scrollLeft = targetScroll;
+    }
+    if (withRefocusWave && container.querySelectorAll) {
+      const pills = Array.from(container.querySelectorAll('.day-pill'));
+      const todayIdx = pills.indexOf(todayEl);
+      pills.forEach((p, idx) => {
+        p.classList.remove('refocus-leader', 'refocus-upcoming');
+        p.style.animationDelay = '';
+        if (idx === todayIdx) {
+          void p.offsetWidth;
+          p.classList.add('refocus-leader');
+        } else if (todayIdx >= 0 && idx > todayIdx && idx <= todayIdx + 6) {
+          void p.offsetWidth;
+          p.style.animationDelay = ((idx - todayIdx) * 24) + 'ms';
+          p.classList.add('refocus-upcoming');
+        }
+      });
+    }
   }
+  setTimeout(syncReturnTodayPillVisibility, smooth ? 420 : 20);
 }
 
 function renderWeekRibbon(autoScrollToToday = false) {
   const container = document.getElementById('week-ribbon-container');
   if (!container) return;
+  const wasInitialized = Boolean(container.dataset && container.dataset.initializedScroll === 'true');
+  const prevScroll = container.scrollLeft || 0;
   const days = getTimelineDays();
   let html = '';
   days.forEach(d => {
@@ -941,10 +983,13 @@ function renderWeekRibbon(autoScrollToToday = false) {
     html += '</div>';
   });
   container.innerHTML = html;
-  if (autoScrollToToday || (container.dataset && !container.dataset.initializedScroll)) {
-    scrollRibbonToToday(false);
+  if (autoScrollToToday || !wasInitialized) {
+    scrollRibbonToToday(false, false);
     if (container.dataset) container.dataset.initializedScroll = 'true';
+  } else {
+    container.scrollLeft = prevScroll;
   }
+  syncReturnTodayPillVisibility();
 }
 
 function updateTabBadgeAndIsland() {
@@ -1011,7 +1056,7 @@ function renderTodayScreen() {
     } else {
       dateBanner.style.display = 'flex';
       const lbl = activeDayObj ? activeDayObj.fullDateName : state.selectedDay;
-      dateBanner.innerHTML = '<span>🗓️ Viewing ' + lbl + ' (' + (state.isDayPast() ? 'Past' : 'Upcoming') + ')</span><button onclick="selectDay(\'' + state.todayKey + '\', true)">Today</button>';
+      dateBanner.innerHTML = '<span>🗓️ Viewing ' + lbl + ' (' + (state.isDayPast() ? 'Past' : 'Upcoming') + ')</span><button onclick="refocusToToday()">↩ Today</button>';
     }
   }
 
@@ -1960,7 +2005,7 @@ function openCalendarJumpModal() {
 
   let html = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">';
   html += '<strong style="font-size:16px; color:var(--app-text-primary);">🗓️ ' + monthNames[month] + ' ' + year + '</strong>';
-  html += '<button class="mini-pill-btn primary" onclick="selectDay(\'' + state.todayKey + '\', true); closeNativeModal();">Today</button></div>';
+  html += '<button class="mini-pill-btn primary" onclick="closeNativeModal(); refocusToToday();">↩ Today</button></div>';
 
   html += '<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; text-align:center;">';
   ['S','M','T','W','T','F','S'].forEach(l => {
@@ -2898,13 +2943,22 @@ function seedRichDemoData() {
 // NAVIGATION, ONBOARDING & GLOBAL SHORTCUTS
 // ============================================================================
 
+function refocusToToday() {
+  state.selectedDay = state.todayKey;
+  sound.playHaptic();
+  renderTodayScreen();
+  scrollRibbonToToday(true, true);
+}
+
 function selectDay(dateKey, shouldScrollToToday = false) {
+  if (shouldScrollToToday) {
+    refocusToToday();
+    return;
+  }
   state.selectedDay = dateKey;
   sound.playClick();
   renderTodayScreen();
-  if (shouldScrollToToday || state.isDayToday()) {
-    scrollRibbonToToday(true);
-  }
+  syncReturnTodayPillVisibility();
 }
 
 function setTodayFilter(filter) {
@@ -3152,12 +3206,20 @@ if (typeof window !== 'undefined' && window.addEventListener) {
     if (document.querySelectorAll) {
       document.querySelectorAll('.tab-item').forEach(tab => {
         tab.addEventListener('click', () => {
+          if (tab.dataset.screen === 'today' && state.activeScreen === 'today') {
+            refocusToToday();
+            return;
+          }
           if (tab.dataset.screen) switchScreen(tab.dataset.screen);
         });
       });
     }
 
-    enableHorizontalDragScroll(document.getElementById('week-ribbon-container'));
+    const weekRibbonEl = document.getElementById('week-ribbon-container');
+    enableHorizontalDragScroll(weekRibbonEl);
+    if (weekRibbonEl && weekRibbonEl.addEventListener) {
+      weekRibbonEl.addEventListener('scroll', syncReturnTodayPillVisibility, { passive: true });
+    }
     enableHorizontalDragScroll(document.getElementById('sheet-cat-tabs'));
 
     const island = document.getElementById('dynamic-island');

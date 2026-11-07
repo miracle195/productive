@@ -37,12 +37,24 @@ struct MainTabView: View {
         case today, insights, challenges, settings
     }
     
+    private var tabSelectionBinding: Binding<TabItem> {
+        Binding(
+            get: { selectedTab },
+            set: { newTab in
+                if newTab == .today && selectedTab == .today {
+                    habitStore.refocusTodayRequestCount += 1
+                }
+                selectedTab = newTab
+            }
+        )
+    }
+    
     var body: some View {
         Group {
             if !hasCompletedOnboarding {
                 OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)
             } else {
-                TabView(selection: $selectedTab) {
+                TabView(selection: tabSelectionBinding) {
                     TodayView(showingAddSheet: $showingAddSheet)
                         .tabItem {
                             Label("Today", systemImage: "checklist")

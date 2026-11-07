@@ -25,12 +25,12 @@ struct SettingsView: View {
                 // Pinned Non-Scrolling Settings Header
                 HStack {
                     Text("Settings")
-                        .font(.system(size: 26, weight: .heavy, design: .rounded))
+                        .font(.system(size: 28, weight: .heavy, design: .rounded))
                     Spacer()
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 6)
-                .padding(.bottom, 8)
+                .padding(.top, 10)
+                .padding(.bottom, 12)
                 .background(Color(.systemGroupedBackground))
                 
                 Divider()
@@ -222,7 +222,7 @@ struct SettingsView: View {
                     HStack {
                         Text("Version")
                         Spacer()
-                        Text("3.1.0 Native SwiftUI")
+                        Text("3.2.0 Native SwiftUI")
                             .foregroundStyle(.secondary)
                     }
                     
@@ -234,8 +234,8 @@ struct SettingsView: View {
                     }
                 }
             }
-            .listSectionSpacing(12)
-            .contentMargins(.top, 6, for: .scrollContent)
+            .listSectionSpacing(16)
+            .contentMargins(.top, 12, for: .scrollContent)
             .scrollContentBackground(.hidden)
             }
             .background(Color(.systemGroupedBackground))

@@ -15,7 +15,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=3.1.0">
+  <link rel="stylesheet" href="styles.css?v=3.2.0">
 </head>
 <body>
 
@@ -30,8 +30,8 @@
       <div class="brand-badge">
         <div class="brand-logo-icon">P</div>
         <div class="brand-info">
-          <h1>Productive 3.1 <span class="badge-pill">Native SwiftUI • 120Hz Pinned UI</span></h1>
-          <p>Live 1:1 Simulator synced with <code>ios-swiftui/</code> (Pinned Deck & Zero-Waste Layout)</p>
+          <h1>Productive 3.2 <span class="badge-pill">Native SwiftUI • Balanced & Refocused</span></h1>
+          <p>Live 1:1 Simulator synced with <code>ios-swiftui/</code> (Airy Spacing & Today-First Ribbon)</p>
         </div>
       </div>
 
@@ -242,7 +242,10 @@
                   <div class="app-nav-header compact-nav">
                     <div class="nav-date-group" onclick="openCalendarJumpModal()" style="cursor:pointer;" title="Tap to jump to any date">
                       <p id="today-day-name">TODAY</p>
-                      <h2 id="today-date-title">Today</h2>
+                      <div class="nav-title-inline">
+                        <h2 id="today-date-title">Today</h2>
+                        <button class="return-today-pill" id="return-today-pill" style="display:none;" onclick="event.stopPropagation(); refocusToToday()" title="Refocus & Reorder Today First">↩ Today</button>
+                      </div>
                     </div>
                     <div class="header-actions" style="display:flex; align-items:center; gap:6px;">
                       <button class="shield-pill" id="freeze-shield-pill" title="Streak Freeze Shields (Earned every 7-day streak!)">
@@ -892,6 +895,6 @@
 
   </div>
 
-  <script src="app.js?v=3.1.0"></script>
+  <script src="app.js?v=3.2.0"></script>
 </body>
 </html>

@@ -17,11 +17,19 @@ public struct DayModel: Identifiable, Equatable {
     public let isToday: Bool
 }
 
+private struct TodayPillMinXPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 16
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 public struct TodayView: View {
     @EnvironmentObject var habitStore: HabitStore
     @Binding var showingAddSheet: Bool
     
     @Namespace private var filterNamespace
+    @Namespace private var dayRibbonNamespace
     @FocusState private var isSearchFieldFocused: Bool
     
     @State private var selectedDateKey: String? = nil
@@ -31,6 +39,12 @@ public struct TodayView: View {
     @State private var showingCalendarPopover: Bool = false
     @State private var calendarPickerDate: Date = Date()
     @State private var listEditMode: EditMode = .inactive
+    
+    // Date Ribbon Refocus & Reorder Animation States
+    @State private var refocusTodayToken: Int = 0
+    @State private var refocusWaveActive: Bool = false
+    @State private var isRibbonScrolledFromToday: Bool = false
+    @State private var calendarScrollTargetKey: String? = nil
     
     // Navigation & Sheet Presentation States
     @State private var selectedDetailHabitId: UUID? = nil
@@ -137,14 +151,26 @@ public struct TodayView: View {
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Today") {
-                                selectedDateKey = habitStore.todayKey
                                 showingCalendarPopover = false
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                                    refocusToToday()
+                                }
                             }
                         }
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") {
-                                selectedDateKey = HabitStore.dateFormatter.string(from: calendarPickerDate)
+                                let pickedKey = HabitStore.dateFormatter.string(from: calendarPickerDate)
                                 showingCalendarPopover = false
+                                if pickedKey == habitStore.todayKey {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                                        refocusToToday()
+                                    }
+                                } else {
+                                    withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                                        selectedDateKey = pickedKey
+                                        calendarScrollTargetKey = pickedKey
+                                    }
+                                }
                             }
                             .fontWeight(.bold)
                         }
@@ -187,36 +213,68 @@ public struct TodayView: View {
                     habitStore.requestedRoutineBucket = nil
                 }
             }
+            .onChange(of: habitStore.refocusTodayRequestCount) { _, _ in
+                refocusToToday()
+            }
         }
     }
     
-    // MARK: - Pinned Top Control Deck
+    // MARK: - Animated Return-to-Today Refocus & Leading Reorder
+    
+    private func refocusToToday() {
+        habitStore.triggerHaptic(.medium)
+        withAnimation(.spring(response: 0.46, dampingFraction: 0.78)) {
+            selectedDateKey = habitStore.todayKey
+            isRibbonScrolledFromToday = false
+            refocusWaveActive = true
+            refocusTodayToken += 1
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.46) {
+            withAnimation(.spring(response: 0.36, dampingFraction: 0.84)) {
+                refocusWaveActive = false
+            }
+        }
+    }
+    
+    // MARK: - Pinned Top Control Deck (Balanced Cupertino Breathing Room)
     
     private var pinnedTopDeck: some View {
-        VStack(spacing: 8) {
-            // 1. Sleek Compact Header Row
-            HStack(alignment: .center, spacing: 8) {
-                VStack(alignment: .leading, spacing: 1) {
-                    HStack(alignment: .firstTextBaseline, spacing: 7) {
-                        Text(isViewingToday ? "Today" : "Timeline")
-                            .font(.system(size: 26, weight: .heavy, design: .rounded))
-                            .foregroundStyle(.primary)
+        VStack(spacing: 13) {
+            // 1. Sleek Header Row with Return-to-Today Refocus Action
+            HStack(alignment: .center, spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(alignment: .center, spacing: 8) {
+                        Button {
+                            refocusToToday()
+                        } label: {
+                            Text(isViewingToday ? "Today" : "Timeline")
+                                .font(.system(size: 28, weight: .heavy, design: .rounded))
+                                .foregroundStyle(.primary)
+                                .contentTransition(.interpolate)
+                        }
+                        .buttonStyle(.plain)
                         
-                        if !isViewingToday {
+                        if !isViewingToday || isRibbonScrolledFromToday {
                             Button {
-                                withAnimation(.snappy(duration: 0.22)) {
-                                    selectedDateKey = habitStore.todayKey
-                                }
-                                habitStore.triggerHaptic(.light)
+                                refocusToToday()
                             } label: {
-                                Text("↩ Today")
-                                    .font(.caption2.weight(.bold))
-                                    .foregroundStyle(.orange)
-                                    .padding(.horizontal, 7)
-                                    .padding(.vertical, 3)
-                                    .background(.orange.opacity(0.15), in: Capsule())
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.uturn.backward")
+                                        .font(.system(size: 10.5, weight: .heavy))
+                                    Text("Today")
+                                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                                }
+                                .foregroundStyle(.orange)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(.orange.opacity(0.16), in: Capsule())
+                                .overlay(
+                                    Capsule()
+                                        .stroke(Color.orange.opacity(0.28), lineWidth: 0.7)
+                                )
                             }
-                            .buttonStyle(TactileScaleButtonStyle())
+                            .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.92))
+                            .transition(.scale(scale: 0.86).combined(with: .opacity))
                         }
                     }
                     
@@ -225,13 +283,13 @@ public struct TodayView: View {
                         showingCalendarPopover = true
                         habitStore.triggerHaptic(.light)
                     } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 4.5) {
                             Image(systemName: "calendar")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.system(size: 11.5, weight: .semibold))
                             Text(HabitStore.shortHeaderDateFormatter.string(from: activeDate))
-                                .font(.caption.weight(.semibold))
+                                .font(.system(size: 12.5, weight: .semibold, design: .rounded))
                             Image(systemName: "chevron.down")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.system(size: 9.5, weight: .bold))
                         }
                         .foregroundStyle(.secondary)
                     }
@@ -240,19 +298,19 @@ public struct TodayView: View {
                 
                 Spacer(minLength: 4)
                 
-                // Trailing Compact Action Pills
-                HStack(spacing: 7) {
+                // Trailing Action Pills
+                HStack(spacing: 8) {
                     // Shield Counter Pill
-                    HStack(spacing: 3) {
+                    HStack(spacing: 3.5) {
                         Image(systemName: "snowflake")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.system(size: 11.5, weight: .bold))
                             .foregroundStyle(.cyan)
                         Text("\(habitStore.streakFreezeShields)")
                             .font(.caption.weight(.heavy))
                             .contentTransition(.numericText())
                     }
-                    .padding(.horizontal, 8)
-                    .frame(height: 32)
+                    .padding(.horizontal, 9)
+                    .frame(height: 34)
                     .background(Color.cyan.opacity(0.14), in: Capsule())
                     
                     // Collapsible Search Toggle
@@ -269,9 +327,9 @@ public struct TodayView: View {
                         habitStore.triggerHaptic(.light)
                     } label: {
                         Image(systemName: isShowingSearchBar ? "xmark" : "magnifyingglass")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: 13.5, weight: .bold))
                             .foregroundStyle(isShowingSearchBar ? Color.accentColor : .primary)
-                            .frame(width: 32, height: 32)
+                            .frame(width: 34, height: 34)
                             .background(Color(.secondarySystemGroupedBackground), in: Circle())
                     }
                     .buttonStyle(TactileScaleButtonStyle())
@@ -306,9 +364,9 @@ public struct TodayView: View {
                         }
                     } label: {
                         Image(systemName: "ellipsis")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: 13.5, weight: .bold))
                             .foregroundStyle(.primary)
-                            .frame(width: 32, height: 32)
+                            .frame(width: 34, height: 34)
                             .background(Color(.secondarySystemGroupedBackground), in: Circle())
                     }
                     
@@ -318,9 +376,9 @@ public struct TodayView: View {
                         habitStore.triggerHaptic(.medium)
                     } label: {
                         Image(systemName: "plus")
-                            .font(.system(size: 15, weight: .heavy))
+                            .font(.system(size: 15.5, weight: .heavy))
                             .foregroundStyle(.white)
-                            .frame(width: 34, height: 34)
+                            .frame(width: 36, height: 36)
                             .background(
                                 LinearGradient(
                                     colors: [Color(hex: "#007AFF"), Color(hex: "#5856D6")],
@@ -336,9 +394,9 @@ public struct TodayView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 6)
+            .padding(.top, 10)
             
-            // 2. On-Demand Compact Search Field
+            // 2. On-Demand Search Field
             if isShowingSearchBar {
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
@@ -362,7 +420,7 @@ public struct TodayView: View {
                     }
                 }
                 .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.vertical, 9)
                 .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .padding(.horizontal, 16)
                 .transition(.move(edge: .top).combined(with: .opacity))
@@ -385,84 +443,148 @@ public struct TodayView: View {
                     .controlSize(.mini)
                 }
                 .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(.orange.opacity(0.14), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .padding(.vertical, 7)
+                .background(.orange.opacity(0.14), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
                 .padding(.horizontal, 16)
             }
             
-            // 3. Horizontal-Only Date Ribbon (Moves strictly Left/Right!)
+            // 3. Horizontal-Only Date Ribbon — TODAY Anchored First on Leading Edge
             ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8.5) {
                         ForEach(timelineDays) { day in
-                            let isSelected = (day.dateKey == activeDateKey)
-                            let dayPct = habitStore.completionPercentage(on: day.date, dateKey: day.dateKey)
-                            Button {
-                                withAnimation(.snappy(duration: 0.22)) {
-                                    selectedDateKey = day.dateKey
-                                }
-                                habitStore.triggerHaptic(.light)
-                            } label: {
-                                VStack(spacing: 3) {
-                                    Text(day.dayLetter)
-                                        .font(.system(size: 9, weight: .bold, design: .rounded))
-                                        .foregroundStyle(isSelected ? .white.opacity(0.92) : (day.isToday ? Color.accentColor : .secondary))
-                                    
-                                    Text(day.dayNumber)
-                                        .font(.system(size: 14, weight: .heavy, design: .rounded))
-                                        .foregroundStyle(isSelected ? .white : .primary)
-                                    
-                                    Circle()
-                                        .fill(dayPct == 100 ? Color.green : (dayPct > 0 ? Color.orange : Color.clear))
-                                        .frame(width: 4.5, height: 4.5)
-                                }
-                                .frame(width: 44, height: 50)
-                                .background(
-                                    isSelected
-                                        ? AnyShapeStyle(
-                                            LinearGradient(
-                                                colors: [Color(hex: "#007AFF"), Color(hex: "#3867FF")],
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                            )
-                                        )
-                                        : AnyShapeStyle(Color(.secondarySystemGroupedBackground)),
-                                    in: RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                        .stroke(
-                                            isSelected ? Color.white.opacity(0.22) : Color.primary.opacity(0.06),
-                                            lineWidth: 0.8
-                                        )
-                                )
-                            }
-                            .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.94))
-                            .id(day.dateKey)
+                            dayRibbonPill(for: day)
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.vertical, 3)
                 }
+                .contentMargins(.horizontal, 16, for: .scrollContent)
+                .coordinateSpace(name: "todayRibbonViewport")
                 .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+                .onPreferenceChange(TodayPillMinXPreferenceKey.self) { minX in
+                    let movedAway = !(minX >= -6 && minX <= 36)
+                    if movedAway != isRibbonScrolledFromToday && !refocusWaveActive {
+                        withAnimation(.snappy(duration: 0.2)) {
+                            isRibbonScrolledFromToday = movedAway
+                        }
+                    }
+                }
                 .onAppear {
                     DispatchQueue.main.async {
-                        proxy.scrollTo(habitStore.todayKey, anchor: .center)
+                        proxy.scrollTo(habitStore.todayKey, anchor: .leading)
                     }
+                }
+                .onChange(of: refocusTodayToken) { _, _ in
+                    withAnimation(.spring(response: 0.46, dampingFraction: 0.78)) {
+                        proxy.scrollTo(habitStore.todayKey, anchor: .leading)
+                    }
+                }
+                .onChange(of: calendarScrollTargetKey) { _, targetKey in
+                    guard let key = targetKey else { return }
+                    withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
+                        proxy.scrollTo(key, anchor: key == habitStore.todayKey ? .leading : .center)
+                    }
+                    calendarScrollTargetKey = nil
                 }
             }
             
-            // 4. Compact, Jewel-Like Daily Focus Card (Zero unused vertical space!)
+            // 4. Balanced Jewel-Like Daily Focus Card
             dailyProgressCard
                 .padding(.horizontal, 16)
             
-            // 5. Sleek Sliding Filter Pills (Tightly integrated right under Daily Focus!)
+            // 5. Sleek Sliding Filter Pills
             if !habitStore.activeHabits.isEmpty {
                 slidingFilterBar
                     .padding(.horizontal, 16)
             }
         }
-        .padding(.bottom, 8)
+        .padding(.bottom, 13)
         .background(Color(.systemGroupedBackground))
+    }
+    
+    private func dayRibbonPill(for day: DayModel) -> some View {
+        let isSelected = (day.dateKey == activeDateKey)
+        let dayPct = habitStore.completionPercentage(on: day.date, dateKey: day.dateKey)
+        let waveScale: CGFloat = {
+            guard refocusWaveActive else { return 1.0 }
+            if day.isToday { return 1.07 }
+            if day.id < 0 { return 0.90 }
+            if day.id <= 7 { return 0.94 }
+            return 1.0
+        }()
+        let waveOffsetX: CGFloat = {
+            guard refocusWaveActive else { return 0 }
+            if day.id >= 1 && day.id <= 7 { return CGFloat(day.id) * 5.0 }
+            if day.id < 0 { return -6.0 }
+            return 0
+        }()
+        let waveDelay: Double = (day.id >= 1 && day.id <= 7) ? Double(day.id) * 0.022 : 0.0
+        
+        return Button {
+            withAnimation(.spring(response: 0.34, dampingFraction: 0.82)) {
+                selectedDateKey = day.dateKey
+            }
+            habitStore.triggerHaptic(.light)
+        } label: {
+            VStack(spacing: 4) {
+                Text(day.dayLetter)
+                    .font(.system(size: 9.5, weight: .bold, design: .rounded))
+                    .foregroundStyle(isSelected ? Color.white.opacity(0.94) : (day.isToday ? Color.accentColor : Color.secondary))
+                
+                Text(day.dayNumber)
+                    .font(.system(size: 15, weight: .heavy, design: .rounded))
+                    .foregroundStyle(isSelected ? Color.white : Color.primary)
+                
+                Circle()
+                    .fill(dayPct == 100 ? Color.green : (dayPct > 0 ? Color.orange : Color.clear))
+                    .frame(width: 4.5, height: 4.5)
+            }
+            .frame(width: 49, height: 58)
+            .background {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 14.5, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "#007AFF"), Color(hex: "#3867FF")],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .shadow(
+                            color: Color(hex: "#007AFF").opacity(refocusWaveActive && day.isToday ? 0.45 : 0.24),
+                            radius: refocusWaveActive && day.isToday ? 9 : 5,
+                            y: 2
+                        )
+                        .matchedGeometryEffect(id: "selectedDayPillBG", in: dayRibbonNamespace)
+                } else {
+                    RoundedRectangle(cornerRadius: 14.5, style: .continuous)
+                        .fill(Color(.secondarySystemGroupedBackground))
+                }
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 14.5, style: .continuous)
+                    .stroke(
+                        isSelected ? Color.white.opacity(0.24) : (day.isToday ? Color.accentColor.opacity(0.32) : Color.primary.opacity(0.06)),
+                        lineWidth: day.isToday && !isSelected ? 1.1 : 0.8
+                    )
+            )
+        }
+        .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.94))
+        .scaleEffect(waveScale)
+        .offset(x: waveOffsetX)
+        .opacity(refocusWaveActive && day.id < 0 ? 0.45 : 1.0)
+        .animation(.spring(response: 0.44, dampingFraction: 0.76).delay(waveDelay), value: refocusWaveActive)
+        .background {
+            if day.isToday {
+                GeometryReader { geo in
+                    Color.clear.preference(
+                        key: TodayPillMinXPreferenceKey.self,
+                        value: geo.frame(in: .named("todayRibbonViewport")).minX
+                    )
+                }
+            }
+        }
+        .id(day.dateKey)
     }
     
     // MARK: - Sliding Filter Bar
@@ -477,13 +599,13 @@ public struct TodayView: View {
                     }
                     habitStore.triggerHaptic(.light)
                 } label: {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 4.5) {
                         Text(opt.rawValue)
-                            .font(.system(size: 12.5, weight: isSelected ? .bold : .semibold, design: .rounded))
+                            .font(.system(size: 13, weight: isSelected ? .bold : .semibold, design: .rounded))
                         if opt == .dueOnly && dueCountOnActiveDate > 0 {
                             Text("\(dueCountOnActiveDate)")
-                                .font(.system(size: 10, weight: .heavy, design: .rounded))
-                                .padding(.horizontal, 5)
+                                .font(.system(size: 10.5, weight: .heavy, design: .rounded))
+                                .padding(.horizontal, 5.5)
                                 .padding(.vertical, 1)
                                 .background(
                                     isSelected ? Color.accentColor.opacity(0.18) : Color.secondary.opacity(0.16),
@@ -494,13 +616,13 @@ public struct TodayView: View {
                     }
                     .foregroundStyle(isSelected ? .primary : .secondary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 8)
                     .background {
                         if isSelected {
-                            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            RoundedRectangle(cornerRadius: 9.5, style: .continuous)
                                 .fill(Color(.tertiarySystemGroupedBackground))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                    RoundedRectangle(cornerRadius: 9.5, style: .continuous)
                                         .stroke(Color.primary.opacity(0.08), lineWidth: 0.6)
                                 )
                                 .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
@@ -511,8 +633,8 @@ public struct TodayView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(3)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+        .padding(3.5)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
     
     // MARK: - Dedicated Habits Scroll Region
@@ -574,7 +696,7 @@ public struct TodayView: View {
                                     onOpenDetail: { selectedDetailHabitId = habit.id },
                                     onOpenTimer: { timerSheetHabit = habit }
                                 )
-                                .listRowInsets(EdgeInsets(top: 9, leading: 14, bottom: 9, trailing: 14))
+                                .listRowInsets(EdgeInsets(top: 11, leading: 15, bottom: 11, trailing: 15))
                                 // Leading Swipe: Quick Complete or +Step
                                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                                     Button {
@@ -732,20 +854,20 @@ public struct TodayView: View {
                                 .buttonStyle(TactileScaleButtonStyle())
                                 .textCase(nil)
                             }
-                            .padding(.bottom, 2)
+                            .padding(.bottom, 4)
                         }
                     }
                 }
             }
             .listStyle(.insetGrouped)
-            .listSectionSpacing(10)
-            .contentMargins(.top, 6, for: .scrollContent)
+            .listSectionSpacing(16)
+            .contentMargins(.top, 12, for: .scrollContent)
             .scrollContentBackground(.hidden)
             .environment(\.editMode, $listEditMode)
         }
     }
     
-    // MARK: - Compact, Elegant Daily Focus Card
+    // MARK: - Balanced, Elegant Daily Focus Card
     
     private var dailyProgressCard: some View {
         let due = habitStore.habitsDue(on: activeDate)
@@ -753,27 +875,27 @@ public struct TodayView: View {
         let pct = habitStore.completionPercentage(on: activeDate, dateKey: activeDateKey)
         let bestActiveStreak = habitStore.activeHabits.map(\.streak).max() ?? 0
         
-        return HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+        return HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 5.5) {
+                HStack(spacing: 7) {
                     Text(
                         due.isEmpty ? "Ready to Plan" :
                         pct == 100 ? "All Goals Complete! 🎉" :
                         pct >= 60 ? "Strong Momentum 🔥" : "Daily Focus"
                     )
-                    .font(.system(size: 15, weight: .heavy, design: .rounded))
+                    .font(.system(size: 16, weight: .heavy, design: .rounded))
                     .foregroundStyle(.primary)
                     
                     Label("\(bestActiveStreak)d", systemImage: "flame.fill")
-                        .font(.system(size: 10.5, weight: .bold, design: .rounded))
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
                         .foregroundStyle(.orange)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2.5)
+                        .padding(.horizontal, 7.5)
+                        .padding(.vertical, 3)
                         .background(.orange.opacity(0.15), in: Capsule())
                 }
                 
                 Text(due.isEmpty ? "Tap + to schedule your first habit" : "\(doneCount) of \(due.count) scheduled habits done")
-                    .font(.caption.weight(.medium))
+                    .font(.system(size: 12.5, weight: .medium, design: .rounded))
                     .foregroundStyle(.secondary)
             }
             
@@ -781,8 +903,8 @@ public struct TodayView: View {
             
             ZStack {
                 Circle()
-                    .stroke(Color.primary.opacity(0.09), lineWidth: 5.5)
-                    .frame(width: 48, height: 48)
+                    .stroke(Color.primary.opacity(0.09), lineWidth: 6)
+                    .frame(width: 54, height: 54)
                 
                 Circle()
                     .trim(from: 0, to: CGFloat(pct) / 100.0)
@@ -792,26 +914,26 @@ public struct TodayView: View {
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        style: StrokeStyle(lineWidth: 5.5, lineCap: .round)
+                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
                     )
-                    .frame(width: 48, height: 48)
+                    .frame(width: 54, height: 54)
                     .rotationEffect(.degrees(-90))
                     .animation(.snappy(duration: 0.28), value: pct)
                 
                 Text("\(pct)%")
-                    .font(.system(size: 11.5, weight: .heavy, design: .rounded))
+                    .font(.system(size: 12.5, weight: .heavy, design: .rounded))
                     .contentTransition(.numericText())
                     .foregroundStyle(.primary)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
         .background(
             Color(.secondarySystemGroupedBackground),
-            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(Color.primary.opacity(0.07), lineWidth: 0.8)
         )
     }

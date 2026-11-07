@@ -109,7 +109,7 @@ public struct HabitDetailView: View {
                         }
                     }
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 12)
                     .background(Color(.systemGroupedBackground))
                     
                     Divider()
@@ -233,8 +233,8 @@ public struct HabitDetailView: View {
                     }
                     }
                     .listStyle(.insetGrouped)
-                    .listSectionSpacing(12)
-                    .contentMargins(.top, 6, for: .scrollContent)
+                    .listSectionSpacing(16)
+                    .contentMargins(.top, 12, for: .scrollContent)
                 }
                 .toolbar(.visible, for: .navigationBar)
                 .navigationTitle("Overview")

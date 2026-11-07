@@ -63,7 +63,7 @@ public struct HabitCardView: View {
     }
     
     public var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             // Top Row: Tappable Icon + Title Area (Opens Overview) & Dedicated Instant Check Ring
             HStack(spacing: 12) {
                 Button {
@@ -72,7 +72,7 @@ public struct HabitCardView: View {
                 } label: {
                     HStack(spacing: 12) {
                         ZStack {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            RoundedRectangle(cornerRadius: 13, style: .continuous)
                                 .fill(
                                     LinearGradient(
                                         colors: [accentColor, accentColor.opacity(0.78)],
@@ -80,22 +80,22 @@ public struct HabitCardView: View {
                                         endPoint: .bottomTrailing
                                     )
                                 )
-                                .frame(width: 40, height: 40)
+                                .frame(width: 42, height: 42)
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    RoundedRectangle(cornerRadius: 13, style: .continuous)
                                         .stroke(Color.white.opacity(0.2), lineWidth: 0.7)
                                 )
                             
                             Image(systemName: habit.icon)
-                                .font(.system(size: 17, weight: .semibold))
+                                .font(.system(size: 18, weight: .semibold))
                                 .foregroundStyle(.white)
                                 .symbolEffect(.bounce, value: isCompleted)
                         }
                         
-                        VStack(alignment: .leading, spacing: 2.5) {
+                        VStack(alignment: .leading, spacing: 3.5) {
                             HStack(spacing: 5) {
                                 Text(habit.name)
-                                    .font(.system(size: 15.5, weight: .bold, design: .rounded))
+                                    .font(.system(size: 16, weight: .bold, design: .rounded))
                                     .foregroundStyle(isCompleted || isSkipped ? .secondary : .primary)
                                     .strikethrough(isCompleted && habit.polarity == .build)
                                     .lineLimit(1)

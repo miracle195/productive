@@ -23,9 +23,9 @@ public struct ChallengesView: View {
             VStack(spacing: 0) {
                 // Pinned Non-Scrolling Challenges Header
                 HStack(alignment: .center) {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text("Challenges")
-                            .font(.system(size: 26, weight: .heavy, design: .rounded))
+                            .font(.system(size: 28, weight: .heavy, design: .rounded))
                         let unlockedCount = habitStore.achievementBadges.filter(\.isUnlocked).count
                         Text("\(joinedChallenges.count) active • \(unlockedCount)/\(habitStore.achievementBadges.count) badges unlocked")
                             .font(.caption.weight(.semibold))
@@ -33,13 +33,13 @@ public struct ChallengesView: View {
                     }
                     Spacer()
                     Image(systemName: "trophy.circle.fill")
-                        .font(.system(size: 32))
+                        .font(.system(size: 34))
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.orange)
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 6)
-                .padding(.bottom, 10)
+                .padding(.top, 10)
+                .padding(.bottom, 12)
                 .background(Color(.systemGroupedBackground))
                 
                 Divider()
@@ -164,8 +164,8 @@ public struct ChallengesView: View {
                 }
                 }
                 .listStyle(.insetGrouped)
-                .listSectionSpacing(12)
-                .contentMargins(.top, 6, for: .scrollContent)
+                .listSectionSpacing(16)
+                .contentMargins(.top, 12, for: .scrollContent)
                 .scrollContentBackground(.hidden)
             }
             .background(Color(.systemGroupedBackground))

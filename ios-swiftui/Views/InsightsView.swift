@@ -64,13 +64,13 @@ public struct InsightsView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 // Pinned Non-Scrolling Header + KPI Summary Strip
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 12) {
                     Text("Insights")
-                        .font(.system(size: 26, weight: .heavy, design: .rounded))
-                        .padding(.top, 6)
+                        .font(.system(size: 28, weight: .heavy, design: .rounded))
+                        .padding(.top, 10)
                     
                     HStack(spacing: 14) {
-                        VStack(alignment: .leading, spacing: 3) {
+                        VStack(alignment: .leading, spacing: 4) {
                             Text("7-Day Consistency")
                                 .font(.caption.weight(.bold))
                                 .foregroundStyle(.secondary)
@@ -89,12 +89,12 @@ public struct InsightsView: View {
                             .font(.system(size: 28))
                             .foregroundStyle(Color.accentColor)
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 13)
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 8)
+                .padding(.bottom, 12)
                 .background(Color(.systemGroupedBackground))
                 
                 Divider()
@@ -215,8 +215,8 @@ public struct InsightsView: View {
                 }
                 }
                 .listStyle(.insetGrouped)
-                .listSectionSpacing(12)
-                .contentMargins(.top, 6, for: .scrollContent)
+                .listSectionSpacing(16)
+                .contentMargins(.top, 12, for: .scrollContent)
                 .scrollContentBackground(.hidden)
             }
             .background(Color(.systemGroupedBackground))

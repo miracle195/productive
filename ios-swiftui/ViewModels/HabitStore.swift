@@ -31,6 +31,7 @@ public class HabitStore: ObservableObject {
     @Published public var challenges: [HabitChallenge] = []
     @Published public var selectedDate: Date = Date()
     @Published public var requestedRoutineBucket: TimeOfDay? = nil
+    @Published public var refocusTodayRequestCount: Int = 0
     
     // Preferences
     @AppStorage("productive_week_start") public var weekStartDay: String = "Monday"
