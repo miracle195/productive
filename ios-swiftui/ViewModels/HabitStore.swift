@@ -1041,8 +1041,8 @@ public class HabitStore: ObservableObject {
             trackingType: .binary,
             strictness: .strict,
             repeatSchedule: "Every day",
-            subtasks: [sub1, sub2, sub3],
-            createdAt: d4
+            createdAt: d4,
+            subtasks: [sub1, sub2, sub3]
         )
         reset.history[d3Key] = HabitDayRecord(isCompleted: true, completedSubtaskIds: [sub1.id, sub2.id, sub3.id])
         reset.history[d2Key] = HabitDayRecord(isCompleted: true, completedSubtaskIds: [sub1.id, sub2.id, sub3.id])
