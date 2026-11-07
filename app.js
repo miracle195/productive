@@ -594,15 +594,34 @@ class ProductiveState {
     this.saveHabits();
   }
 
+  getHabitProgressFraction(habit, dateKey = this.selectedDay) {
+    const rec = habit.history && habit.history[dateKey];
+    if (rec && (rec.done || rec.skipped || rec.usedShield)) return 1.0;
+
+    // Sub-checklist fractional progress: divide by items count so percentage is based on number done
+    if (Array.isArray(habit.subtasks) && habit.subtasks.length > 0) {
+      const doneSubs = (rec && Array.isArray(rec.completedSubtasks)) ? rec.completedSubtasks.length : 0;
+      return Math.min(1.0, Math.max(0.0, doneSubs / habit.subtasks.length));
+    }
+
+    // Amount fractional progress
+    if (habit.type === 'amount' && habit.polarity !== 'quit' && habit.polarity !== 'limit') {
+      const effTarget = this.effectiveTargetAmount(habit, dateKey);
+      if (effTarget > 0 && rec && rec.amount) {
+        return Math.min(1.0, Math.max(0.0, Number(rec.amount) / effTarget));
+      }
+    }
+    return 0.0;
+  }
+
   getCompletionRate(dateKey = this.selectedDay) {
     const due = this.activeHabits.filter(h => this.isHabitDueOnDate(h, dateKey));
     if (due.length === 0) return 0;
-    let satisfied = 0;
+    let totalScore = 0;
     due.forEach(h => {
-      const rec = h.history && h.history[dateKey];
-      if (rec && (rec.done || rec.skipped || rec.usedShield)) satisfied++;
+      totalScore += this.getHabitProgressFraction(h, dateKey);
     });
-    return Math.round((satisfied / due.length) * 100);
+    return Math.round((totalScore / due.length) * 100);
   }
 
   getRemainingTodayCount() {
@@ -1204,6 +1223,11 @@ function renderHabitRowHTML(habit) {
   }
   if (isSkipped) {
     html += '<span class="habit-tag" style="background:rgba(50,173,230,0.16); color:#32ADE6;">' + (rec.usedShield ? '❄️ Shielded' : '⏭️ Skipped') + '</span>';
+  } else if (Array.isArray(habit.subtasks) && habit.subtasks.length > 0) {
+    const doneSubsCount = (rec.completedSubtasks || []).length;
+    const totalSubsCount = habit.subtasks.length;
+    const subPct = totalSubsCount > 0 ? Math.round((doneSubsCount / totalSubsCount) * 100) : 0;
+    html += '<span class="habit-tag tag-subtasks" style="background:rgba(10,132,255,0.15); color:' + (isCompleted ? '#30D158' : (habit.color || '#0A84FF')) + '; font-weight:700;">☑️ ' + doneSubsCount + '/' + totalSubsCount + ' (' + subPct + '%)</span>';
   } else if (rolloverExtra > 0) {
     html += '<span class="habit-tag tag-rollover">🔄 +' + rolloverExtra + ' rollover</span>';
   }
@@ -1224,10 +1248,21 @@ function renderHabitRowHTML(habit) {
   }
   html += '</div></div>';
 
-  // Subtasks Checklist
+  // Subtasks Checklist with Live Proportional Progress Bar
   if (Array.isArray(habit.subtasks) && habit.subtasks.length > 0 && !isSkipped) {
     const doneSubs = rec.completedSubtasks || [];
-    html += '<div class="subtasks-list" onclick="event.stopPropagation()">';
+    const totalSubs = habit.subtasks.length;
+    const fraction = totalSubs > 0 ? Math.min(1.0, doneSubs.length / totalSubs) : 0;
+    const pct = Math.round(fraction * 100);
+    const progressColor = isCompleted ? '#30D158' : (habit.color || '#0A84FF');
+
+    html += '<div class="subtasks-container" onclick="event.stopPropagation()">';
+    html += '<div class="subtasks-progress-header">';
+    html += '<span class="subtasks-progress-text" style="color:' + (isCompleted ? '#30D158' : 'var(--app-text-secondary)') + ';">' + doneSubs.length + ' of ' + totalSubs + ' steps done</span>';
+    html += '<span class="subtasks-progress-pct" style="color:' + progressColor + ';">' + pct + '%</span>';
+    html += '</div>';
+    html += '<div class="subtasks-track"><div class="subtasks-fill" style="width:' + pct + '%; background:' + progressColor + ';"></div></div>';
+    html += '<div class="subtasks-list">';
     habit.subtasks.forEach(st => {
       const stDone = doneSubs.includes(st.id);
       html += '<div class="subtask-item ' + (stDone ? 'done' : '') + '" onclick="onSubtaskToggle(event, ' + habit.id + ', \'' + st.id + '\')">';
@@ -1235,7 +1270,7 @@ function renderHabitRowHTML(habit) {
       html += '<span>' + escapeHtml(st.title) + '</span>';
       html += '</div>';
     });
-    html += '</div>';
+    html += '</div></div>';
   }
 
   // Polarity & Mode Controls

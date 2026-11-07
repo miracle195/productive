@@ -131,6 +131,13 @@ public struct HabitCardView: View {
                                     Label(habit.history[activeDateKey]?.usedFreezeShield == true ? "Frozen" : "Skipped", systemImage: "snowflake")
                                         .font(.caption2.weight(.bold))
                                         .foregroundStyle(.cyan)
+                                } else if !habit.subtasks.isEmpty {
+                                    let doneCount = habit.history[activeDateKey]?.completedSubtaskIds.count ?? 0
+                                    let totalCount = habit.subtasks.count
+                                    let subPct = totalCount > 0 ? Int(round((Double(doneCount) / Double(totalCount)) * 100)) : 0
+                                    Label("\(doneCount)/\(totalCount) (\(subPct)%)", systemImage: "checklist")
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(isCompleted ? Color.green : accentColor)
                                 } else if rolloverExtra > 0 {
                                     Label("+\(Int(rolloverExtra)) rollover", systemImage: "arrow.triangle.2.circlepath")
                                         .font(.caption2.weight(.bold))
@@ -194,9 +201,37 @@ public struct HabitCardView: View {
                 }
             }
             
-            // Subtasks Checklist (if configured)
+            // Subtasks Checklist with Live Proportional Progress Bar
             if !habit.subtasks.isEmpty && !isSkipped {
-                VStack(alignment: .leading, spacing: 4) {
+                let totalSubs = habit.subtasks.count
+                let doneSubsCount = habit.history[activeDateKey]?.completedSubtaskIds.count ?? 0
+                let fraction = totalSubs > 0 ? (Double(doneSubsCount) / Double(totalSubs)) : 0.0
+                let pct = Int(round(fraction * 100))
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    // Fractional Progress Text & Smooth Progress Bar
+                    HStack(spacing: 8) {
+                        Text("\(doneSubsCount) of \(totalSubs) steps done")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundStyle(isCompleted ? Color.green : Color.secondary)
+                        
+                        Spacer()
+                        
+                        Text("\(pct)%")
+                            .font(.system(size: 12, weight: .heavy, design: .rounded))
+                            .foregroundStyle(isCompleted ? Color.green : accentColor)
+                            .contentTransition(.numericText())
+                    }
+                    .padding(.leading, 52)
+                    .padding(.trailing, 4)
+                    
+                    smoothProgressTrack(fraction: fraction, color: isCompleted ? Color.green : accentColor)
+                        .frame(height: 5.5)
+                        .padding(.leading, 52)
+                        .padding(.trailing, 4)
+                        .padding(.bottom, 2)
+                    
+                    // Checklist Items
                     ForEach(habit.subtasks) { subtask in
                         let subDone = habit.history[activeDateKey]?.completedSubtaskIds.contains(subtask.id) ?? false
                         Button {
@@ -220,7 +255,7 @@ public struct HabitCardView: View {
                         .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.97))
                     }
                 }
-                .padding(.leading, 52)
+                .padding(.top, 2)
             }
             
             // Polarity & Tracking Mode Interactive Controls

@@ -375,11 +375,40 @@ public class HabitStore: ObservableObject {
         max(0, effectiveTargetAmount(for: habit, on: dateKey) - habit.targetAmount)
     }
     
+    public func habitProgressFraction(_ habit: Habit, on dateKey: String) -> Double {
+        if habit.isCompleted(on: dateKey) || habit.isSkipped(on: dateKey) {
+            return 1.0
+        }
+        // Sub-checklist fractional progress: divide by items count so percentage is based on number done
+        if !habit.subtasks.isEmpty {
+            let total = habit.subtasks.count
+            guard total > 0 else { return 0.0 }
+            let done = habit.history[dateKey]?.completedSubtaskIds.count ?? 0
+            return min(1.0, max(0.0, Double(done) / Double(total)))
+        }
+        // Amount fractional progress
+        if habit.trackingType == .amount && habit.polarity == .build {
+            let effTarget = effectiveTargetAmount(for: habit, on: dateKey)
+            guard effTarget > 0 else { return 0.0 }
+            let cur = habit.amount(on: dateKey)
+            return min(1.0, max(0.0, cur / effTarget))
+        }
+        // Reps fractional progress
+        if habit.trackingType == .reps && habit.polarity == .build {
+            guard habit.targetReps > 0 else { return 0.0 }
+            let cur = habit.reps(on: dateKey)
+            return min(1.0, max(0.0, Double(cur) / Double(habit.targetReps)))
+        }
+        return 0.0
+    }
+    
     public func completionPercentage(on date: Date, dateKey: String) -> Int {
         let due = habitsDue(on: date)
         guard !due.isEmpty else { return 0 }
-        let satisfied = due.filter { $0.isCompleted(on: dateKey) || $0.isSkipped(on: dateKey) }.count
-        return Int((Double(satisfied) / Double(due.count)) * 100)
+        let totalScore = due.reduce(0.0) { sum, habit in
+            sum + habitProgressFraction(habit, on: dateKey)
+        }
+        return Int(round((totalScore / Double(due.count)) * 100))
     }
     
     public func completionPercentage(on dateKey: String) -> Int {

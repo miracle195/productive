@@ -225,7 +225,7 @@ struct SettingsView: View {
                     HStack {
                         Text("Version")
                         Spacer()
-                        Text("3.2.1 Native SwiftUI")
+                        Text("3.2.2 Native SwiftUI")
                             .foregroundStyle(.secondary)
                     }
                     

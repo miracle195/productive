@@ -50,7 +50,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: v3.2.1-ios
-        name: Productive v3.2.1 Native SwiftUI iOS (Unified Groupbox Date Ribbon & Zero Shifting)
+        tag_name: v3.2.2-ios
+        name: Productive v3.2.2 Native SwiftUI iOS (Sub-Checklist Proportional Progress & Progress Bar)
         files: ios-swiftui/build/Productive.ipa
       continue-on-error: true
