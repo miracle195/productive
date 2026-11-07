@@ -2817,17 +2817,22 @@ body {
   margin-bottom: 4px;
 }
 .compact-focus-card .hero-text h3 {
-  font-size: 15.5px;
-  margin-bottom: 0;
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 2px;
 }
 .compact-focus-card .hero-text p {
-  font-size: 12px;
+  font-size: 12.5px;
+  margin-bottom: 5px;
 }
 .compact-focus-card .streak-chip {
-  margin-top: 0;
-  padding: 2.5px 8px;
-  font-size: 11px;
+  margin-top: 2px;
+  padding: 3px 9px;
+  font-size: 11.5px;
+  font-weight: 800;
   border-radius: 999px;
+  background: rgba(255, 159, 10, 0.15);
+  color: #FF9F0A;
 }
 .compact-focus-card .progress-gauge-box,
 .compact-focus-card .gauge-svg {

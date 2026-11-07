@@ -177,94 +177,13 @@ public struct HabitCardView: View {
                 }
                 .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.98))
                 
-                HStack(spacing: 6) {
-                    // Visible ••• Action Menu Button (Matches HTML Simulator 1:1!)
-                    Menu {
-                        Button {
-                            habitStore.triggerHaptic(.light)
-                            onOpenDetail?()
-                        } label: {
-                            Label("Habit Overview & Heatmap", systemImage: "chart.bar.xaxis")
-                        }
-                        
-                        Button {
-                            withAnimation(.snappy(duration: 0.2)) {
-                                habitStore.toggleHabit(id: habit.id, on: activeDateKey)
-                            }
-                        } label: {
-                            Label(isCompleted ? "Mark Incomplete" : "Mark Completed", systemImage: "checkmark.circle")
-                        }
-                        
-                        if habit.trackingType == .timer {
-                            Button {
-                                onOpenTimer?()
-                            } label: {
-                                Label("Open Focus Timer", systemImage: "timer")
-                            }
-                        }
-                        
-                        Button {
-                            onLogNote?()
-                        } label: {
-                            Label("Add Mood & Reflection Note", systemImage: "square.and.pencil")
-                        }
-                        
-                        Button {
-                            habitStore.toggleSkipHabit(id: habit.id, on: activeDateKey)
-                        } label: {
-                            Label(isSkipped ? "Remove Skip" : "Skip / Rest Day", systemImage: "forward.end")
-                        }
-                        
-                        if isLockedMissed && habitStore.streakFreezeShields > 0 {
-                            Button {
-                                _ = habitStore.useFreezeShield(for: habit.id, on: activeDateKey)
-                            } label: {
-                                Label("Use Streak Freeze Shield (\(habitStore.streakFreezeShields) left)", systemImage: "snowflake")
-                            }
-                        }
-                        
-                        Divider()
-                        
-                        Button {
-                            onEditHabit?()
-                        } label: {
-                            Label("Edit Habit", systemImage: "pencil")
-                        }
-                        
-                        Button {
-                            habitStore.duplicateHabit(id: habit.id)
-                        } label: {
-                            Label("Duplicate Habit", systemImage: "plus.square.on.square")
-                        }
-                        
-                        Button {
-                            habitStore.toggleArchiveHabit(id: habit.id)
-                        } label: {
-                            Label("Archive Habit", systemImage: "archivebox")
-                        }
-                        
-                        Divider()
-                        
-                        Button(role: .destructive) {
-                            habitStore.deleteHabit(id: habit.id)
-                        } label: {
-                            Label("Delete Habit", systemImage: "trash")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 30, height: 30)
-                            .background(Color.primary.opacity(0.06), in: Circle())
-                    }
-                    .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.88))
-                    
+                HStack(spacing: 8) {
                     // Dedicated Instant Checkmark / Lock Ring
                     if isLockedMissed {
                         Image(systemName: "lock.fill")
                             .font(.subheadline)
                             .foregroundStyle(.red)
-                            .frame(width: 34, height: 34)
+                            .frame(width: 32, height: 32)
                             .background(.red.opacity(0.12), in: Circle())
                     } else {
                         Button {
@@ -293,11 +212,16 @@ public struct HabitCardView: View {
                                         .frame(width: 30, height: 30)
                                 }
                             }
-                            .frame(width: 36, height: 36)
+                            .frame(width: 34, height: 34)
                             .contentShape(Circle())
                         }
                         .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.86))
                     }
+                    
+                    // Detail Navigation Chevron (Matches Image 0 1:1)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12.5, weight: .semibold))
+                        .foregroundStyle(Color.secondary.opacity(0.40))
                 }
             }
             

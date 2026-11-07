@@ -1113,10 +1113,10 @@ function renderTodayScreen() {
     } else if (rate > 0 && doneDue === 0) {
       heroSub.textContent = rate + '% progress • in progress';
     } else {
-      heroSub.textContent = doneDue + ' of ' + dueHabits.length + ' scheduled habits done' + (rate > 0 ? ' (' + rate + '%)' : '');
+      heroSub.textContent = doneDue + ' of ' + dueHabits.length + ' scheduled habits done';
     }
   }
-  if (heroStreak) heroStreak.innerHTML = '<span>🔥 ' + topStreak + 'd</span>';
+  if (heroStreak) heroStreak.innerHTML = '<span>🔥 ' + topStreak + 'd Top Streak</span>';
   if (heroTitle) {
     if (state.activeHabits.length === 0) heroTitle.textContent = 'Ready to Plan ✨';
     else if (rate === 100 && dueHabits.length > 0) heroTitle.textContent = 'All Goals Complete! 🎉';
@@ -1249,8 +1249,7 @@ function renderHabitRowHTML(habit) {
   html += '</div>';
   html += '</div></div>';
 
-  html += '<div style="display:flex; align-items:center; gap:4px;">';
-  html += '<button class="row-more-btn" title="Native Context Menu" onclick="openContextMenu(event, ' + habit.id + ')">•••</button>';
+  html += '<div style="display:flex; align-items:center; gap:6px;">';
   if (isFatalMissed) {
     if (state.streakFreezeShields > 0) {
       html += '<button class="mini-pill-btn" title="Unlock with Streak Freeze Shield" onclick="event.stopPropagation(); onApplyShield(' + habit.id + ')">❄️ Shield</button>';
@@ -1260,6 +1259,7 @@ function renderHabitRowHTML(habit) {
   } else {
     html += '<button class="habit-check-btn" onclick="onHabitCheckClick(event, ' + habit.id + ')" aria-label="Toggle habit"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></button>';
   }
+  html += '<span style="font-size:13px; font-weight:700; color:var(--app-text-muted); opacity:0.6; padding-right:2px;">›</span>';
   html += '</div></div>';
 
   // Subtasks Checklist with Live Proportional Progress Bar
