@@ -829,9 +829,11 @@ public struct TodayView: View {
                                 Text("\(doneCount)/\(bucketHabits.count)")
                                     .font(.caption2.weight(.bold))
                                     .foregroundStyle(.secondary)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
+                                    .padding(.horizontal, 7)
+                                    .padding(.vertical, 2.5)
                                     .background(Color.secondary.opacity(0.12), in: Capsule())
+                                    .lineLimit(1)
+                                    .fixedSize(horizontal: true, vertical: false)
                                     .textCase(nil)
                                 
                                 Spacer()
@@ -897,8 +899,7 @@ public struct TodayView: View {
                 Text(
                     due.isEmpty ? "Tap + to schedule your first habit" :
                     doneCount == due.count ? "All \(due.count) scheduled habits done" :
-                    (pct > 0 && doneCount == 0) ? "\(pct)% progress • in progress" :
-                    "\(doneCount) of \(due.count) scheduled habits done (\(pct)%)"
+                    "\(doneCount) of \(due.count) scheduled habits done"
                 )
                     .font(.system(size: 12.5, weight: .medium, design: .rounded))
                     .foregroundStyle(.secondary)

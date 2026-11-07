@@ -141,17 +141,22 @@ public struct HabitCardView: View {
                                     Label(liveHabit.history[activeDateKey]?.usedFreezeShield == true ? "Frozen" : "Skipped", systemImage: "snowflake")
                                         .font(.caption2.weight(.bold))
                                         .foregroundStyle(.cyan)
+                                        .lineLimit(1)
+                                        .fixedSize(horizontal: true, vertical: false)
                                 } else if !liveHabit.subtasks.isEmpty {
                                     let doneCount = liveHabit.history[activeDateKey]?.completedSubtaskIds.count ?? 0
                                     let totalCount = liveHabit.subtasks.count
-                                    let subPct = totalCount > 0 ? Int(round((Double(doneCount) / Double(totalCount)) * 100)) : 0
-                                    Label("\(doneCount)/\(totalCount) (\(subPct)%)", systemImage: "checklist")
+                                    Label("\(doneCount)/\(totalCount)", systemImage: "checklist")
                                         .font(.caption2.weight(.bold))
                                         .foregroundStyle(isCompleted ? Color.green : accentColor)
+                                        .lineLimit(1)
+                                        .fixedSize(horizontal: true, vertical: false)
                                 } else if rolloverExtra > 0 {
                                     Label("+\(Int(rolloverExtra)) rollover", systemImage: "arrow.triangle.2.circlepath")
                                         .font(.caption2.weight(.bold))
                                         .foregroundStyle(.purple)
+                                        .lineLimit(1)
+                                        .fixedSize(horizontal: true, vertical: false)
                                 }
                                 
                                 HStack(spacing: 2) {
@@ -161,6 +166,8 @@ public struct HabitCardView: View {
                                 }
                                 .font(.caption2.weight(.bold))
                                 .foregroundStyle(.orange)
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
                             }
                         }
                         

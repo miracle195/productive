@@ -976,6 +976,7 @@ body {
   border-radius: 8px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 .tag-strict {
   background: rgba(255, 90, 95, 0.15);

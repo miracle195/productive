@@ -1241,8 +1241,7 @@ function renderHabitRowHTML(habit) {
   } else if (Array.isArray(habit.subtasks) && habit.subtasks.length > 0) {
     const doneSubsCount = (rec.completedSubtasks || []).length;
     const totalSubsCount = habit.subtasks.length;
-    const subPct = totalSubsCount > 0 ? Math.round((doneSubsCount / totalSubsCount) * 100) : 0;
-    html += '<span class="habit-tag tag-subtasks" style="background:rgba(10,132,255,0.15); color:' + (isCompleted ? '#30D158' : (habit.color || '#0A84FF')) + '; font-weight:700;">☑️ ' + doneSubsCount + '/' + totalSubsCount + ' (' + subPct + '%)</span>';
+    html += '<span class="habit-tag tag-subtasks" style="background:rgba(10,132,255,0.15); color:' + (isCompleted ? '#30D158' : (habit.color || '#0A84FF')) + '; font-weight:700; white-space:nowrap;">☑️ ' + doneSubsCount + '/' + totalSubsCount + '</span>';
   } else if (rolloverExtra > 0) {
     html += '<span class="habit-tag tag-rollover">🔄 +' + rolloverExtra + ' rollover</span>';
   }
