@@ -50,7 +50,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: v3.2.2-ios
-        name: Productive v3.2.2 Native SwiftUI iOS (Sub-Checklist Proportional Progress & Progress Bar)
+        tag_name: v3.2.3-ios
+        name: Productive v3.2.3 Native SwiftUI iOS (Rich Parity, Day Ribbon Mini-Rings & Action Menu)
         files: ios-swiftui/build/Productive.ipa
       continue-on-error: true

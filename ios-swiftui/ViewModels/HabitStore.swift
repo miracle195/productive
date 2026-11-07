@@ -989,6 +989,147 @@ public class HabitStore: ObservableObject {
         ]
     }
     
+    // MARK: - Rich Demo Data Seeder (Matches HTML Simulator 1:1)
+    
+    public func seedRichDemoData() {
+        let cal = Calendar.current
+        let today = Date()
+        guard let d1 = cal.date(byAdding: .day, value: -1, to: today),
+              let d2 = cal.date(byAdding: .day, value: -2, to: today),
+              let d3 = cal.date(byAdding: .day, value: -3, to: today),
+              let d4 = cal.date(byAdding: .day, value: -4, to: today) else { return }
+        
+        let t0Key = HabitStore.dateFormatter.string(from: today)
+        let d1Key = HabitStore.dateFormatter.string(from: d1)
+        let d2Key = HabitStore.dateFormatter.string(from: d2)
+        let d3Key = HabitStore.dateFormatter.string(from: d3)
+        let d4Key = HabitStore.dateFormatter.string(from: d4)
+        
+        var list: [Habit] = []
+        
+        // 1. Amount + Rollover Habit: Drink Water (Yesterday 1500/2000 -> +500ml rollover today!)
+        var water = Habit(
+            name: "Drink Water",
+            icon: "drop.fill",
+            colorHex: "#007AFF",
+            timeOfDay: .morning,
+            polarity: .build,
+            trackingType: .amount,
+            targetAmount: 2000,
+            unit: "ml",
+            stepAmount: 250,
+            strictness: .rollover,
+            repeatSchedule: "Every day",
+            createdAt: d4
+        )
+        water.history[d3Key] = HabitDayRecord(isCompleted: true, amount: 2000)
+        water.history[d2Key] = HabitDayRecord(isCompleted: true, amount: 2000, note: "Felt super hydrated after morning walk!", mood: .great)
+        water.history[d1Key] = HabitDayRecord(isCompleted: false, amount: 1500)
+        water.history[t0Key] = HabitDayRecord(isCompleted: false, amount: 1250)
+        list.append(water)
+        
+        // 2. Sub-Checklist Habit: Morning Reset & Skincare (Proportional progress 1/3 -> 33%)
+        let sub1 = HabitSubtask(title: "Make the bed")
+        let sub2 = HabitSubtask(title: "Cleanser + SPF 50")
+        let sub3 = HabitSubtask(title: "Take daily vitamins")
+        var reset = Habit(
+            name: "Morning Reset & Skincare",
+            icon: "sun.max.fill",
+            colorHex: "#5856D6",
+            timeOfDay: .morning,
+            polarity: .build,
+            trackingType: .binary,
+            strictness: .strict,
+            repeatSchedule: "Every day",
+            subtasks: [sub1, sub2, sub3],
+            createdAt: d4
+        )
+        reset.history[d3Key] = HabitDayRecord(isCompleted: true, completedSubtaskIds: [sub1.id, sub2.id, sub3.id])
+        reset.history[d2Key] = HabitDayRecord(isCompleted: true, completedSubtaskIds: [sub1.id, sub2.id, sub3.id])
+        reset.history[d1Key] = HabitDayRecord(isCompleted: true, completedSubtaskIds: [sub1.id, sub2.id, sub3.id])
+        reset.history[t0Key] = HabitDayRecord(isCompleted: false, completedSubtaskIds: [sub1.id])
+        list.append(reset)
+        
+        // 3. Interactive Focus Timer Habit: Deep Focus Reading (15 mins)
+        var reading = Habit(
+            name: "Deep Focus Reading",
+            icon: "book.closed.fill",
+            colorHex: "#FF7450",
+            timeOfDay: .afternoon,
+            polarity: .build,
+            trackingType: .timer,
+            targetDurationMinutes: 15,
+            strictness: .flexible,
+            repeatSchedule: "Every day",
+            createdAt: d4
+        )
+        reading.history[d2Key] = HabitDayRecord(isCompleted: true, durationSeconds: 900, note: "Finished 18 pages of Atomic Habits.", mood: .good)
+        reading.history[d1Key] = HabitDayRecord(isCompleted: true, durationSeconds: 900)
+        list.append(reading)
+        
+        // 4. Daily Limit Habit: Caffeine Budget (Max 2 cups)
+        var coffee = Habit(
+            name: "Caffeine Budget",
+            icon: "cup.and.saucer.fill",
+            colorHex: "#BF5AF2",
+            timeOfDay: .afternoon,
+            polarity: .limit,
+            trackingType: .amount,
+            targetAmount: 2,
+            unit: "cups",
+            stepAmount: 1,
+            strictness: .flexible,
+            repeatSchedule: "Every day",
+            createdAt: d4
+        )
+        coffee.history[d2Key] = HabitDayRecord(isCompleted: true, amount: 1)
+        coffee.history[d1Key] = HabitDayRecord(isCompleted: true, amount: 2)
+        coffee.history[t0Key] = HabitDayRecord(isCompleted: true, amount: 1)
+        list.append(coffee)
+        
+        // 5. Reps Stepper Habit: Evening Pushups (3 sets)
+        var pushups = Habit(
+            name: "Evening Pushups",
+            icon: "figure.strengthtraining.traditional",
+            colorHex: "#30D158",
+            timeOfDay: .evening,
+            polarity: .build,
+            trackingType: .reps,
+            targetReps: 3,
+            strictness: .strict,
+            repeatSchedule: "Every day",
+            createdAt: d4
+        )
+        pushups.history[d2Key] = HabitDayRecord(isCompleted: true, reps: 3)
+        pushups.history[d1Key] = HabitDayRecord(isCompleted: true, reps: 3)
+        pushups.history[t0Key] = HabitDayRecord(isCompleted: false, reps: 1)
+        list.append(pushups)
+        
+        // 6. Quit Habit: No Late-Night Snacking (4 days clean abstinence streak)
+        var quitSnack = Habit(
+            name: "No Late-Night Snacking",
+            icon: "hand.raised.fill",
+            colorHex: "#FF2D55",
+            timeOfDay: .evening,
+            polarity: .quit,
+            trackingType: .binary,
+            strictness: .strict,
+            repeatSchedule: "Every day",
+            createdAt: d4,
+            abstainedSince: d4
+        )
+        quitSnack.history[d3Key] = HabitDayRecord(isCompleted: true)
+        quitSnack.history[d2Key] = HabitDayRecord(isCompleted: true)
+        quitSnack.history[d1Key] = HabitDayRecord(isCompleted: true)
+        quitSnack.history[t0Key] = HabitDayRecord(isCompleted: true)
+        list.append(quitSnack)
+        
+        self.habits = list
+        recalculateAllStreaks()
+        saveHabits()
+        triggerHaptic(.success)
+    }
+    
     // MARK: - Haptics
     
     public enum ProductiveHaptic {

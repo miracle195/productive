@@ -13,6 +13,8 @@ public struct HabitCardView: View {
     public var dateKey: String = ""
     public var onOpenDetail: (() -> Void)? = nil
     public var onOpenTimer: (() -> Void)? = nil
+    public var onEditHabit: (() -> Void)? = nil
+    public var onLogNote: (() -> Void)? = nil
     
     private var activeDateKey: String {
         dateKey.isEmpty ? habitStore.todayKey : dateKey
@@ -54,12 +56,16 @@ public struct HabitCardView: View {
         habit: Habit,
         dateKey: String = "",
         onOpenDetail: (() -> Void)? = nil,
-        onOpenTimer: (() -> Void)? = nil
+        onOpenTimer: (() -> Void)? = nil,
+        onEditHabit: (() -> Void)? = nil,
+        onLogNote: (() -> Void)? = nil
     ) {
         self.habit = habit
         self.dateKey = dateKey
         self.onOpenDetail = onOpenDetail
         self.onOpenTimer = onOpenTimer
+        self.onEditHabit = onEditHabit
+        self.onLogNote = onLogNote
     }
     
     public var body: some View {
@@ -122,7 +128,7 @@ public struct HabitCardView: View {
                                         .font(.caption2.weight(.bold))
                                         .foregroundStyle(.purple)
                                 } else {
-                                    Text(habit.frequency.rawValue)
+                                    Text(habit.repeatLabel)
                                         .font(.caption2.weight(.medium))
                                         .foregroundStyle(.secondary)
                                 }
@@ -160,44 +166,127 @@ public struct HabitCardView: View {
                 }
                 .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.98))
                 
-                // Dedicated Instant Checkmark / Lock Ring (Zero NavigationLink interference!)
-                if isLockedMissed {
-                    Image(systemName: "lock.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(.red)
-                        .frame(width: 36, height: 36)
-                        .background(.red.opacity(0.12), in: Circle())
-                } else {
-                    Button {
-                        withAnimation(.snappy(duration: 0.2)) {
-                            habitStore.toggleHabit(id: habit.id, on: activeDateKey)
+                HStack(spacing: 6) {
+                    // Visible ••• Action Menu Button (Matches HTML Simulator 1:1!)
+                    Menu {
+                        Button {
+                            habitStore.triggerHaptic(.light)
+                            onOpenDetail?()
+                        } label: {
+                            Label("Habit Overview & Heatmap", systemImage: "chart.bar.xaxis")
                         }
-                    } label: {
-                        ZStack {
-                            if isCompleted {
-                                Circle()
-                                    .fill(Color.green.gradient)
-                                    .frame(width: 30, height: 30)
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 13.5, weight: .heavy))
-                                    .foregroundStyle(.white)
-                            } else if isSkipped {
-                                Circle()
-                                    .fill(Color.cyan.opacity(0.2))
-                                    .frame(width: 30, height: 30)
-                                Image(systemName: "forward.fill")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundStyle(.cyan)
-                            } else {
-                                Circle()
-                                    .stroke(Color.secondary.opacity(0.38), lineWidth: 2.2)
-                                    .frame(width: 28, height: 28)
+                        
+                        Button {
+                            withAnimation(.snappy(duration: 0.2)) {
+                                habitStore.toggleHabit(id: habit.id, on: activeDateKey)
+                            }
+                        } label: {
+                            Label(isCompleted ? "Mark Incomplete" : "Mark Completed", systemImage: "checkmark.circle")
+                        }
+                        
+                        if habit.trackingType == .timer {
+                            Button {
+                                onOpenTimer?()
+                            } label: {
+                                Label("Open Focus Timer", systemImage: "timer")
                             }
                         }
-                        .frame(width: 38, height: 38)
-                        .contentShape(Circle())
+                        
+                        Button {
+                            onLogNote?()
+                        } label: {
+                            Label("Add Mood & Reflection Note", systemImage: "square.and.pencil")
+                        }
+                        
+                        Button {
+                            habitStore.toggleSkipHabit(id: habit.id, on: activeDateKey)
+                        } label: {
+                            Label(isSkipped ? "Remove Skip" : "Skip / Rest Day", systemImage: "forward.end")
+                        }
+                        
+                        if isLockedMissed && habitStore.streakFreezeShields > 0 {
+                            Button {
+                                _ = habitStore.useFreezeShield(for: habit.id, on: activeDateKey)
+                            } label: {
+                                Label("Use Streak Freeze Shield (\(habitStore.streakFreezeShields) left)", systemImage: "snowflake")
+                            }
+                        }
+                        
+                        Divider()
+                        
+                        Button {
+                            onEditHabit?()
+                        } label: {
+                            Label("Edit Habit", systemImage: "pencil")
+                        }
+                        
+                        Button {
+                            habitStore.duplicateHabit(id: habit.id)
+                        } label: {
+                            Label("Duplicate Habit", systemImage: "plus.square.on.square")
+                        }
+                        
+                        Button {
+                            habitStore.toggleArchiveHabit(id: habit.id)
+                        } label: {
+                            Label("Archive Habit", systemImage: "archivebox")
+                        }
+                        
+                        Divider()
+                        
+                        Button(role: .destructive) {
+                            habitStore.deleteHabit(id: habit.id)
+                        } label: {
+                            Label("Delete Habit", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 30, height: 30)
+                            .background(Color.primary.opacity(0.06), in: Circle())
                     }
-                    .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.86))
+                    .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.88))
+                    
+                    // Dedicated Instant Checkmark / Lock Ring
+                    if isLockedMissed {
+                        Image(systemName: "lock.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.red)
+                            .frame(width: 34, height: 34)
+                            .background(.red.opacity(0.12), in: Circle())
+                    } else {
+                        Button {
+                            withAnimation(.snappy(duration: 0.2)) {
+                                habitStore.toggleHabit(id: habit.id, on: activeDateKey)
+                            }
+                        } label: {
+                            ZStack {
+                                if isCompleted {
+                                    Circle()
+                                        .fill(Color.green.gradient)
+                                        .frame(width: 32, height: 32)
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 14, weight: .heavy))
+                                        .foregroundStyle(.white)
+                                } else if isSkipped {
+                                    Circle()
+                                        .fill(Color.cyan.opacity(0.2))
+                                        .frame(width: 32, height: 32)
+                                    Image(systemName: "forward.fill")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundStyle(.cyan)
+                                } else {
+                                    Circle()
+                                        .stroke(Color.secondary.opacity(0.38), lineWidth: 2.2)
+                                        .frame(width: 30, height: 30)
+                                }
+                            }
+                            .frame(width: 36, height: 36)
+                            .contentShape(Circle())
+                        }
+                        .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.86))
+                    }
                 }
             }
             

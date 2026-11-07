@@ -444,6 +444,36 @@ public struct Habit: Identifiable, Codable, Equatable {
         }
     }
     
+    public var repeatLabel: String {
+        switch frequency {
+        case .daily:
+            return "Every day"
+        case .weekdays:
+            return "Weekdays"
+        case .weekends:
+            return "Weekends"
+        case .every2Days:
+            return "Every 2 days"
+        case .every3Days:
+            return "Every 3 days"
+        case .threePerWeek:
+            return "3 days / week"
+        case .customDays:
+            if customWeekdays.isEmpty || customWeekdays.count == 7 {
+                return "Every day"
+            }
+            let map: [Int: String] = [2: "Mon", 3: "Tue", 4: "Wed", 5: "Thu", 6: "Fri", 7: "Sat", 1: "Sun"]
+            let names = [2, 3, 4, 5, 6, 7, 1].filter { customWeekdays.contains($0) }.compactMap { map[$0] }
+            if names.count == 5 && !customWeekdays.contains(1) && !customWeekdays.contains(7) {
+                return "Weekdays"
+            }
+            if names.count == 2 && customWeekdays.contains(1) && customWeekdays.contains(7) {
+                return "Weekends"
+            }
+            return names.joined(separator: ", ")
+        }
+    }
+    
     public var summaryGoalLabel: String {
         switch polarity {
         case .quit:

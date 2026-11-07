@@ -215,17 +215,23 @@ struct SettingsView: View {
                 }
                 
                 // Setup & Version
-                Section(header: Text("About")) {
+                Section(header: Text("Demo & Diagnostics")) {
+                    Button {
+                        habitStore.seedRichDemoData()
+                    } label: {
+                        Label("Load Rich Demo Habits", systemImage: "sparkles")
+                    }
+                    
                     Button {
                         hasCompletedOnboarding = false
                     } label: {
-                        Label("Re-run Setup Wizard", systemImage: "sparkles")
+                        Label("Re-run Setup Wizard", systemImage: "arrow.counterclockwise")
                     }
                     
                     HStack {
                         Text("Version")
                         Spacer()
-                        Text("3.2.2 Native SwiftUI")
+                        Text("3.2.3 Native SwiftUI")
                             .foregroundStyle(.secondary)
                     }
                     

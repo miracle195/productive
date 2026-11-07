@@ -345,6 +345,16 @@ public struct TodayView: View {
                         } label: {
                             Label("Quick Log Next Habit", systemImage: "bolt.fill")
                         }
+                        
+                        Divider()
+                        
+                        Button {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                habitStore.seedRichDemoData()
+                            }
+                        } label: {
+                            Label("Load Rich Demo Habits", systemImage: "sparkles")
+                        }
                     } label: {
                         Image(systemName: "ellipsis")
                             .font(.system(size: 13.5, weight: .bold))
@@ -515,9 +525,24 @@ public struct TodayView: View {
                         Color.primary
                     )
                 
-                Circle()
-                    .fill(dayPct == 100 ? Color.green : (dayPct > 0 ? Color.orange : Color.clear))
-                    .frame(width: 4.5, height: 4.5)
+                // Mini Circular Ring Gauge (Matches HTML .day-ring 1:1!)
+                ZStack {
+                    Circle()
+                        .stroke(isSelected ? Color.white.opacity(0.3) : Color.primary.opacity(0.12), lineWidth: 1.8)
+                        .frame(width: 12, height: 12)
+                    
+                    if dayPct > 0 {
+                        Circle()
+                            .trim(from: 0, to: CGFloat(dayPct) / 100.0)
+                            .stroke(
+                                isSelected ? (dayPct == 100 ? Color.green : Color.white) : (dayPct == 100 ? Color.green : Color.accentColor),
+                                style: StrokeStyle(lineWidth: 1.8, lineCap: .round)
+                            )
+                            .frame(width: 12, height: 12)
+                            .rotationEffect(.degrees(-90))
+                    }
+                }
+                .frame(height: 12)
             }
             .frame(width: 47, height: 56)
             .background {
@@ -620,17 +645,32 @@ public struct TodayView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
                 
-                Button {
-                    showingAddSheet = true
-                    habitStore.triggerHaptic(.medium)
-                } label: {
-                    Label("Add First Habit", systemImage: "plus")
-                        .font(.system(.subheadline, design: .rounded).weight(.bold))
-                        .padding(.horizontal, 22)
-                        .padding(.vertical, 11)
+                HStack(spacing: 10) {
+                    Button {
+                        showingAddSheet = true
+                        habitStore.triggerHaptic(.medium)
+                    } label: {
+                        Label("Add Habit", systemImage: "plus")
+                            .font(.system(.subheadline, design: .rounded).weight(.bold))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.capsule)
+                    
+                    Button {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            habitStore.seedRichDemoData()
+                        }
+                    } label: {
+                        Label("Load Demo", systemImage: "sparkles")
+                            .font(.system(.subheadline, design: .rounded).weight(.bold))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
                 }
-                .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.capsule)
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -652,7 +692,9 @@ public struct TodayView: View {
                                     habit: habit,
                                     dateKey: activeDateKey,
                                     onOpenDetail: { selectedDetailHabitId = habit.id },
-                                    onOpenTimer: { timerSheetHabit = habit }
+                                    onOpenTimer: { timerSheetHabit = habit },
+                                    onEditHabit: { editingHabitTarget = habit },
+                                    onLogNote: { journalSheetTarget = habit }
                                 )
                                 .listRowInsets(EdgeInsets(top: 11, leading: 15, bottom: 11, trailing: 15))
                                 // Leading Swipe: Quick Complete or +Step
