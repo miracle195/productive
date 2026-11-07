@@ -93,9 +93,12 @@ struct SettingsView: View {
                         Label("Push Notifications", systemImage: "bell.badge.fill")
                         Spacer()
                         if notificationManager.isAuthorized {
-                            Text("Authorized")
-                                .font(.subheadline)
-                                .foregroundStyle(.green)
+                            Button("Test Banner") {
+                                notificationManager.sendTestNotification()
+                                showToast("Notification sent (1s) 🔔")
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
                         } else {
                             Button("Enable") {
                                 notificationManager.requestPermission()

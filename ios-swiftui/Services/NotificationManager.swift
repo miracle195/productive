@@ -115,6 +115,29 @@ public final class NotificationManager: NSObject, ObservableObject, UNUserNotifi
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["focus-timer-done"])
     }
     
+    public func sendTestNotification() {
+        if !isAuthorized {
+            requestPermission { [weak self] granted in
+                if granted { self?.dispatchTestNotification() }
+            }
+        } else {
+            dispatchTestNotification()
+        }
+    }
+    
+    private func dispatchTestNotification() {
+        let content = UNMutableNotificationContent()
+        content.title = "Drink Water 💧"
+        content.body = "Time for your morning routine • 2,000 ml goal"
+        content.sound = .default
+        content.categoryIdentifier = Self.categoryIdentifier
+        content.userInfo = ["habitId": UUID().uuidString]
+        
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1.0, repeats: false)
+        let req = UNNotificationRequest(identifier: "test-notification-\(UUID().uuidString)", content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(req)
+    }
+    
     public func configureDailyDigests(morningEnabled: Bool, eveningEnabled: Bool) {
         let ids = ["daily-morning-digest", "daily-evening-digest"]
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)

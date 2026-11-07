@@ -470,7 +470,10 @@ public struct TodayView: View {
                     }
                 }
                 .onAppear {
-                    DispatchQueue.main.async {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        proxy.scrollTo(habitStore.todayKey, anchor: .leading)
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
                         proxy.scrollTo(habitStore.todayKey, anchor: .leading)
                     }
                 }
