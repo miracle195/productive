@@ -909,19 +909,32 @@ public class HabitStore: ObservableObject {
     
     // MARK: - Haptics
     
-    public func triggerHaptic(_ type: UINotificationFeedbackGenerator.FeedbackType) {
-        #if os(iOS)
-        guard soundHapticsEnabled else { return }
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(type)
-        #endif
+    public enum ProductiveHaptic {
+        case success
+        case warning
+        case error
+        case light
+        case medium
+        case heavy
     }
     
-    public func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+    public func triggerHaptic(_ haptic: ProductiveHaptic) {
         #if os(iOS)
         guard soundHapticsEnabled else { return }
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.impactOccurred()
+        switch haptic {
+        case .success:
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        case .warning:
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        case .error:
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+        case .light:
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        case .medium:
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        case .heavy:
+            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        }
         #endif
     }
 }
