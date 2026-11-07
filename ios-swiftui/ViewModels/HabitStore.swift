@@ -512,12 +512,18 @@ public class HabitStore: ObservableObject {
             }
         } else {
             rec.completedSubtaskIds = []
+            if habits[index].trackingType == .amount && habits[index].polarity == .build {
+                rec.amount = 0
+            } else if habits[index].trackingType == .reps {
+                rec.reps = 0
+            }
         }
         
         habits[index].history[key] = rec
         recalculateStats(for: index)
         saveHabits()
         syncLiveActivitySummary()
+        objectWillChange.send()
         triggerHaptic(rec.isCompleted ? .success : .light)
     }
     
@@ -546,6 +552,7 @@ public class HabitStore: ObservableObject {
         recalculateStats(for: index)
         saveHabits()
         syncLiveActivitySummary()
+        objectWillChange.send()
         triggerHaptic(rec.isCompleted ? .success : .light)
     }
     
@@ -566,6 +573,7 @@ public class HabitStore: ObservableObject {
         recalculateStats(for: index)
         saveHabits()
         syncLiveActivitySummary()
+        objectWillChange.send()
         triggerHaptic(rec.isCompleted ? .success : .light)
     }
     
@@ -588,6 +596,8 @@ public class HabitStore: ObservableObject {
         habits[index].history[key] = rec
         recalculateStats(for: index)
         saveHabits()
+        syncLiveActivitySummary()
+        objectWillChange.send()
         triggerHaptic(rec.isCompleted ? .success : .light)
     }
     

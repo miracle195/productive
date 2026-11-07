@@ -50,7 +50,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: v3.2.3-ios
-        name: Productive v3.2.3 Native SwiftUI iOS (Rich Parity, Day Ribbon Mini-Rings & Action Menu)
+        tag_name: v3.2.4-ios
+        name: Productive v3.2.4 Native SwiftUI iOS (Instant Live Progress Sync on Check & Uncheck)
         files: ios-swiftui/build/Productive.ipa
       continue-on-error: true

@@ -401,6 +401,11 @@ class ProductiveState {
       }
     } else {
       rec.completedSubtasks = [];
+      if (habit.polarity === 'build' && habit.type === 'amount') {
+        rec.amount = 0;
+      } else if (habit.type === 'reps') {
+        rec.reps = 0;
+      }
     }
 
     this.recalculateHabitStats(habit);
@@ -1105,7 +1110,17 @@ function renderTodayScreen() {
 
   if (gaugeVal) gaugeVal.style.strokeDashoffset = 220 - (220 * rate) / 100;
   if (gaugeText) gaugeText.textContent = rate + '%';
-  if (heroSub) heroSub.textContent = dueHabits.length > 0 ? (doneDue + ' of ' + dueHabits.length + ' scheduled habits done') : 'Tap + to schedule your first habit';
+  if (heroSub) {
+    if (dueHabits.length === 0) {
+      heroSub.textContent = 'Tap + to schedule your first habit';
+    } else if (doneDue === dueHabits.length) {
+      heroSub.textContent = 'All ' + dueHabits.length + ' scheduled habits done';
+    } else if (rate > 0 && doneDue === 0) {
+      heroSub.textContent = rate + '% progress • in progress';
+    } else {
+      heroSub.textContent = doneDue + ' of ' + dueHabits.length + ' scheduled habits done' + (rate > 0 ? ' (' + rate + '%)' : '');
+    }
+  }
   if (heroStreak) heroStreak.innerHTML = '<span>🔥 ' + topStreak + 'd</span>';
   if (heroTitle) {
     if (state.activeHabits.length === 0) heroTitle.textContent = 'Ready to Plan ✨';

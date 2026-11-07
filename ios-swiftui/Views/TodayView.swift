@@ -894,7 +894,12 @@ public struct TodayView: View {
                         .background(.orange.opacity(0.15), in: Capsule())
                 }
                 
-                Text(due.isEmpty ? "Tap + to schedule your first habit" : "\(doneCount) of \(due.count) scheduled habits done")
+                Text(
+                    due.isEmpty ? "Tap + to schedule your first habit" :
+                    doneCount == due.count ? "All \(due.count) scheduled habits done" :
+                    (pct > 0 && doneCount == 0) ? "\(pct)% progress • in progress" :
+                    "\(doneCount) of \(due.count) scheduled habits done (\(pct)%)"
+                )
                     .font(.system(size: 12.5, weight: .medium, design: .rounded))
                     .foregroundStyle(.secondary)
             }

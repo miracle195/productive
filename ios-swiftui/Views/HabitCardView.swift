@@ -20,36 +20,40 @@ public struct HabitCardView: View {
         dateKey.isEmpty ? habitStore.todayKey : dateKey
     }
     
+    private var liveHabit: Habit {
+        habitStore.habits.first(where: { $0.id == habit.id }) ?? habit
+    }
+    
     private var isCompleted: Bool {
-        habit.isCompleted(on: activeDateKey)
+        liveHabit.isCompleted(on: activeDateKey)
     }
     
     private var isSkipped: Bool {
-        habit.isSkipped(on: activeDateKey)
+        liveHabit.isSkipped(on: activeDateKey)
     }
     
     private var isLockedMissed: Bool {
-        habitStore.isLockedByStrictMode(habit, on: activeDateKey)
+        habitStore.isLockedByStrictMode(liveHabit, on: activeDateKey)
     }
     
     private var currentAmount: Double {
-        habit.amount(on: activeDateKey)
+        liveHabit.amount(on: activeDateKey)
     }
     
     private var effectiveTarget: Double {
-        habitStore.effectiveTargetAmount(for: habit, on: activeDateKey)
+        habitStore.effectiveTargetAmount(for: liveHabit, on: activeDateKey)
     }
     
     private var rolloverExtra: Double {
-        habitStore.rolloverBonus(for: habit, on: activeDateKey)
+        habitStore.rolloverBonus(for: liveHabit, on: activeDateKey)
     }
     
     private var currentReps: Int {
-        habit.reps(on: activeDateKey)
+        liveHabit.reps(on: activeDateKey)
     }
     
     private var accentColor: Color {
-        Color(hex: habit.colorHex)
+        Color(hex: liveHabit.colorHex)
     }
     
     public init(
@@ -92,7 +96,7 @@ public struct HabitCardView: View {
                                         .stroke(Color.white.opacity(0.2), lineWidth: 0.7)
                                 )
                             
-                            Image(systemName: habit.icon)
+                            Image(systemName: liveHabit.icon)
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundStyle(.white)
                                 .symbolEffect(.bounce, value: isCompleted)
@@ -100,17 +104,17 @@ public struct HabitCardView: View {
                         
                         VStack(alignment: .leading, spacing: 3.5) {
                             HStack(spacing: 5) {
-                                Text(habit.name)
+                                Text(liveHabit.name)
                                     .font(.system(size: 16, weight: .bold, design: .rounded))
                                     .foregroundStyle(isCompleted || isSkipped ? .secondary : .primary)
-                                    .strikethrough(isCompleted && habit.polarity == .build)
+                                    .strikethrough(isCompleted && liveHabit.polarity == .build)
                                     .lineLimit(1)
                                 
-                                if let mood = habit.mood(on: activeDateKey) {
+                                if let mood = liveHabit.mood(on: activeDateKey) {
                                     Text(mood.emoji)
                                         .font(.caption)
                                 }
-                                if !habit.note(on: activeDateKey).isEmpty {
+                                if !liveHabit.note(on: activeDateKey).isEmpty {
                                     Image(systemName: "note.text")
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
@@ -119,27 +123,27 @@ public struct HabitCardView: View {
                             
                             // Metadata Pills
                             HStack(spacing: 6) {
-                                if habit.polarity == .quit {
+                                if liveHabit.polarity == .quit {
                                     Label("Quit", systemImage: "hand.raised.fill")
                                         .font(.caption2.weight(.bold))
                                         .foregroundStyle(.pink)
-                                } else if habit.polarity == .limit {
-                                    Label("Max \(Int(habit.targetAmount)) \(habit.unit)", systemImage: "gauge.with.dots.needle.33percent")
+                                } else if liveHabit.polarity == .limit {
+                                    Label("Max \(Int(liveHabit.targetAmount)) \(liveHabit.unit)", systemImage: "gauge.with.dots.needle.33percent")
                                         .font(.caption2.weight(.bold))
                                         .foregroundStyle(.purple)
                                 } else {
-                                    Text(habit.repeatLabel)
+                                    Text(liveHabit.repeatLabel)
                                         .font(.caption2.weight(.medium))
                                         .foregroundStyle(.secondary)
                                 }
                                 
                                 if isSkipped {
-                                    Label(habit.history[activeDateKey]?.usedFreezeShield == true ? "Frozen" : "Skipped", systemImage: "snowflake")
+                                    Label(liveHabit.history[activeDateKey]?.usedFreezeShield == true ? "Frozen" : "Skipped", systemImage: "snowflake")
                                         .font(.caption2.weight(.bold))
                                         .foregroundStyle(.cyan)
-                                } else if !habit.subtasks.isEmpty {
-                                    let doneCount = habit.history[activeDateKey]?.completedSubtaskIds.count ?? 0
-                                    let totalCount = habit.subtasks.count
+                                } else if !liveHabit.subtasks.isEmpty {
+                                    let doneCount = liveHabit.history[activeDateKey]?.completedSubtaskIds.count ?? 0
+                                    let totalCount = liveHabit.subtasks.count
                                     let subPct = totalCount > 0 ? Int(round((Double(doneCount) / Double(totalCount)) * 100)) : 0
                                     Label("\(doneCount)/\(totalCount) (\(subPct)%)", systemImage: "checklist")
                                         .font(.caption2.weight(.bold))
@@ -152,7 +156,7 @@ public struct HabitCardView: View {
                                 
                                 HStack(spacing: 2) {
                                     Image(systemName: "flame.fill")
-                                    Text("\(habit.streak)d")
+                                    Text("\(liveHabit.streak)d")
                                         .contentTransition(.numericText())
                                 }
                                 .font(.caption2.weight(.bold))
@@ -291,9 +295,9 @@ public struct HabitCardView: View {
             }
             
             // Subtasks Checklist with Live Proportional Progress Bar
-            if !habit.subtasks.isEmpty && !isSkipped {
-                let totalSubs = habit.subtasks.count
-                let doneSubsCount = habit.history[activeDateKey]?.completedSubtaskIds.count ?? 0
+            if !liveHabit.subtasks.isEmpty && !isSkipped {
+                let totalSubs = liveHabit.subtasks.count
+                let doneSubsCount = liveHabit.history[activeDateKey]?.completedSubtaskIds.count ?? 0
                 let fraction = totalSubs > 0 ? (Double(doneSubsCount) / Double(totalSubs)) : 0.0
                 let pct = Int(round(fraction * 100))
                 
@@ -321,11 +325,11 @@ public struct HabitCardView: View {
                         .padding(.bottom, 2)
                     
                     // Checklist Items
-                    ForEach(habit.subtasks) { subtask in
-                        let subDone = habit.history[activeDateKey]?.completedSubtaskIds.contains(subtask.id) ?? false
+                    ForEach(liveHabit.subtasks) { subtask in
+                        let subDone = liveHabit.history[activeDateKey]?.completedSubtaskIds.contains(subtask.id) ?? false
                         Button {
                             withAnimation(.snappy(duration: 0.18)) {
-                                habitStore.toggleSubtask(habitId: habit.id, subtaskId: subtask.id, on: activeDateKey)
+                                habitStore.toggleSubtask(habitId: liveHabit.id, subtaskId: subtask.id, on: activeDateKey)
                             }
                         } label: {
                             HStack(spacing: 6) {
@@ -348,15 +352,15 @@ public struct HabitCardView: View {
             }
             
             // Polarity & Tracking Mode Interactive Controls
-            if habit.polarity == .quit {
+            if liveHabit.polarity == .quit {
                 quitControlsRow
-            } else if habit.polarity == .limit {
+            } else if liveHabit.polarity == .limit {
                 limitControlsRow
-            } else if habit.trackingType == .amount {
+            } else if liveHabit.trackingType == .amount {
                 amountControlsRow
-            } else if habit.trackingType == .reps {
+            } else if liveHabit.trackingType == .reps {
                 repsControlsRow
-            } else if habit.trackingType == .timer {
+            } else if liveHabit.trackingType == .timer {
                 timerControlsRow
             }
         }
