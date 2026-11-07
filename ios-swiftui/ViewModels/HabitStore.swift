@@ -127,6 +127,11 @@ public class HabitStore: ObservableObject {
         NotificationManager.shared.onMarkHabitDone = { [weak self] habitId in
             self?.toggleHabit(id: habitId)
         }
+        
+        // Dynamic Island Live Activities activate strictly during active timers/sessions
+        Task { @MainActor in
+            LiveActivityManager.shared.endAll()
+        }
     }
     
     // MARK: - Structured Persistence & Legacy Migration
@@ -727,6 +732,18 @@ public class HabitStore: ObservableObject {
                     timerEndDate: endDate
                 )
             }
+        } else {
+            Task { @MainActor in
+                LiveActivityManager.shared.startOrUpdate(
+                    habitName: habit.name,
+                    iconName: habit.icon,
+                    colorHex: habit.colorHex,
+                    category: timerMode.rawValue,
+                    progressText: "\(timerElapsedSeconds / 60)m elapsed",
+                    percentComplete: 0.5,
+                    timerEndDate: nil
+                )
+            }
         }
         
         let baseElapsed = timerElapsedSeconds
@@ -755,6 +772,9 @@ public class HabitStore: ObservableObject {
         timerCancellable?.cancel()
         timerCancellable = nil
         NotificationManager.shared.cancelTimerAlert()
+        Task { @MainActor in
+            LiveActivityManager.shared.endAll()
+        }
     }
     
     public func adjustTimer(bySeconds delta: Int) {
@@ -764,6 +784,17 @@ public class HabitStore: ObservableObject {
             let newEnd = Date().addingTimeInterval(TimeInterval(timerRemainingSeconds))
             timerTargetEndDate = newEnd
             NotificationManager.shared.scheduleTimerCompletionAlert(habitName: habit.name, seconds: TimeInterval(timerRemainingSeconds))
+            Task { @MainActor in
+                LiveActivityManager.shared.startOrUpdate(
+                    habitName: habit.name,
+                    iconName: habit.icon,
+                    colorHex: habit.colorHex,
+                    category: timerMode.rawValue,
+                    progressText: "\(timerRemainingSeconds / 60)m left",
+                    percentComplete: Double(max(0, timerTotalSeconds - timerRemainingSeconds)) / Double(max(1, timerTotalSeconds)),
+                    timerEndDate: newEnd
+                )
+            }
         }
         triggerHaptic(.light)
     }
@@ -783,7 +814,9 @@ public class HabitStore: ObservableObject {
         recalculateStats(for: index)
         saveHabits()
         stopTimer()
-        syncLiveActivitySummary()
+        Task { @MainActor in
+            LiveActivityManager.shared.endAll()
+        }
         triggerHaptic(.success)
     }
     
@@ -791,23 +824,32 @@ public class HabitStore: ObservableObject {
         pauseTimer()
         activeTimerHabitId = nil
         timerElapsedSeconds = 0
+        Task { @MainActor in
+            LiveActivityManager.shared.endAll()
+        }
     }
     
     private func syncLiveActivitySummary() {
-        let due = habitsDue(on: Date())
-        guard !due.isEmpty else { return }
-        let doneCount = due.filter { $0.isCompleted(on: todayKey) }.count
-        let pct = Double(doneCount) / Double(due.count)
-        let nextHabit = due.first(where: { !$0.isCompleted(on: todayKey) }) ?? due[0]
+        // Live Activities are exclusively active during active timers or ongoing sessions.
+        // When no timer is running, ensure Dynamic Island stays clean.
+        guard let timerId = activeTimerHabitId, isTimerRunning,
+              let habit = habits.first(where: { $0.id == timerId }) else {
+            Task { @MainActor in
+                LiveActivityManager.shared.endAll()
+            }
+            return
+        }
+        
+        let endDate = timerTargetEndDate
         Task { @MainActor in
             LiveActivityManager.shared.startOrUpdate(
-                habitName: nextHabit.name,
-                iconName: nextHabit.icon,
-                colorHex: nextHabit.colorHex,
-                category: "Daily Routine",
-                progressText: "\(doneCount)/\(due.count) done",
-                percentComplete: pct,
-                timerEndDate: nil
+                habitName: habit.name,
+                iconName: habit.icon,
+                colorHex: habit.colorHex,
+                category: timerMode.rawValue,
+                progressText: "\(timerRemainingSeconds / 60)m left",
+                percentComplete: Double(max(0, timerTotalSeconds - timerRemainingSeconds)) / Double(max(1, timerTotalSeconds)),
+                timerEndDate: endDate
             )
         }
     }

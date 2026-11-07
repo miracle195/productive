@@ -50,7 +50,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: v3.2.6-ios
-        name: Productive v3.2.6 Native SwiftUI iOS (Pure Reference Design Parity, Solid Clean Day Strip & Dedicated Search)
+        tag_name: v3.2.7-ios
+        name: Productive v3.2.7 Native SwiftUI iOS (Strict Timer-Only Dynamic Island & Clean Background Idle)
         files: ios-swiftui/build/Productive.ipa
       continue-on-error: true

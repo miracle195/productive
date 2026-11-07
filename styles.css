@@ -415,6 +415,10 @@ body {
   background: #080A0F;
 }
 
+.dynamic-island.active-timer {
+  width: 172px;
+}
+
 .dynamic-island.expanded {
   width: 366px;
   height: 154px;

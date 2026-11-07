@@ -1901,20 +1901,40 @@ function completeActiveTimer() {
 
 function updateFloatingTimerBar() {
   const bar = document.getElementById('floating-timer-bar');
-  if (!bar) return;
+  const island = document.getElementById('dynamic-island');
+  const pulseTitle = document.getElementById('island-pulse-title');
+  const pulseText = document.getElementById('island-pulse-text');
+  const expTitle = document.getElementById('island-exp-title');
+  const expSub = document.getElementById('island-exp-sub');
+  const expBadge = document.getElementById('island-exp-badge');
+  const expIcon = document.getElementById('island-exp-icon');
+
   const habit = state.habits.find(h => h.id === state.activeTimerHabitId);
   if (!habit) {
-    bar.classList.remove('active');
+    if (bar) bar.classList.remove('active');
+    if (island) island.classList.remove('expanded', 'active-timer');
+    if (pulseTitle) pulseTitle.style.display = 'none';
     return;
   }
-  bar.classList.add('active');
+  
   const secs = state.timerMode === 'stopwatch' ? state.timerElapsedSeconds : state.timerRemainingSeconds;
+  const timeFormatted = formatSecondsMMSS(secs);
+
+  if (bar) bar.classList.add('active');
+  if (island) island.classList.add('active-timer');
+  if (pulseTitle) pulseTitle.style.display = 'flex';
+  if (pulseText) pulseText.textContent = timeFormatted;
+  if (expTitle) expTitle.textContent = habit.name;
+  if (expSub) expSub.textContent = state.timerMode.toUpperCase() + ' Session';
+  if (expBadge) expBadge.textContent = timeFormatted;
+  if (expIcon) expIcon.style.background = habit.color;
+
   const ftTitle = document.getElementById('ft-title');
   const ftSub = document.getElementById('ft-sub');
   const ftBtn = document.getElementById('ft-toggle-btn');
   const ftIcon = document.getElementById('ft-icon');
   if (ftTitle) ftTitle.textContent = habit.name;
-  if (ftSub) ftSub.textContent = state.timerMode.toUpperCase() + ' • ' + formatSecondsMMSS(secs);
+  if (ftSub) ftSub.textContent = state.timerMode.toUpperCase() + ' • ' + timeFormatted;
   if (ftBtn) ftBtn.textContent = state.isTimerRunning ? 'Pause' : 'Resume';
   if (ftIcon) ftIcon.style.background = habit.color;
 }
@@ -3142,10 +3162,14 @@ function onDefaultStrictnessChange(val) {
 function pulseDynamicIsland(text) {
   const island = document.getElementById('dynamic-island');
   const title = document.getElementById('island-pulse-title');
-  if (title) title.textContent = text;
+  const textEl = document.getElementById('island-pulse-text');
+  if (textEl) textEl.textContent = text;
+  else if (title) title.textContent = text;
+  if (title) title.style.display = 'flex';
   if (island && island.classList && !island.classList.contains('expanded')) {
     island.style.width = '166px';
     setTimeout(() => {
+      if (!state.activeTimerHabitId && title) title.style.display = 'none';
       if (!island.classList.contains('expanded')) island.style.width = 'var(--island-width)';
     }, 1200);
   }
@@ -3154,7 +3178,11 @@ function pulseDynamicIsland(text) {
 function toggleDynamicIsland() {
   sound.playClick();
   const island = document.getElementById('dynamic-island');
-  if (island && island.classList) island.classList.toggle('expanded');
+  if (island && island.classList) {
+    if (state.activeTimerHabitId) {
+      island.classList.toggle('expanded');
+    }
+  }
 }
 
 function triggerActionButton() {

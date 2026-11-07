@@ -101,14 +101,14 @@
               </div>
             </div>
 
-            <!-- DYNAMIC ISLAND LIVE ACTIVITY -->
+            <!-- DYNAMIC ISLAND (Activates strictly during active Focus Timers & Sessions) -->
             <div class="dynamic-island-container">
-              <div class="dynamic-island" id="dynamic-island" title="Dynamic Island Live Activity (Click to Expand)">
+              <div class="dynamic-island" id="dynamic-island" title="Dynamic Island: Hardware camera pill (Activates during Focus Timers)">
                 <div class="island-compact-view">
                   <div class="island-camera"></div>
-                  <div id="island-pulse-title" style="color: #30D158; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 4px;">
-                    <span>🔥</span>
-                    <span>Productive</span>
+                  <div id="island-pulse-title" style="display:none; color: #30D158; font-size: 11px; font-weight: 700; align-items: center; gap: 4px;">
+                    <span>⏱️</span>
+                    <span id="island-pulse-text">15:00</span>
                   </div>
                   <div class="island-sensor"></div>
                 </div>
@@ -116,18 +116,18 @@
                 <div class="island-expanded-view">
                   <div class="island-header">
                     <div class="island-habit-info">
-                      <div class="island-habit-icon" id="island-exp-icon" style="background:#007AFF;">💧</div>
+                      <div class="island-habit-icon" id="island-exp-icon" style="background:#007AFF;">⏱️</div>
                       <div>
-                        <div class="island-habit-title" id="island-exp-title">Daily Routine</div>
-                        <div class="island-habit-sub" id="island-exp-sub">Live Activity • Ready</div>
+                        <div class="island-habit-title" id="island-exp-title">Focus Timer</div>
+                        <div class="island-habit-sub" id="island-exp-sub">Active Session</div>
                       </div>
                     </div>
-                    <div class="island-timer-badge" id="island-exp-badge">0%</div>
+                    <div class="island-timer-badge" id="island-exp-badge">15:00</div>
                   </div>
 
                   <div class="island-footer">
-                    <span style="font-size: 11px; color: #98989F;" id="island-exp-hint">Action Button AppIntent Ready</span>
-                    <button class="island-quick-btn">+ Quick Log</button>
+                    <span style="font-size: 11px; color: #98989F;" id="island-exp-hint">Focusing</span>
+                    <button class="island-quick-btn" onclick="toggleTimerRunning()">Pause</button>
                   </div>
                 </div>
               </div>
