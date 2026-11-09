@@ -244,7 +244,14 @@ public struct TodayView: View {
                 refocusToToday()
             }
             .onAppear {
-                habitStore.syncWidgetSnapshot()
+                habitStore.activeViewingDateKey = activeDateKey
+                habitStore.syncWidgetSnapshot(for: activeDateKey)
+            }
+            .onChange(of: selectedDateKey) { _, newKey in
+                if let key = newKey {
+                    habitStore.activeViewingDateKey = key
+                    habitStore.syncWidgetSnapshot(for: key)
+                }
             }
         }
     }
@@ -565,6 +572,8 @@ public struct TodayView: View {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
                 selectedDateKey = day.dateKey
             }
+            habitStore.activeViewingDateKey = day.dateKey
+            habitStore.syncWidgetSnapshot(for: day.dateKey)
             habitStore.triggerHaptic(.light)
         } label: {
             VStack(spacing: 3) {

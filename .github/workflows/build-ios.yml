@@ -62,7 +62,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: v3.2.16-ios
-        name: Productive v3.2.16 Native SwiftUI iOS (Resilient Routine Circles Lock Screen Widget)
+        tag_name: v3.2.17-ios
+        name: Productive v3.2.17 Native SwiftUI iOS (Real-time Live Sync of Due & Completed Period Counts)
         files: ios-swiftui/build/Productive.ipa
       continue-on-error: true

@@ -180,7 +180,7 @@ public enum WidgetSnapshotStore {
     private static func appGroupsFromProvisioningProfile() -> [String] {
         guard let url = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision"),
               let data = try? Data(contentsOf: url),
-              let string = String(data: data, encoding: .ascii) else {
+              let string = String(data: data, encoding: .isoLatin1) else {
             return []
         }
         var groups: [String] = []
@@ -188,14 +188,13 @@ public enum WidgetSnapshotStore {
             let remainder = string[range.upperBound...]
             if let arrayStart = remainder.range(of: "<array>"),
                let arrayEnd = remainder.range(of: "</array>") {
-                let arrayContent = remainder[arrayStart.upperBound..<arrayEnd.lowerBound]
+                let arrayContent = String(remainder[arrayStart.upperBound..<arrayEnd.lowerBound])
                 let pattern = "<string>([^<]+)</string>"
                 if let regex = try? NSRegularExpression(pattern: pattern) {
-                    let nsContent = String(arrayContent)
-                    let matches = regex.matches(in: nsContent, range: NSRange(location: 0, length: nsContent.utf16.count))
+                    let matches = regex.matches(in: arrayContent, range: NSRange(location: 0, length: arrayContent.utf16.count))
                     for match in matches {
-                        if let stringRange = Range(match.range(at: 1), in: nsContent) {
-                            groups.append(String(nsContent[stringRange]))
+                        if let stringRange = Range(match.range(at: 1), in: arrayContent) {
+                            groups.append(String(arrayContent[stringRange]))
                         }
                     }
                 }
@@ -206,29 +205,36 @@ public enum WidgetSnapshotStore {
     
     /// Candidate AppGroup IDs (primary identifier + embedded provisioning profile groups + dynamic match based on app bundle ID)
     private static var candidateGroupIds: [String] {
-        var ids = [primaryAppGroupId]
+        var ids: [String] = []
+        // 1. Groups extracted dynamically from provisioning profile
         for g in appGroupsFromProvisioningProfile() {
-            if !ids.contains(g) {
-                ids.append(g)
-            }
+            if !ids.contains(g) { ids.append(g) }
         }
+        // 2. Primary configured group
+        if !ids.contains(primaryAppGroupId) { ids.append(primaryAppGroupId) }
+        // 3. Derived bundle groups (both app and extension)
         if let baseId = Bundle.main.bundleIdentifier {
             let cleanBase = baseId.replacingOccurrences(of: ".widgets", with: "").replacingOccurrences(of: ".Widgets", with: "")
             let dynamicGroup = "group.\(cleanBase)"
-            if !ids.contains(dynamicGroup) {
-                ids.append(dynamicGroup)
-            }
+            if !ids.contains(dynamicGroup) { ids.append(dynamicGroup) }
+        }
+        // 4. Common AltStore/SideStore AppGroup aliases
+        let commonGroups = ["group.com.rileytestut.AltStore", "group.sideloadly"]
+        for cg in commonGroups {
+            if !ids.contains(cg) { ids.append(cg) }
         }
         return ids
     }
     
     public static func load() -> WidgetDailySnapshot {
+        var candidates: [WidgetDailySnapshot] = []
+        
         // 1. Try AppGroup UserDefaults across candidate identifiers
         for groupId in candidateGroupIds {
             if let userDefaults = UserDefaults(suiteName: groupId),
                let data = userDefaults.data(forKey: snapshotKey),
                let snapshot = try? JSONDecoder().decode(WidgetDailySnapshot.self, from: data) {
-                return snapshot
+                candidates.append(snapshot)
             }
         }
         
@@ -238,7 +244,7 @@ public enum WidgetSnapshotStore {
                 let fileURL = containerURL.appendingPathComponent(snapshotFileName)
                 if let data = try? Data(contentsOf: fileURL),
                    let snapshot = try? JSONDecoder().decode(WidgetDailySnapshot.self, from: data) {
-                    return snapshot
+                    candidates.append(snapshot)
                 }
             }
         }
@@ -246,7 +252,12 @@ public enum WidgetSnapshotStore {
         // 3. Try standard UserDefaults
         if let data = UserDefaults.standard.data(forKey: snapshotKey),
            let snapshot = try? JSONDecoder().decode(WidgetDailySnapshot.self, from: data) {
-            return snapshot
+            candidates.append(snapshot)
+        }
+        
+        // Pick the freshest available snapshot
+        if let freshest = candidates.max(by: { $0.lastUpdated < $1.lastUpdated }) {
+            return freshest
         }
         
         // 4. Fallback: resilient fallback with Morning (2) and Evening (2), ZERO afternoon
@@ -256,10 +267,11 @@ public enum WidgetSnapshotStore {
     public static func save(_ snapshot: WidgetDailySnapshot) {
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
         
-        // 1. Save to candidate AppGroup UserDefaults
+        // 1. Save to candidate AppGroup UserDefaults and force flush
         for groupId in candidateGroupIds {
             if let userDefaults = UserDefaults(suiteName: groupId) {
                 userDefaults.set(data, forKey: snapshotKey)
+                userDefaults.synchronize()
             }
         }
         
@@ -267,12 +279,14 @@ public enum WidgetSnapshotStore {
         for groupId in candidateGroupIds {
             if let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) {
                 let fileURL = containerURL.appendingPathComponent(snapshotFileName)
+                try? FileManager.default.createDirectory(at: containerURL, withIntermediateDirectories: true)
                 try? data.write(to: fileURL, options: .atomic)
             }
         }
         
-        // 3. Save to standard UserDefaults
+        // 3. Save to standard UserDefaults and flush
         UserDefaults.standard.set(data, forKey: snapshotKey)
+        UserDefaults.standard.synchronize()
     }
 }
 

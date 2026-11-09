@@ -22,8 +22,7 @@ public struct DailyProgressWidgetProvider: TimelineProvider {
     public init() {}
     
     public func placeholder(in context: Context) -> DailyProgressEntry {
-        let loaded = WidgetSnapshotStore.load()
-        return DailyProgressEntry(date: Date(), snapshot: loaded.totalDueCount > 0 ? loaded : .preview)
+        DailyProgressEntry(date: Date(), snapshot: WidgetSnapshotStore.load())
     }
     
     public func getSnapshot(in context: Context, completion: @escaping (DailyProgressEntry) -> Void) {
@@ -34,7 +33,7 @@ public struct DailyProgressWidgetProvider: TimelineProvider {
     public func getTimeline(in context: Context, completion: @escaping (Timeline<DailyProgressEntry>) -> Void) {
         let snapshot = WidgetSnapshotStore.load()
         let entry = DailyProgressEntry(date: Date(), snapshot: snapshot)
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 30, to: Date()) ?? Date().addingTimeInterval(1800)
+        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 5, to: Date()) ?? Date().addingTimeInterval(300)
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
         completion(timeline)
     }

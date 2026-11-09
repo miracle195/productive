@@ -31,6 +31,7 @@ public class HabitStore: ObservableObject {
     @Published public var habits: [Habit] = []
     @Published public var challenges: [HabitChallenge] = []
     @Published public var selectedDate: Date = Date()
+    @Published public var activeViewingDateKey: String = ""
     @Published public var requestedRoutineBucket: TimeOfDay? = nil
     @Published public var requestedDueTasksPopupFilter: DueTasksPopupFilter? = nil
     @Published public var refocusTodayRequestCount: Int = 0
@@ -194,6 +195,9 @@ public class HabitStore: ObservableObject {
         let storeURL = storeFileURL
         let challengesURL = challengesFileURL
         
+        // Immediate synchronous snapshot sync on main thread before background queue
+        syncWidgetSnapshot(for: activeViewingDateKey)
+        
         persistenceQueue.async { [weak self] in
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
@@ -204,42 +208,52 @@ public class HabitStore: ObservableObject {
                 try? cEncoded.write(to: challengesURL, options: [.atomic])
             }
             self?.saveAutoBackupToDocuments()
-            DispatchQueue.main.async {
-                self?.syncWidgetSnapshot()
-            }
         }
     }
     
-    public func syncWidgetSnapshot() {
-        let tKey = todayKey
-        let today = Date()
-        var effectiveDueHabits = habitsDue(on: today)
+    public func syncWidgetSnapshot(for dateKey: String? = nil) {
+        let targetKey = dateKey ?? (activeViewingDateKey.isEmpty ? todayKey : activeViewingDateKey)
+        let targetDate = date(from: targetKey)
+        var effectiveDueHabits = habitsDue(on: targetDate)
         if effectiveDueHabits.isEmpty && !activeHabits.isEmpty {
-            // Fall back to active habits if none are due strictly today (e.g. start date is future or rest day)
+            // Fall back to active habits if none are due strictly on targetDate (e.g. future creation date or rest day)
             effectiveDueHabits = activeHabits
         }
-        let doneHabits = effectiveDueHabits.filter { $0.isCompleted(on: tKey) || $0.isSkipped(on: tKey) }
+        
+        let isHabitDone: (Habit) -> Bool = { habit in
+            if habit.isCompleted(on: targetKey) || habit.isSkipped(on: targetKey) {
+                return true
+            }
+            if habit.isCompleted(on: self.todayKey) || habit.isSkipped(on: self.todayKey) {
+                return true
+            }
+            if let rec = habit.history[targetKey], rec.isCompleted || rec.isSkipped || (habit.trackingType == .amount && rec.amount >= habit.targetAmount) {
+                return true
+            }
+            return false
+        }
+        
+        let morningHabits = effectiveDueHabits.filter { $0.timeOfDay == .morning }
+        let morningDone = morningHabits.filter { isHabitDone($0) }.count
+        
+        let afternoonHabits = effectiveDueHabits.filter { $0.timeOfDay == .afternoon }
+        let afternoonDone = afternoonHabits.filter { isHabitDone($0) }.count
+        
+        let eveningHabits = effectiveDueHabits.filter { $0.timeOfDay == .evening }
+        let eveningDone = eveningHabits.filter { isHabitDone($0) }.count
+        
+        let anytimeHabits = effectiveDueHabits.filter { $0.timeOfDay == .anytime }
+        let anytimeDone = anytimeHabits.filter { isHabitDone($0) }.count
+        
         let totalDue = effectiveDueHabits.count
-        let doneCount = doneHabits.count
+        let doneCount = morningDone + afternoonDone + eveningDone + anytimeDone
         let pct = totalDue > 0 ? Int(round((Double(doneCount) / Double(totalDue)) * 100)) : 0
         let bestStreak = activeHabits.map(\.streak).max() ?? 0
         
-        let morningHabits = effectiveDueHabits.filter { $0.timeOfDay == .morning }
-        let morningDone = morningHabits.filter { $0.isCompleted(on: tKey) || $0.isSkipped(on: tKey) }.count
-        
-        let afternoonHabits = effectiveDueHabits.filter { $0.timeOfDay == .afternoon }
-        let afternoonDone = afternoonHabits.filter { $0.isCompleted(on: tKey) || $0.isSkipped(on: tKey) }.count
-        
-        let eveningHabits = effectiveDueHabits.filter { $0.timeOfDay == .evening }
-        let eveningDone = eveningHabits.filter { $0.isCompleted(on: tKey) || $0.isSkipped(on: tKey) }.count
-        
-        let anytimeHabits = effectiveDueHabits.filter { $0.timeOfDay == .anytime }
-        let anytimeDone = anytimeHabits.filter { $0.isCompleted(on: tKey) || $0.isSkipped(on: tKey) }.count
-        
-        let nextPending = effectiveDueHabits.first(where: { !$0.isCompleted(on: tKey) && !$0.isSkipped(on: tKey) })
+        let nextPending = effectiveDueHabits.first(where: { !isHabitDone($0) })
         
         let snapshot = WidgetDailySnapshot(
-            dateKey: tKey,
+            dateKey: targetKey,
             totalDueCount: totalDue,
             completedCount: doneCount,
             completionPercentage: pct,
@@ -261,6 +275,7 @@ public class HabitStore: ObservableObject {
         )
         
         WidgetSnapshotStore.save(snapshot)
+        WidgetCenter.shared.reloadTimelines(ofKind: "DailyProgressLockScreenWidget")
         WidgetCenter.shared.reloadAllTimelines()
     }
     
@@ -645,7 +660,9 @@ public class HabitStore: ObservableObject {
         }
         
         habits[index].history[key] = rec
+        activeViewingDateKey = key
         recalculateStats(for: index)
+        syncWidgetSnapshot(for: key)
         saveHabits()
         syncLiveActivitySummary()
         objectWillChange.send()
@@ -674,7 +691,9 @@ public class HabitStore: ObservableObject {
         }
         
         habits[index].history[key] = rec
+        activeViewingDateKey = key
         recalculateStats(for: index)
+        syncWidgetSnapshot(for: key)
         saveHabits()
         syncLiveActivitySummary()
         objectWillChange.send()
@@ -695,7 +714,9 @@ public class HabitStore: ObservableObject {
         rec.loggedAt = Date()
         
         habits[index].history[key] = rec
+        activeViewingDateKey = key
         recalculateStats(for: index)
+        syncWidgetSnapshot(for: key)
         saveHabits()
         syncLiveActivitySummary()
         objectWillChange.send()
@@ -719,7 +740,9 @@ public class HabitStore: ObservableObject {
         }
         rec.loggedAt = Date()
         habits[index].history[key] = rec
+        activeViewingDateKey = key
         recalculateStats(for: index)
+        syncWidgetSnapshot(for: key)
         saveHabits()
         syncLiveActivitySummary()
         objectWillChange.send()

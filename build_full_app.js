@@ -2531,7 +2531,7 @@ function updateLockScreenWidgets() {
       activeRoutines.forEach(rt => {
         const list = effectiveDue.filter(h => (h.timeOfDay || 'anytime') === rt.key);
         const rtDone = list.filter(h => {
-          const rec = h.history && h.history[state.selectedDay];
+          const rec = (h.history && h.history[state.selectedDay]) || (h.history && h.history[state.today]);
           return rec && (rec.done || rec.skipped || rec.usedShield);
         }).length;
         const rtPct = Math.round((rtDone / list.length) * 100);
