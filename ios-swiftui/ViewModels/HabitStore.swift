@@ -213,23 +213,27 @@ public class HabitStore: ObservableObject {
     public func syncWidgetSnapshot() {
         let tKey = todayKey
         let today = Date()
-        let dueHabits = habitsDue(on: today)
-        let doneHabits = dueHabits.filter { $0.isCompleted(on: tKey) || $0.isSkipped(on: tKey) }
-        let totalDue = dueHabits.count
+        var effectiveDueHabits = habitsDue(on: today)
+        if effectiveDueHabits.isEmpty && !activeHabits.isEmpty {
+            // Fall back to active habits if none are due strictly today (e.g. start date is future or rest day)
+            effectiveDueHabits = activeHabits
+        }
+        let doneHabits = effectiveDueHabits.filter { $0.isCompleted(on: tKey) || $0.isSkipped(on: tKey) }
+        let totalDue = effectiveDueHabits.count
         let doneCount = doneHabits.count
         let pct = totalDue > 0 ? Int(round((Double(doneCount) / Double(totalDue)) * 100)) : 0
         let bestStreak = activeHabits.map(\.streak).max() ?? 0
         
-        let morningHabits = dueHabits.filter { $0.timeOfDay == .morning }
+        let morningHabits = effectiveDueHabits.filter { $0.timeOfDay == .morning }
         let morningDone = morningHabits.filter { $0.isCompleted(on: tKey) || $0.isSkipped(on: tKey) }.count
         
-        let afternoonHabits = dueHabits.filter { $0.timeOfDay == .afternoon }
+        let afternoonHabits = effectiveDueHabits.filter { $0.timeOfDay == .afternoon }
         let afternoonDone = afternoonHabits.filter { $0.isCompleted(on: tKey) || $0.isSkipped(on: tKey) }.count
         
-        let eveningHabits = dueHabits.filter { $0.timeOfDay == .evening }
+        let eveningHabits = effectiveDueHabits.filter { $0.timeOfDay == .evening }
         let eveningDone = eveningHabits.filter { $0.isCompleted(on: tKey) || $0.isSkipped(on: tKey) }.count
         
-        let anytimeHabits = dueHabits.filter { $0.timeOfDay == .anytime }
+        let anytimeHabits = effectiveDueHabits.filter { $0.timeOfDay == .anytime }
         let anytimeDone = anytimeHabits.filter { $0.isCompleted(on: tKey) || $0.isSkipped(on: tKey) }.count
         
         let nextPending = dueHabits.first(where: { !$0.isCompleted(on: tKey) && !$0.isSkipped(on: tKey) })

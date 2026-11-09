@@ -2513,8 +2513,14 @@ function updateLockScreenWidgets() {
     ];
 
     // ONLY show the periods chosen that contain tasks on this day!
+    // Fall back to activeHabits if due is empty so active routine periods always display on the lockscreen card
+    let effectiveDue = due;
+    if (effectiveDue.length === 0 && state.activeHabits && state.activeHabits.length > 0) {
+      effectiveDue = state.activeHabits;
+    }
+
     const activeRoutines = routines.filter(rt => {
-      return due.some(h => (h.timeOfDay || 'anytime') === rt.key);
+      return effectiveDue.some(h => (h.timeOfDay || 'anytime') === rt.key);
     });
 
     let circlesHtml = '';
@@ -2523,7 +2529,7 @@ function updateLockScreenWidgets() {
       circlesHtml = '<div style="color:rgba(255,255,255,0.7); font-size:12px; font-weight:600; padding:12px; text-align:center;">No scheduled tasks for this day</div>';
     } else {
       activeRoutines.forEach(rt => {
-        const list = due.filter(h => (h.timeOfDay || 'anytime') === rt.key);
+        const list = effectiveDue.filter(h => (h.timeOfDay || 'anytime') === rt.key);
         const rtDone = list.filter(h => {
           const rec = h.history && h.history[state.selectedDay];
           return rec && (rec.done || rec.skipped || rec.usedShield);

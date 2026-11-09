@@ -62,7 +62,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: v3.2.15-ios
-        name: Productive v3.2.15 Native SwiftUI iOS (Omit Non-Existent Period Circles & AppGroup Entitlements Sync)
+        tag_name: v3.2.16-ios
+        name: Productive v3.2.16 Native SwiftUI iOS (Resilient Routine Circles Lock Screen Widget)
         files: ios-swiftui/build/Productive.ipa
       continue-on-error: true

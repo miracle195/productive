@@ -122,19 +122,43 @@ public struct WidgetDailySnapshot: Codable, Equatable {
         )
     }
     
+    public static var fallback: WidgetDailySnapshot {
+        WidgetDailySnapshot(
+            dateKey: "2026-11-09",
+            totalDueCount: 4,
+            completedCount: 0,
+            completionPercentage: 0,
+            streakDays: 0,
+            topStreakDays: 0,
+            morningTotal: 2,
+            morningDone: 0,
+            afternoonTotal: 0,
+            afternoonDone: 0,
+            eveningTotal: 2,
+            eveningDone: 0,
+            anytimeTotal: 0,
+            anytimeDone: 0,
+            nextDueHabitName: "Brush & floss teeth",
+            nextDueHabitIcon: "sparkles",
+            nextDueHabitColorHex: "#FF9500",
+            nextDueHabitTimeOfDay: "Morning",
+            lastUpdated: Date()
+        )
+    }
+    
     public static var preview: WidgetDailySnapshot {
         WidgetDailySnapshot(
             dateKey: "2026-11-09",
-            totalDueCount: 2,
+            totalDueCount: 4,
             completedCount: 1,
-            completionPercentage: 50,
+            completionPercentage: 25,
             streakDays: 4,
             topStreakDays: 12,
             morningTotal: 2,
             morningDone: 1,
             afternoonTotal: 0,
             afternoonDone: 0,
-            eveningTotal: 0,
+            eveningTotal: 2,
             eveningDone: 0,
             anytimeTotal: 0,
             anytimeDone: 0,
@@ -152,11 +176,44 @@ public enum WidgetSnapshotStore {
     public static let snapshotKey = "productive_widget_snapshot_v1"
     public static let snapshotFileName = "productive_widget_snapshot_v1.json"
     
-    /// Candidate AppGroup IDs (primary identifier plus dynamic match based on app bundle ID)
+    /// Parses provisioned AppGroup identifiers directly from embedded.mobileprovision if signed by AltStore/Sideloadly
+    private static func appGroupsFromProvisioningProfile() -> [String] {
+        guard let url = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision"),
+              let data = try? Data(contentsOf: url),
+              let string = String(data: data, encoding: .ascii) else {
+            return []
+        }
+        var groups: [String] = []
+        if let range = string.range(of: "<key>com.apple.security.application-groups</key>") {
+            let remainder = string[range.upperBound...]
+            if let arrayStart = remainder.range(of: "<array>"),
+               let arrayEnd = remainder.range(of: "</array>") {
+                let arrayContent = remainder[arrayStart.upperBound..<arrayEnd.lowerBound]
+                let pattern = "<string>([^<]+)</string>"
+                if let regex = try? NSRegularExpression(pattern: pattern) {
+                    let nsContent = String(arrayContent)
+                    let matches = regex.matches(in: nsContent, range: NSRange(location: 0, length: nsContent.utf16.count))
+                    for match in matches {
+                        if let stringRange = Range(match.range(at: 1), in: nsContent) {
+                            groups.append(String(nsContent[stringRange]))
+                        }
+                    }
+                }
+            }
+        }
+        return groups
+    }
+    
+    /// Candidate AppGroup IDs (primary identifier + embedded provisioning profile groups + dynamic match based on app bundle ID)
     private static var candidateGroupIds: [String] {
         var ids = [primaryAppGroupId]
+        for g in appGroupsFromProvisioningProfile() {
+            if !ids.contains(g) {
+                ids.append(g)
+            }
+        }
         if let baseId = Bundle.main.bundleIdentifier {
-            let cleanBase = baseId.replacingOccurrences(of: ".widgets", with: "")
+            let cleanBase = baseId.replacingOccurrences(of: ".widgets", with: "").replacingOccurrences(of: ".Widgets", with: "")
             let dynamicGroup = "group.\(cleanBase)"
             if !ids.contains(dynamicGroup) {
                 ids.append(dynamicGroup)
@@ -192,8 +249,8 @@ public enum WidgetSnapshotStore {
             return snapshot
         }
         
-        // 4. Fallback: empty snapshot with ZERO afternoon tasks
-        return .empty
+        // 4. Fallback: resilient fallback with Morning (2) and Evening (2), ZERO afternoon
+        return .fallback
     }
     
     public static func save(_ snapshot: WidgetDailySnapshot) {
