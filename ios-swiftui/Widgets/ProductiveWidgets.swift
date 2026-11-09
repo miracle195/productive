@@ -14,3 +14,4 @@ struct ProductiveWidgetsBundle: WidgetBundle {
         ProductiveLiveActivityWidget()
     }
 }
+

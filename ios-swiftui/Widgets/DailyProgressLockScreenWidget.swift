@@ -351,3 +351,4 @@ struct SystemMediumDailyProgressWidgetView: View {
         }
     }
 }
+
