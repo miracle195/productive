@@ -2509,7 +2509,7 @@ function updateLockScreenWidgets() {
 
     // ONLY show the periods chosen that contain tasks on this day!
     const activeRoutines = routines.filter(rt => {
-      return due.some(h => h.timeOfDay === rt.key);
+      return due.some(h => (h.timeOfDay || 'anytime') === rt.key);
     });
 
     let circlesHtml = '';
@@ -2518,7 +2518,7 @@ function updateLockScreenWidgets() {
       circlesHtml = '<div style="color:rgba(255,255,255,0.7); font-size:12px; font-weight:600; padding:12px; text-align:center;">No scheduled tasks for this day</div>';
     } else {
       activeRoutines.forEach(rt => {
-        const list = due.filter(h => h.timeOfDay === rt.key);
+        const list = due.filter(h => (h.timeOfDay || 'anytime') === rt.key);
         const rtDone = list.filter(h => {
           const rec = h.history && h.history[state.selectedDay];
           return rec && (rec.done || rec.skipped || rec.usedShield);

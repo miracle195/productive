@@ -243,6 +243,9 @@ public struct TodayView: View {
             .onChange(of: habitStore.refocusTodayRequestCount) { _, _ in
                 refocusToToday()
             }
+            .onAppear {
+                habitStore.syncWidgetSnapshot()
+            }
         }
     }
     

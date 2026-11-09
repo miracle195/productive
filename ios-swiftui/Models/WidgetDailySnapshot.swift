@@ -98,56 +98,123 @@ public struct WidgetDailySnapshot: Codable, Equatable {
         self.lastUpdated = lastUpdated
     }
     
+    public static var empty: WidgetDailySnapshot {
+        WidgetDailySnapshot(
+            dateKey: "",
+            totalDueCount: 0,
+            completedCount: 0,
+            completionPercentage: 0,
+            streakDays: 0,
+            topStreakDays: 0,
+            morningTotal: 0,
+            morningDone: 0,
+            afternoonTotal: 0,
+            afternoonDone: 0,
+            eveningTotal: 0,
+            eveningDone: 0,
+            anytimeTotal: 0,
+            anytimeDone: 0,
+            nextDueHabitName: nil,
+            nextDueHabitIcon: nil,
+            nextDueHabitColorHex: nil,
+            nextDueHabitTimeOfDay: nil,
+            lastUpdated: Date()
+        )
+    }
+    
     public static var preview: WidgetDailySnapshot {
         WidgetDailySnapshot(
             dateKey: "2026-11-09",
-            totalDueCount: 3,
-            completedCount: 2,
-            completionPercentage: 67,
+            totalDueCount: 2,
+            completedCount: 1,
+            completionPercentage: 50,
             streakDays: 4,
             topStreakDays: 12,
-            morningTotal: 1,
+            morningTotal: 2,
             morningDone: 1,
-            afternoonTotal: 1,
-            afternoonDone: 1,
+            afternoonTotal: 0,
+            afternoonDone: 0,
             eveningTotal: 0,
             eveningDone: 0,
-            anytimeTotal: 1,
+            anytimeTotal: 0,
             anytimeDone: 0,
-            nextDueHabitName: "Drink water (2L)",
-            nextDueHabitIcon: "drop.fill",
-            nextDueHabitColorHex: "#007AFF",
-            nextDueHabitTimeOfDay: "Anytime",
+            nextDueHabitName: "Brush & floss teeth",
+            nextDueHabitIcon: "sparkles",
+            nextDueHabitColorHex: "#FF9500",
+            nextDueHabitTimeOfDay: "Morning",
             lastUpdated: Date()
         )
     }
 }
 
 public enum WidgetSnapshotStore {
-    public static let appGroupId = "group.com.apalon.productive.tracker"
+    public static let primaryAppGroupId = "group.com.apalon.productive.tracker"
     public static let snapshotKey = "productive_widget_snapshot_v1"
+    public static let snapshotFileName = "productive_widget_snapshot_v1.json"
+    
+    /// Candidate AppGroup IDs (primary identifier plus dynamic match based on app bundle ID)
+    private static var candidateGroupIds: [String] {
+        var ids = [primaryAppGroupId]
+        if let baseId = Bundle.main.bundleIdentifier {
+            let cleanBase = baseId.replacingOccurrences(of: ".widgets", with: "")
+            let dynamicGroup = "group.\(cleanBase)"
+            if !ids.contains(dynamicGroup) {
+                ids.append(dynamicGroup)
+            }
+        }
+        return ids
+    }
     
     public static func load() -> WidgetDailySnapshot {
-        // 1. Try AppGroup UserDefaults
-        if let userDefaults = UserDefaults(suiteName: appGroupId),
-           let data = userDefaults.data(forKey: snapshotKey),
-           let snapshot = try? JSONDecoder().decode(WidgetDailySnapshot.self, from: data) {
-            return snapshot
+        // 1. Try AppGroup UserDefaults across candidate identifiers
+        for groupId in candidateGroupIds {
+            if let userDefaults = UserDefaults(suiteName: groupId),
+               let data = userDefaults.data(forKey: snapshotKey),
+               let snapshot = try? JSONDecoder().decode(WidgetDailySnapshot.self, from: data) {
+                return snapshot
+            }
         }
-        // 2. Try standard UserDefaults
+        
+        // 2. Try AppGroup Shared File Container across candidate identifiers
+        for groupId in candidateGroupIds {
+            if let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) {
+                let fileURL = containerURL.appendingPathComponent(snapshotFileName)
+                if let data = try? Data(contentsOf: fileURL),
+                   let snapshot = try? JSONDecoder().decode(WidgetDailySnapshot.self, from: data) {
+                    return snapshot
+                }
+            }
+        }
+        
+        // 3. Try standard UserDefaults
         if let data = UserDefaults.standard.data(forKey: snapshotKey),
            let snapshot = try? JSONDecoder().decode(WidgetDailySnapshot.self, from: data) {
             return snapshot
         }
-        // 3. Fallback preview
-        return .preview
+        
+        // 4. Fallback: empty snapshot with ZERO afternoon tasks
+        return .empty
     }
     
     public static func save(_ snapshot: WidgetDailySnapshot) {
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
-        if let userDefaults = UserDefaults(suiteName: appGroupId) {
-            userDefaults.set(data, forKey: snapshotKey)
+        
+        // 1. Save to candidate AppGroup UserDefaults
+        for groupId in candidateGroupIds {
+            if let userDefaults = UserDefaults(suiteName: groupId) {
+                userDefaults.set(data, forKey: snapshotKey)
+            }
         }
+        
+        // 2. Save to candidate AppGroup Shared File Containers
+        for groupId in candidateGroupIds {
+            if let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) {
+                let fileURL = containerURL.appendingPathComponent(snapshotFileName)
+                try? data.write(to: fileURL, options: .atomic)
+            }
+        }
+        
+        // 3. Save to standard UserDefaults
         UserDefaults.standard.set(data, forKey: snapshotKey)
     }
 }

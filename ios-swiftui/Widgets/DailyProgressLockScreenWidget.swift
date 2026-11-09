@@ -22,7 +22,8 @@ public struct DailyProgressWidgetProvider: TimelineProvider {
     public init() {}
     
     public func placeholder(in context: Context) -> DailyProgressEntry {
-        DailyProgressEntry(date: Date(), snapshot: .preview)
+        let loaded = WidgetSnapshotStore.load()
+        return DailyProgressEntry(date: Date(), snapshot: loaded.totalDueCount > 0 ? loaded : .preview)
     }
     
     public func getSnapshot(in context: Context, completion: @escaping (DailyProgressEntry) -> Void) {
@@ -362,12 +363,20 @@ struct SystemMediumDailyProgressWidgetView: View {
                 .frame(height: 60)
                 .opacity(0.3)
             
-            // Right Routine Orbit Circles
+            // Right Routine Orbit Circles (Only display periods with scheduled tasks)
             HStack(spacing: 7) {
-                routineCircle(title: "Morning", icon: "sunrise.fill", color: .orange, done: snapshot.morningDone, total: snapshot.morningTotal, filterKey: "routine_morning")
-                routineCircle(title: "Afternoon", icon: "sun.max.fill", color: .yellow, done: snapshot.afternoonDone, total: snapshot.afternoonTotal, filterKey: "routine_afternoon")
-                routineCircle(title: "Evening", icon: "moon.stars.fill", color: .indigo, done: snapshot.eveningDone, total: snapshot.eveningTotal, filterKey: "routine_evening")
-                routineCircle(title: "Anytime", icon: "clock.fill", color: .blue, done: snapshot.anytimeDone, total: snapshot.anytimeTotal, filterKey: "routine_anytime")
+                if snapshot.morningTotal > 0 {
+                    routineCircle(title: "Morning", icon: "sunrise.fill", color: .orange, done: snapshot.morningDone, total: snapshot.morningTotal, filterKey: "routine_morning")
+                }
+                if snapshot.afternoonTotal > 0 {
+                    routineCircle(title: "Afternoon", icon: "sun.max.fill", color: .yellow, done: snapshot.afternoonDone, total: snapshot.afternoonTotal, filterKey: "routine_afternoon")
+                }
+                if snapshot.eveningTotal > 0 {
+                    routineCircle(title: "Evening", icon: "moon.stars.fill", color: .indigo, done: snapshot.eveningDone, total: snapshot.eveningTotal, filterKey: "routine_evening")
+                }
+                if snapshot.anytimeTotal > 0 {
+                    routineCircle(title: "Anytime", icon: "clock.fill", color: .blue, done: snapshot.anytimeDone, total: snapshot.anytimeTotal, filterKey: "routine_anytime")
+                }
             }
         }
         .padding(12)

@@ -9,6 +9,7 @@ import SwiftUI
 @main
 struct ProductiveApp: App {
     @StateObject private var habitStore = HabitStore.shared
+    @Environment(\.scenePhase) private var scenePhase
     
     private var resolvedColorScheme: ColorScheme? {
         switch habitStore.appTheme {
@@ -26,6 +27,11 @@ struct ProductiveApp: App {
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }
+        }
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active {
+                habitStore.syncWidgetSnapshot()
+            }
         }
     }
     

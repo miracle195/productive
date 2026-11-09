@@ -38,9 +38,15 @@ jobs:
                    CODE_SIGNING_ALLOWED=NO \
                    archive
 
-        # Package into unsigned Payload/Productive.app IPA
+        # Package into unsigned Payload/Productive.app IPA with App Group Entitlements
         mkdir -p build/Payload
         cp -r build/Productive.xcarchive/Products/Applications/Productive.app build/Payload/
+        cp Productive.entitlements build/Payload/Productive.app/Productive.entitlements || true
+        cp Productive.entitlements build/Payload/Productive.app/archived-expanded-entitlements.xcent || true
+        if [ -d "build/Payload/Productive.app/PlugIns/ProductiveWidgets.appex" ]; then
+          cp Widgets/ProductiveWidgets.entitlements build/Payload/Productive.app/PlugIns/ProductiveWidgets.appex/ProductiveWidgets.entitlements || true
+          cp Widgets/ProductiveWidgets.entitlements build/Payload/Productive.app/PlugIns/ProductiveWidgets.appex/archived-expanded-entitlements.xcent || true
+        fi
         cd build
         zip -r Productive.ipa Payload
         echo "IPA successfully packaged at ios-swiftui/build/Productive.ipa"
@@ -56,7 +62,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: v3.2.14-ios
-        name: Productive v3.2.14 Native SwiftUI iOS (Card-Filling Period Circles Lock Screen Widget & Elaboration Popup)
+        tag_name: v3.2.15-ios
+        name: Productive v3.2.15 Native SwiftUI iOS (Omit Non-Existent Period Circles & AppGroup Entitlements Sync)
         files: ios-swiftui/build/Productive.ipa
       continue-on-error: true
