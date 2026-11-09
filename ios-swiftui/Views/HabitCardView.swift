@@ -153,9 +153,14 @@ public struct HabitCardView: View {
                                             .fixedSize(horizontal: true, vertical: false)
                                     }
                                 } else {
-                                    Text(liveHabit.repeatLabel)
-                                        .font(.caption2.weight(.medium))
+                                    Text(liveHabit.repeatLabel.uppercased())
+                                        .font(.system(size: 10, weight: .bold, design: .rounded))
                                         .foregroundStyle(.secondary)
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 2)
+                                        .background(Color.primary.opacity(0.06), in: Capsule())
+                                        .lineLimit(1)
+                                        .fixedSize(horizontal: true, vertical: false)
                                 }
                                 
                                 if isSkipped {
@@ -167,11 +172,18 @@ public struct HabitCardView: View {
                                 } else if !liveHabit.subtasks.isEmpty {
                                     let doneCount = liveHabit.history[activeDateKey]?.completedSubtaskIds.count ?? 0
                                     let totalCount = liveHabit.subtasks.count
-                                    Label("\(doneCount)/\(totalCount)", systemImage: "checklist")
-                                        .font(.caption2.weight(.bold))
-                                        .foregroundStyle(isCompleted ? Color.green : accentColor)
-                                        .lineLimit(1)
-                                        .fixedSize(horizontal: true, vertical: false)
+                                    HStack(spacing: 3) {
+                                        Image(systemName: "checkmark.square")
+                                            .font(.system(size: 9.5, weight: .bold))
+                                        Text("\(doneCount)/\(totalCount)")
+                                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    }
+                                    .foregroundStyle(isCompleted ? Color.green : accentColor)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .background((isCompleted ? Color.green : accentColor).opacity(0.12), in: Capsule())
+                                    .lineLimit(1)
+                                    .fixedSize(horizontal: true, vertical: false)
                                 } else if rolloverExtra > 0 {
                                     Label("+\(Int(rolloverExtra)) rollover", systemImage: "arrow.triangle.2.circlepath")
                                         .font(.caption2.weight(.bold))
@@ -185,7 +197,7 @@ public struct HabitCardView: View {
                                     Text(liveHabit.streakDisplay)
                                         .contentTransition(.numericText())
                                 }
-                                .font(.caption2.weight(.bold))
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
                                 .foregroundStyle(liveHabit.streak > 0 ? .orange : .secondary)
                                 .lineLimit(1)
                                 .fixedSize(horizontal: true, vertical: false)
@@ -198,51 +210,44 @@ public struct HabitCardView: View {
                 }
                 .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.98))
                 
-                HStack(spacing: 8) {
-                    // Dedicated Instant Checkmark / Lock Ring
-                    if isLockedMissed {
-                        Image(systemName: "lock.fill")
-                            .font(.subheadline)
-                            .foregroundStyle(.red)
-                            .frame(width: 32, height: 32)
-                            .background(.red.opacity(0.12), in: Circle())
-                    } else {
-                        Button {
-                            withAnimation(.snappy(duration: 0.2)) {
-                                habitStore.toggleHabit(id: habit.id, on: activeDateKey)
-                            }
-                        } label: {
-                            ZStack {
-                                if isCompleted {
-                                    Circle()
-                                        .fill(Color.green.gradient)
-                                        .frame(width: 32, height: 32)
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: 14, weight: .heavy))
-                                        .foregroundStyle(.white)
-                                } else if isSkipped {
-                                    Circle()
-                                        .fill(Color.cyan.opacity(0.2))
-                                        .frame(width: 32, height: 32)
-                                    Image(systemName: "forward.fill")
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundStyle(.cyan)
-                                } else {
-                                    Circle()
-                                        .stroke(Color.secondary.opacity(0.38), lineWidth: 2.2)
-                                        .frame(width: 30, height: 30)
-                                }
-                            }
-                            .frame(width: 34, height: 34)
-                            .contentShape(Circle())
+                // Dedicated Instant Checkmark / Lock Ring (Chevron removed for clean HTML parity)
+                if isLockedMissed {
+                    Image(systemName: "lock.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.red)
+                        .frame(width: 32, height: 32)
+                        .background(.red.opacity(0.12), in: Circle())
+                } else {
+                    Button {
+                        withAnimation(.snappy(duration: 0.2)) {
+                            habitStore.toggleHabit(id: habit.id, on: activeDateKey)
                         }
-                        .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.86))
+                    } label: {
+                        ZStack {
+                            if isCompleted {
+                                Circle()
+                                    .fill(Color.green.gradient)
+                                    .frame(width: 32, height: 32)
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 14, weight: .heavy))
+                                    .foregroundStyle(.white)
+                            } else if isSkipped {
+                                Circle()
+                                    .fill(Color.cyan.opacity(0.2))
+                                    .frame(width: 32, height: 32)
+                                Image(systemName: "forward.fill")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(.cyan)
+                            } else {
+                                Circle()
+                                    .stroke(Color.secondary.opacity(0.38), lineWidth: 2.2)
+                                    .frame(width: 30, height: 30)
+                            }
+                        }
+                        .frame(width: 34, height: 34)
+                        .contentShape(Circle())
                     }
-                    
-                    // Detail Navigation Chevron (Matches Image 0 1:1)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12.5, weight: .semibold))
-                        .foregroundStyle(Color.secondary.opacity(0.40))
+                    .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.86))
                 }
             }
             
@@ -506,10 +511,15 @@ public struct HabitCardView: View {
     private var timerControlsRow: some View {
         let isThisRunning = (habitStore.activeTimerHabitId == habit.id && habitStore.isTimerRunning)
         
-        return HStack {
-            Label("\(habit.targetDurationMinutes) min session", systemImage: "timer")
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.secondary)
+        return HStack(alignment: .center) {
+            HStack(spacing: 5) {
+                Image(systemName: "stopwatch")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Text("\(habit.targetDurationMinutes) min focus session")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
             
             Spacer()
             
@@ -519,17 +529,25 @@ public struct HabitCardView: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: isThisRunning ? "waveform" : "play.fill")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.system(size: 9.5, weight: .bold))
                     Text(isThisRunning ? "Focusing..." : (isCompleted ? "Focus Again" : "Start Timer"))
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
                 }
                 .foregroundStyle(.white)
-                .padding(.horizontal, 11)
-                .padding(.vertical, 5)
-                .background(accentColor.gradient, in: Capsule())
+                .padding(.horizontal, 13)
+                .padding(.vertical, 6)
+                .background(
+                    LinearGradient(
+                        colors: [Color(hex: "#FF6A3D"), Color(hex: "#FF8C5A")],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    in: Capsule()
+                )
+                .shadow(color: Color(hex: "#FF6A3D").opacity(0.32), radius: 3, y: 1.5)
             }
-            .buttonStyle(TactileScaleButtonStyle())
+            .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.92))
         }
-        .padding(.leading, 52)
+        .padding(.leading, 54)
     }
 }

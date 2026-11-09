@@ -50,7 +50,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: v3.2.8-ios
-        name: Productive v3.2.8 Native SwiftUI iOS (Customizable Periodic Frequencies & Period-Spread Accomplishment)
+        tag_name: v3.2.9-ios
+        name: Productive v3.2.9 Native SwiftUI iOS (HTML Parity Redesign, Yellow Context Banner, Chevron-Free Cards, Presets Cards, Auto-Backup Recovery & Start Date Protection)
         files: ios-swiftui/build/Productive.ipa
       continue-on-error: true

@@ -27,6 +27,7 @@ public struct TodayView: View {
     
     @State private var selectedDateKey: String? = nil
     @State private var searchText: String = ""
+    @State private var isSearchVisible: Bool = false
     @State private var filterOption: TodayFilterOption = .dueOnly
     @State private var showingCalendarPopover: Bool = false
     @State private var calendarPickerDate: Date = Date()
@@ -72,6 +73,27 @@ public struct TodayView: View {
     
     private var isViewingToday: Bool {
         activeDateKey == habitStore.todayKey
+    }
+    
+    private var headerDateSubtitle: String {
+        let df = DateFormatter()
+        df.dateFormat = "EEEE, MMM d"
+        return df.string(from: activeDate).uppercased()
+    }
+    
+    private var headerDateTitle: String {
+        if isViewingToday {
+            return "Today"
+        }
+        let df = DateFormatter()
+        df.dateFormat = "E d"
+        return df.string(from: activeDate)
+    }
+    
+    private var activeDateContextName: String {
+        let df = DateFormatter()
+        df.dateFormat = "EEEE, MMM d"
+        return df.string(from: activeDate)
     }
     
     private var dueCountOnActiveDate: Int {
@@ -222,25 +244,55 @@ public struct TodayView: View {
     // MARK: - Pinned Top Control Deck (Image 0 Clean Visual Parity & Zero Layout Shift)
     
     private var pinnedTopDeck: some View {
-        VStack(spacing: 11) {
-            // 1. Sleek Navigation Actions Row (Calendar + Shields Leading, Ellipsis + Plus Trailing)
-            HStack(alignment: .center, spacing: 10) {
-                // Leading: Calendar Button + Freeze Shield Pill
-                HStack(spacing: 8) {
-                    Button {
-                        calendarPickerDate = activeDate
-                        showingCalendarPopover = true
-                        habitStore.triggerHaptic(.light)
-                    } label: {
-                        Image(systemName: "calendar")
-                            .font(.system(size: 14.5, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 34, height: 34)
-                            .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 9.5, style: .continuous))
-                    }
-                    .buttonStyle(TactileScaleButtonStyle())
-                    .accessibilityLabel("Jump to Date")
+        VStack(spacing: 10) {
+            // 1. Unified Navigation & Actions Header (Image 2 HTML Parity)
+            HStack(alignment: .center, spacing: 8) {
+                // Leading: Subtitle & Large Date Title with inline [↩ Today]
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(headerDateSubtitle)
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .tracking(0.6)
                     
+                    HStack(alignment: .center, spacing: 8) {
+                        Button {
+                            refocusToToday()
+                        } label: {
+                            Text(headerDateTitle)
+                                .font(.system(size: 29, weight: .heavy, design: .rounded))
+                                .foregroundStyle(.primary)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        if !isViewingToday {
+                            Button {
+                                refocusToToday()
+                            } label: {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "arrow.uturn.backward")
+                                        .font(.system(size: 10, weight: .heavy))
+                                    Text("Today")
+                                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                                }
+                                .foregroundStyle(Color(hex: "#FF7450"))
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 4)
+                                .background(Color(hex: "#FF7450").opacity(0.14), in: Capsule())
+                                .overlay(
+                                    Capsule()
+                                        .stroke(Color(hex: "#FF7450").opacity(0.35), lineWidth: 0.8)
+                                )
+                            }
+                            .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.92))
+                            .transition(.scale(scale: 0.86).combined(with: .opacity))
+                        }
+                    }
+                }
+                
+                Spacer(minLength: 4)
+                
+                // Trailing: Freeze Shields + Search Toggle + Calendar + Menu + Add
+                HStack(spacing: 7) {
                     // Freeze Shield Pill
                     HStack(spacing: 3.5) {
                         Image(systemName: "snowflake")
@@ -253,13 +305,43 @@ public struct TodayView: View {
                     .padding(.horizontal, 9)
                     .frame(height: 34)
                     .background(Color.cyan.opacity(0.14), in: Capsule())
-                }
-                
-                Spacer()
-                
-                // Trailing: More Menu + Add Button
-                HStack(spacing: 8) {
-                    // Quick Menu
+                    
+                    // Search Button [🔍]
+                    Button {
+                        withAnimation(.snappy(duration: 0.22)) {
+                            isSearchVisible.toggle()
+                        }
+                        habitStore.triggerHaptic(.light)
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 13.5, weight: .bold))
+                            .foregroundStyle(isSearchVisible ? Color.accentColor : Color.primary)
+                            .frame(width: 34, height: 34)
+                            .background(Color(.secondarySystemGroupedBackground), in: Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(isSearchVisible ? Color.accentColor.opacity(0.4) : Color.clear, lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(TactileScaleButtonStyle())
+                    .accessibilityLabel("Search Habits")
+                    
+                    // Calendar Button [📅]
+                    Button {
+                        calendarPickerDate = activeDate
+                        showingCalendarPopover = true
+                        habitStore.triggerHaptic(.light)
+                    } label: {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(Color.primary)
+                            .frame(width: 34, height: 34)
+                            .background(Color(.secondarySystemGroupedBackground), in: Circle())
+                    }
+                    .buttonStyle(TactileScaleButtonStyle())
+                    .accessibilityLabel("Jump to Date")
+                    
+                    // Quick Menu Button [...]
                     Menu {
                         Button {
                             withAnimation(.snappy) {
@@ -304,8 +386,9 @@ public struct TodayView: View {
                             .background(Color(.secondarySystemGroupedBackground), in: Circle())
                     }
                     
-                    // Primary Add Habit Button
+                    // Primary Add Habit Button [+]
                     Button {
+                        habitStore.activeCreationStartDate = activeDate
                         showingAddSheet = true
                         habitStore.triggerHaptic(.medium)
                     } label: {
@@ -328,72 +411,99 @@ public struct TodayView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 6)
+            .padding(.top, 4)
             
-            // 2. Large Bold Title & Return to Today
-            HStack(alignment: .center, spacing: 10) {
-                Button {
-                    refocusToToday()
-                } label: {
-                    Text(isViewingToday ? "Today" : "Timeline")
-                        .font(.system(size: 32, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.primary)
-                }
-                .buttonStyle(.plain)
+            // 2. Contextual Yellow Alert Banner (Exact Match to Image 2 HTML)
+            if !isViewingToday {
+                let todayStart = Calendar.current.startOfDay(for: Date())
+                let activeStart = Calendar.current.startOfDay(for: activeDate)
+                let isUpcoming = activeStart > todayStart
+                let statusText = isUpcoming ? "Upcoming" : "Past"
                 
-                if !isViewingToday {
+                HStack(alignment: .center) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(.orange)
+                        
+                        Text("Viewing \(activeDateContextName) (\(statusText))")
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundStyle(Color(hex: "#B45309"))
+                    }
+                    
+                    Spacer()
+                    
                     Button {
                         refocusToToday()
                     } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 3) {
                             Image(systemName: "arrow.uturn.backward")
-                                .font(.system(size: 10.5, weight: .heavy))
+                                .font(.system(size: 10, weight: .heavy))
                             Text("Today")
-                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .font(.system(size: 11.5, weight: .bold, design: .rounded))
                         }
-                        .foregroundStyle(.orange)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(.orange.opacity(0.16), in: Capsule())
+                        .foregroundStyle(Color(hex: "#9A3412"))
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 4)
+                        .background(Color.orange.opacity(0.18), in: Capsule())
                         .overlay(
-                            Capsule()
-                                .stroke(Color.orange.opacity(0.28), lineWidth: 0.7)
+                            Capsule().stroke(Color.orange.opacity(0.35), lineWidth: 0.8)
                         )
                     }
                     .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.92))
-                    .transition(.scale(scale: 0.86).combined(with: .opacity))
                 }
-                
-                Spacer()
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color(hex: "#FEF3C7"))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color(hex: "#F59E0B").opacity(0.35), lineWidth: 0.8)
+                )
+                .padding(.horizontal, 16)
+                .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))
             }
-            .padding(.horizontal, 16)
             
-            // 3. Prominent Search Bar (Clean & Accessible, exactly matching Image 0)
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 13.5, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                
-                TextField("Search habits or notes", text: $searchText)
-                    .font(.system(size: 14.5, weight: .medium, design: .rounded))
-                    .focused($isSearchFieldFocused)
-                    .submitLabel(.search)
-                
-                if !searchText.isEmpty {
-                    Button {
-                        searchText = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 13.5))
-                            .foregroundStyle(.secondary)
+            // 3. Expandable Search Bar (Revealed by [🔍] Button or Active Query)
+            if isSearchVisible || !searchText.isEmpty {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 13.5, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                    
+                    TextField("Search habits or notes", text: $searchText)
+                        .font(.system(size: 14.5, weight: .medium, design: .rounded))
+                        .focused($isSearchFieldFocused)
+                        .submitLabel(.search)
+                    
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 13.5))
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
+                    
+                    Button("Done") {
+                        withAnimation(.snappy) {
+                            isSearchVisible = false
+                            isSearchFieldFocused = false
+                        }
+                    }
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.accentColor)
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .padding(.horizontal, 16)
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8.5)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .padding(.horizontal, 16)
             
             // Vacation Mode Slim Banner (if active)
             if habitStore.vacationModeEnabled {
@@ -514,25 +624,25 @@ public struct TodayView: View {
                 }
                 .frame(height: 5)
             }
-            .frame(width: 47, height: 55)
+            .frame(width: 48, height: 57)
             .background {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: "#007AFF"), Color(hex: "#2563EB")],
+                                colors: [Color(hex: "#3D38D0"), Color(hex: "#5856D6")],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
                         )
-                        .shadow(color: Color(hex: "#007AFF").opacity(0.32), radius: 5, y: 2)
+                        .shadow(color: Color(hex: "#5856D6").opacity(0.42), radius: 6, y: 3)
                         .matchedGeometryEffect(id: "selectedDayPillBG", in: dayRibbonNamespace)
                 }
             }
             .overlay {
                 if day.isToday && !isSelected {
-                    RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .stroke(Color.accentColor.opacity(0.42), lineWidth: 1.1)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.accentColor.opacity(0.60), lineWidth: 1.4)
                 }
             }
         }
@@ -604,6 +714,7 @@ public struct TodayView: View {
                 
                 HStack(spacing: 10) {
                     Button {
+                        habitStore.activeCreationStartDate = activeDate
                         showingAddSheet = true
                         habitStore.triggerHaptic(.medium)
                     } label: {

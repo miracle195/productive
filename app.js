@@ -363,6 +363,12 @@ class ProductiveState {
   isHabitDueOnDate(habit, dateKey = this.selectedDay) {
     if (habit.isArchived) return false;
 
+    // Never due on days prior to the habit's chosen start / creation date
+    const createdKey = habit.createdAtKey || habit.startDateKey || this.todayKey;
+    if (createdKey && dateKey < createdKey) {
+      return false;
+    }
+
     // Flexible Periodic frequency (weekly / monthly spread)
     if (isPeriodicFrequency(habit.frequency)) {
       const rec = habit.history && habit.history[dateKey];
@@ -685,8 +691,8 @@ class ProductiveState {
       strictness: data.strictness || this.defaultStrictness || 'strict',
       subtasks: Array.isArray(data.subtasks) ? data.subtasks.slice() : [],
       reminderTime: data.reminderTime || '09:00',
-      createdAtKey: this.todayKey,
-      abstainedSinceKey: this.todayKey,
+      createdAtKey: data.createdAtKey || this.selectedDay || this.todayKey,
+      abstainedSinceKey: data.abstainedSinceKey || this.selectedDay || this.todayKey,
       history: data.history || {}
     });
 

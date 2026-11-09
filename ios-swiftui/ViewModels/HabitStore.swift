@@ -32,6 +32,7 @@ public class HabitStore: ObservableObject {
     @Published public var selectedDate: Date = Date()
     @Published public var requestedRoutineBucket: TimeOfDay? = nil
     @Published public var refocusTodayRequestCount: Int = 0
+    @Published public var activeCreationStartDate: Date? = nil
     
     // Preferences
     @AppStorage("productive_week_start") public var weekStartDay: String = "Monday"
@@ -161,13 +162,36 @@ public class HabitStore: ObservableObject {
         recalculateAllStreaks()
     }
     
+    public var autoBackupFileURL: URL? {
+        let fm = FileManager.default
+        guard let docDir = fm.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
+        return docDir.appendingPathComponent("Productive_AutoBackup.json")
+    }
+    
+    public func saveAutoBackupToDocuments() {
+        guard let url = autoBackupFileURL, let json = exportJSON(), let data = json.data(using: .utf8) else { return }
+        try? data.write(to: url, options: .atomic)
+    }
+    
+    public func hasLocalAutoBackup() -> Bool {
+        guard let url = autoBackupFileURL else { return false }
+        return FileManager.default.fileExists(atPath: url.path)
+    }
+    
+    public func restoreFromAutoBackup() -> Bool {
+        guard let url = autoBackupFileURL,
+              let data = try? Data(contentsOf: url),
+              let json = String(data: data, encoding: .utf8) else { return false }
+        return importJSON(json)
+    }
+    
     public func saveHabits() {
         let habitsSnapshot = habits
         let challengesSnapshot = challenges
         let storeURL = storeFileURL
         let challengesURL = challengesFileURL
         
-        persistenceQueue.async {
+        persistenceQueue.async { [weak self] in
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
             if let encoded = try? encoder.encode(habitsSnapshot) {
@@ -176,6 +200,7 @@ public class HabitStore: ObservableObject {
             if let cEncoded = try? encoder.encode(challengesSnapshot) {
                 try? cEncoded.write(to: challengesURL, options: [.atomic])
             }
+            self?.saveAutoBackupToDocuments()
         }
     }
     
@@ -910,7 +935,8 @@ public class HabitStore: ObservableObject {
         subtasks: [HabitSubtask] = [],
         reminderEnabled: Bool = false,
         reminderHour: Int = 9,
-        reminderMinute: Int = 0
+        reminderMinute: Int = 0,
+        createdAt: Date = Date()
     ) -> Habit {
         let habit = Habit(
             name: name,
@@ -931,6 +957,7 @@ public class HabitStore: ObservableObject {
             customWeekdays: customWeekdays,
             strictness: strictness,
             repeatSchedule: repeatSchedule,
+            createdAt: createdAt,
             subtasks: subtasks,
             reminderEnabled: reminderEnabled,
             reminderHour: reminderHour,

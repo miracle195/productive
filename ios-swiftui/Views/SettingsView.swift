@@ -6,6 +6,43 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+struct SettingsIconBadge: View {
+    let icon: String
+    let gradientColors: [Color]
+    
+    init(icon: String, color: Color) {
+        self.icon = icon
+        self.gradientColors = [color, color.opacity(0.85)]
+    }
+    
+    init(icon: String, gradient: [Color]) {
+        self.icon = icon
+        self.gradientColors = gradient
+    }
+    
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 7.5, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: gradientColors,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 30, height: 30)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 7.5, style: .continuous)
+                        .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
+                )
+            
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white)
+        }
+    }
+}
+
 struct SettingsView: View {
     @EnvironmentObject var habitStore: HabitStore
     @StateObject private var notificationManager = NotificationManager.shared
@@ -37,215 +74,282 @@ struct SettingsView: View {
                     .opacity(0.45)
                 
                 Form {
-                // Appearance & Feedback
-                Section(header: Text("Appearance & Haptics")) {
-                    Picker("Appearance", selection: $habitStore.appTheme) {
-                        ForEach(themeOptions, id: \.self) { theme in
-                            Text(theme).tag(theme)
-                        }
-                    }
-                    
-                    Toggle("Sounds & Tactile Haptics", isOn: $habitStore.soundHapticsEnabled)
-                }
-                
-                // Calendar & Strictness
-                Section(
-                    header: Text("Calendar & Schedule"),
-                    footer: Text("Strict locks missed past days; Rollover carries unfinished quotas into tomorrow.")
-                ) {
-                    Picker("First Day of Week", selection: $habitStore.weekStartDay) {
-                        ForEach(weekDays, id: \.self) { day in
-                            Text(day).tag(day)
-                        }
-                    }
-                    
-                    Picker("Default Habit Strictness", selection: $habitStore.defaultStrictnessRaw) {
-                        ForEach(HabitStrictness.allCases) { st in
-                            Label(st.badgeText, systemImage: st.symbolName).tag(st.rawValue)
-                        }
-                    }
-                }
-                
-                // Streak Protection & Vacation Mode
-                Section(
-                    header: Text("Streak Protection"),
-                    footer: Text("Earn +1 Streak Freeze Shield automatically every time any habit hits a 7-day streak milestone.")
-                ) {
-                    Toggle(isOn: $habitStore.vacationModeEnabled) {
-                        Label("Vacation / Pause Mode", systemImage: "beach.umbrella.fill")
-                    }
-                    
-                    HStack {
-                        Label("Streak Freeze Shields", systemImage: "snowflake")
-                        Spacer()
-                        Text("\(habitStore.streakFreezeShields) available")
-                            .foregroundStyle(.cyan)
-                            .fontWeight(.bold)
-                    }
-                }
-                
-                // Notifications & Daily Digests
-                Section(
-                    header: Text("Notifications & Lock Screen Actions"),
-                    footer: Text("Supports interactive Lock Screen quick actions: Mark Completed & Snooze 15m.")
-                ) {
-                    HStack {
-                        Label("Push Notifications", systemImage: "bell.badge.fill")
-                        Spacer()
-                        if notificationManager.isAuthorized {
-                            Button("Test Banner") {
-                                notificationManager.sendTestNotification()
-                                showToast("Notification sent (1s) 🔔")
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                        } else {
-                            Button("Enable") {
-                                notificationManager.requestPermission()
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
-                        }
-                    }
-                    
-                    Toggle("Morning Kickoff (8:00 AM)", isOn: $habitStore.morningDigestEnabled)
-                        .onChange(of: habitStore.morningDigestEnabled) { _, _ in
-                            notificationManager.configureDailyDigests(
-                                morningEnabled: habitStore.morningDigestEnabled,
-                                eveningEnabled: habitStore.eveningDigestEnabled
-                            )
-                        }
-                    
-                    Toggle("Evening Wrap-Up (8:30 PM)", isOn: $habitStore.eveningDigestEnabled)
-                        .onChange(of: habitStore.eveningDigestEnabled) { _, _ in
-                            notificationManager.configureDailyDigests(
-                                morningEnabled: habitStore.morningDigestEnabled,
-                                eveningEnabled: habitStore.eveningDigestEnabled
-                            )
-                        }
-                }
-                
-                // Apple HealthKit & Siri Shortcuts
-                Section(
-                    header: Text("Apple Ecosystem"),
-                    footer: Text("Action Button & Siri Shortcuts are automatically registered via AppIntents.")
-                ) {
-                    HStack {
-                        Label("Apple Health Sync", systemImage: "heart.text.square.fill")
-                            .foregroundStyle(.pink)
-                        Spacer()
-                        if healthManager.isSyncEnabled {
-                            Text("Active")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.green)
-                        } else {
-                            Button("Connect") {
-                                healthManager.requestConnect { _, msg in
-                                    showToast(msg)
+                    // Appearance & Feedback
+                    Section(header: Text("Appearance & Haptics")) {
+                        HStack(spacing: 12) {
+                            SettingsIconBadge(icon: "circle.lefthalf.filled", color: Color(hex: "#FF9500"))
+                            Picker("Appearance", selection: $habitStore.appTheme) {
+                                ForEach(themeOptions, id: \.self) { theme in
+                                    Text(theme).tag(theme)
                                 }
                             }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
+                        }
+                        
+                        HStack(spacing: 12) {
+                            SettingsIconBadge(icon: "speaker.wave.2.fill", color: Color(hex: "#34C759"))
+                            Toggle("Sounds & Tactile Haptics", isOn: $habitStore.soundHapticsEnabled)
                         }
                     }
                     
-                    HStack {
-                        Label("Action Button & Siri", systemImage: "button.vertical.left.press.fill")
-                        Spacer()
-                        Text("Ready")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                
-                // Archived Habits Manager
-                if !habitStore.archivedHabits.isEmpty {
-                    Section(header: Text("Archived Habits (\(habitStore.archivedHabits.count))")) {
-                        ForEach(habitStore.archivedHabits) { archived in
-                            HStack {
-                                Image(systemName: archived.icon)
-                                    .foregroundStyle(Color(hex: archived.colorHex))
-                                Text(archived.name)
-                                    .font(.subheadline.weight(.medium))
-                                Spacer()
-                                Button("Restore") {
-                                    habitStore.toggleArchiveHabit(id: archived.id)
-                                    showToast("Restored \(archived.name)")
-                                }
-                                .font(.caption.weight(.bold))
-                                .buttonStyle(.bordered)
-                                .controlSize(.mini)
-                            }
-                        }
-                    }
-                }
-                
-                // Native iOS ShareLink & Files Importer
-                Section(header: Text("Backup & Portability")) {
-                    if let jsonBackup = habitStore.exportJSON() {
-                        ShareLink(
-                            item: jsonBackup,
-                            subject: Text("Productive Full JSON Backup"),
-                            message: Text("Productive Habit Tracker backup"),
-                            preview: SharePreview("Productive_Backup.json", image: Image(systemName: "externaldrive.fill.badge.checkmark"))
-                        ) {
-                            Label("Share JSON Backup (Files / AirDrop)", systemImage: "square.and.arrow.up")
-                        }
-                    }
-                    
-                    ShareLink(
-                        item: habitStore.exportCSV(),
-                        subject: Text("Productive Habits CSV Export"),
-                        preview: SharePreview("Productive_Habits.csv", image: Image(systemName: "tablecells.fill"))
+                    // Calendar & Strictness
+                    Section(
+                        header: Text("Calendar & Schedule"),
+                        footer: Text("Strict locks missed past days; Rollover carries unfinished quotas into tomorrow.")
                     ) {
-                        Label("Export Spreadsheet (.CSV)", systemImage: "tablecells")
+                        HStack(spacing: 12) {
+                            SettingsIconBadge(icon: "calendar", color: Color(hex: "#007AFF"))
+                            Picker("First Day of Week", selection: $habitStore.weekStartDay) {
+                                ForEach(weekDays, id: \.self) { day in
+                                    Text(day).tag(day)
+                                }
+                            }
+                        }
+                        
+                        HStack(spacing: 12) {
+                            SettingsIconBadge(icon: "bolt.fill", color: Color(hex: "#AF52DE"))
+                            Picker("Default Strictness", selection: $habitStore.defaultStrictnessRaw) {
+                                ForEach(HabitStrictness.allCases) { st in
+                                    Label(st.badgeText, systemImage: st.symbolName).tag(st.rawValue)
+                                }
+                            }
+                        }
                     }
                     
-                    Button {
-                        showingFileImporter = true
-                    } label: {
-                        Label("Import Backup from Files", systemImage: "square.and.arrow.down")
+                    // Streak Protection & Vacation Mode
+                    Section(
+                        header: Text("Streak Protection"),
+                        footer: Text("Earn +1 Streak Freeze Shield automatically every time any habit hits a 7-day streak milestone.")
+                    ) {
+                        HStack(spacing: 12) {
+                            SettingsIconBadge(icon: "beach.umbrella.fill", color: Color(hex: "#FF9F0A"))
+                            Toggle(isOn: $habitStore.vacationModeEnabled) {
+                                Text("Vacation / Pause Mode")
+                            }
+                        }
+                        
+                        HStack(spacing: 12) {
+                            SettingsIconBadge(icon: "snowflake", color: Color(hex: "#32ADE6"))
+                            Text("Streak Freeze Shields")
+                            Spacer()
+                            Text("\(habitStore.streakFreezeShields) available")
+                                .foregroundStyle(.cyan)
+                                .fontWeight(.bold)
+                        }
                     }
                     
-                    Button(role: .destructive) {
-                        showingResetAlert = true
-                    } label: {
-                        Label("Reset All Data & Preferences", systemImage: "trash")
+                    // Notifications & Daily Digests
+                    Section(
+                        header: Text("Notifications & Lock Screen Actions"),
+                        footer: Text("Supports interactive Lock Screen quick actions: Mark Completed & Snooze 15m.")
+                    ) {
+                        HStack(spacing: 12) {
+                            SettingsIconBadge(icon: "bell.badge.fill", color: Color(hex: "#FF3B30"))
+                            Text("Push Notifications")
+                            Spacer()
+                            if notificationManager.isAuthorized {
+                                Button("Test Banner") {
+                                    notificationManager.sendTestNotification()
+                                    showToast("Notification sent (1s) 🔔")
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                            } else {
+                                Button("Enable") {
+                                    notificationManager.requestPermission()
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.small)
+                            }
+                        }
+                        
+                        HStack(spacing: 12) {
+                            SettingsIconBadge(icon: "sunrise.fill", color: Color(hex: "#FF9500"))
+                            Toggle("Morning Kickoff (8:00 AM)", isOn: $habitStore.morningDigestEnabled)
+                                .onChange(of: habitStore.morningDigestEnabled) { _, _ in
+                                    notificationManager.configureDailyDigests(
+                                        morningEnabled: habitStore.morningDigestEnabled,
+                                        eveningEnabled: habitStore.eveningDigestEnabled
+                                    )
+                                }
+                        }
+                        
+                        HStack(spacing: 12) {
+                            SettingsIconBadge(icon: "moon.stars.fill", color: Color(hex: "#5856D6"))
+                            Toggle("Evening Wrap-Up (8:30 PM)", isOn: $habitStore.eveningDigestEnabled)
+                                .onChange(of: habitStore.eveningDigestEnabled) { _, _ in
+                                    notificationManager.configureDailyDigests(
+                                        morningEnabled: habitStore.morningDigestEnabled,
+                                        eveningEnabled: habitStore.eveningDigestEnabled
+                                    )
+                                }
+                        }
+                    }
+                    
+                    // Apple HealthKit & Siri Shortcuts
+                    Section(
+                        header: Text("Apple Ecosystem"),
+                        footer: Text("Action Button & Siri Shortcuts are automatically registered via AppIntents.")
+                    ) {
+                        HStack(spacing: 12) {
+                            SettingsIconBadge(icon: "heart.fill", color: Color(hex: "#FF2D55"))
+                            Text("Apple Health Sync")
+                            Spacer()
+                            if healthManager.isSyncEnabled {
+                                Text("Active")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.green)
+                            } else {
+                                Button("Connect") {
+                                    healthManager.requestConnect { _, msg in
+                                        showToast(msg)
+                                    }
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                            }
+                        }
+                        
+                        HStack(spacing: 12) {
+                            SettingsIconBadge(icon: "button.vertical.left.press.fill", color: Color(hex: "#64D2FF"))
+                            Text("Action Button & Siri")
+                            Spacer()
+                            Text("Ready")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    
+                    // Archived Habits Manager
+                    if !habitStore.archivedHabits.isEmpty {
+                        Section(header: Text("Archived Habits (\(habitStore.archivedHabits.count))")) {
+                            ForEach(habitStore.archivedHabits) { archived in
+                                HStack {
+                                    Image(systemName: archived.icon)
+                                        .foregroundStyle(Color(hex: archived.colorHex))
+                                    Text(archived.name)
+                                        .font(.subheadline.weight(.medium))
+                                    Spacer()
+                                    Button("Restore") {
+                                        habitStore.toggleArchiveHabit(id: archived.id)
+                                        showToast("Restored \(archived.name)")
+                                    }
+                                    .font(.caption.weight(.bold))
+                                    .buttonStyle(.bordered)
+                                    .controlSize(.mini)
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Native iOS ShareLink & Files Importer
+                    Section(
+                        header: Text("Backup & Data Recovery"),
+                        footer: Text("Your habits and progress are also auto-backed up to Documents. You can restore your data right here or from the Setup Wizard welcome screen anytime.")
+                    ) {
+                        Button {
+                            habitStore.saveAutoBackupToDocuments()
+                            showToast("Auto-backup saved to Documents! 🛡️")
+                            habitStore.triggerHaptic(.success)
+                        } label: {
+                            HStack(spacing: 12) {
+                                SettingsIconBadge(icon: "externaldrive.fill.badge.checkmark", color: Color(hex: "#007AFF"))
+                                Text("Save Local Backup Now")
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                Text("Documents")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        
+                        if let jsonBackup = habitStore.exportJSON() {
+                            ShareLink(
+                                item: jsonBackup,
+                                subject: Text("Productive Full JSON Backup"),
+                                message: Text("Productive Habit Tracker backup"),
+                                preview: SharePreview("Productive_Backup.json", image: Image(systemName: "externaldrive.fill.badge.checkmark"))
+                            ) {
+                                HStack(spacing: 12) {
+                                    SettingsIconBadge(icon: "square.and.arrow.up.fill", color: Color(hex: "#5856D6"))
+                                    Text("Share / AirDrop Backup (.json)")
+                                        .foregroundStyle(.primary)
+                                }
+                            }
+                        }
+                        
+                        Button {
+                            showingFileImporter = true
+                        } label: {
+                            HStack(spacing: 12) {
+                                SettingsIconBadge(icon: "square.and.arrow.down.fill", color: Color(hex: "#0FC580"))
+                                Text("Restore Backup from File (.json)")
+                                    .foregroundStyle(.primary)
+                            }
+                        }
+                        
+                        ShareLink(
+                            item: habitStore.exportCSV(),
+                            subject: Text("Productive Habits CSV Export"),
+                            preview: SharePreview("Productive_Habits.csv", image: Image(systemName: "tablecells.fill"))
+                        ) {
+                            HStack(spacing: 12) {
+                                SettingsIconBadge(icon: "tablecells.fill", color: Color(hex: "#34C759"))
+                                Text("Export Spreadsheet (.csv)")
+                                    .foregroundStyle(.primary)
+                            }
+                        }
+                        
+                        Button(role: .destructive) {
+                            showingResetAlert = true
+                        } label: {
+                            HStack(spacing: 12) {
+                                SettingsIconBadge(icon: "trash.fill", color: Color(hex: "#FF3B30"))
+                                Text("Reset All Data & Preferences")
+                            }
+                        }
+                    }
+                    
+                    // Setup & Version
+                    Section(header: Text("Demo & Setup")) {
+                        Button {
+                            habitStore.seedRichDemoData()
+                            showToast("Loaded Rich Demo Habits!")
+                        } label: {
+                            HStack(spacing: 12) {
+                                SettingsIconBadge(icon: "sparkles", color: Color(hex: "#AF52DE"))
+                                Text("Load Rich Demo Habits")
+                                    .foregroundStyle(.primary)
+                            }
+                        }
+                        
+                        Button {
+                            hasCompletedOnboarding = false
+                        } label: {
+                            HStack(spacing: 12) {
+                                SettingsIconBadge(icon: "arrow.counterclockwise", color: Color(hex: "#007AFF"))
+                                Text("Re-run Setup Wizard (Recover Data)")
+                                    .foregroundStyle(.primary)
+                            }
+                        }
+                        
+                        HStack {
+                            Text("Version")
+                            Spacer()
+                            Text("3.2.9 Native SwiftUI (Build 13)")
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                        HStack {
+                            Text("Active / Archived Habits")
+                            Spacer()
+                            Text("\(habitStore.activeHabits.count) active • \(habitStore.archivedHabits.count) archived")
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
-                
-                // Setup & Version
-                Section(header: Text("Demo & Diagnostics")) {
-                    Button {
-                        habitStore.seedRichDemoData()
-                    } label: {
-                        Label("Load Rich Demo Habits", systemImage: "sparkles")
-                    }
-                    
-                    Button {
-                        hasCompletedOnboarding = false
-                    } label: {
-                        Label("Re-run Setup Wizard", systemImage: "arrow.counterclockwise")
-                    }
-                    
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        Text("3.2.8 Native SwiftUI")
-                            .foregroundStyle(.secondary)
-                    }
-                    
-                    HStack {
-                        Text("Active / Archived Habits")
-                        Spacer()
-                        Text("\(habitStore.activeHabits.count) active • \(habitStore.archivedHabits.count) archived")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            .listSectionSpacing(16)
-            .contentMargins(.top, 12, for: .scrollContent)
-            .scrollContentBackground(.hidden)
+                .listSectionSpacing(16)
+                .contentMargins(.top, 12, for: .scrollContent)
+                .scrollContentBackground(.hidden)
             }
             .background(Color(.systemGroupedBackground))
             .toolbar(.hidden, for: .navigationBar)
@@ -262,7 +366,8 @@ struct SettingsView: View {
                     if let data = try? Data(contentsOf: url),
                        let str = String(data: data, encoding: .utf8),
                        habitStore.importJSON(str) {
-                        showToast("Backup restored!")
+                        showToast("Backup restored successfully! 🎉")
+                        habitStore.triggerHaptic(.success)
                     } else {
                         showToast("Could not decode backup file")
                     }

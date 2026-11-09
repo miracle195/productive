@@ -99,6 +99,9 @@ struct OnboardingView: View {
     @EnvironmentObject var habitStore: HabitStore
     @Binding var hasCompletedOnboarding: Bool
     
+    @State private var showingRestorePicker: Bool = false
+    @State private var restoreMessage: String? = nil
+    
     let weekDays = ["Monday", "Sunday", "Saturday"]
     let themes = ["System", "Dark", "Light"]
     
@@ -137,6 +140,43 @@ struct OnboardingView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
                     .listRowBackground(Color.clear)
+                }
+                
+                // MARK: - Restore / Recover Backup in Setup Wizard
+                Section(
+                    header: Label("Data Recovery", systemImage: "arrow.clockwise.icloud.fill"),
+                    footer: Text("Reinstalling or recovering? Restore all your habits, completions, subtask progress, and streaks instantly.")
+                ) {
+                    if habitStore.hasLocalAutoBackup() {
+                        Button {
+                            if habitStore.restoreFromAutoBackup() {
+                                habitStore.triggerHaptic(.success)
+                                withAnimation(.snappy) {
+                                    hasCompletedOnboarding = true
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Label("Restore Previous Device Backup", systemImage: "arrow.triangle.2.circlepath")
+                                Spacer()
+                                Text("Restore")
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                        }
+                    }
+                    
+                    Button {
+                        showingRestorePicker = true
+                    } label: {
+                        HStack {
+                            Label("Restore from Backup (.json)", systemImage: "square.and.arrow.down.fill")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
                 
                 Section(
@@ -212,6 +252,30 @@ struct OnboardingView: View {
                     .padding(.vertical, 10)
                 }
                 .background(.bar)
+            }
+            .fileImporter(
+                isPresented: $showingRestorePicker,
+                allowedContentTypes: [.json],
+                allowsMultipleSelection: false
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    guard let fileURL = urls.first else { return }
+                    if fileURL.startAccessingSecurityScopedResource() {
+                        defer { fileURL.stopAccessingSecurityScopedResource() }
+                        if let data = try? Data(contentsOf: fileURL),
+                           let json = String(data: data, encoding: .utf8) {
+                            if habitStore.importJSON(json) {
+                                habitStore.triggerHaptic(.success)
+                                withAnimation(.snappy) {
+                                    hasCompletedOnboarding = true
+                                }
+                            }
+                        }
+                    }
+                case .failure:
+                    break
+                }
             }
         }
     }

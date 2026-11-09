@@ -12,10 +12,12 @@ public struct AddHabitSheet: View {
     @EnvironmentObject var habitStore: HabitStore
     
     public var editingHabit: Habit? = nil
+    public var initialStartDate: Date? = nil
     
     @State private var selectedTab = 0 // 0: Presets, 1: Builder
     @State private var selectedCategoryId: Int? = nil
     @State private var presetSearchText: String = ""
+    @State private var startDate: Date = Date()
     
     // Builder Form States
     @State private var habitName: String = ""
@@ -52,8 +54,9 @@ public struct AddHabitSheet: View {
         (2, "Mon"), (3, "Tue"), (4, "Wed"), (5, "Thu"), (6, "Fri"), (7, "Sat"), (1, "Sun")
     ]
     
-    public init(editingHabit: Habit? = nil) {
+    public init(editingHabit: Habit? = nil, initialStartDate: Date? = nil) {
         self.editingHabit = editingHabit
+        self.initialStartDate = initialStartDate
     }
     
     var isEditing: Bool { editingHabit != nil }
@@ -127,8 +130,10 @@ public struct AddHabitSheet: View {
                     subtasks = h.subtasks
                     reminderEnabled = h.reminderEnabled
                     reminderTime = Calendar.current.date(bySettingHour: h.reminderHour, minute: h.reminderMinute, second: 0, of: Date()) ?? Date()
+                    startDate = h.createdAt
                 } else {
                     strictness = HabitStrictness(rawValue: habitStore.defaultStrictnessRaw) ?? .strict
+                    startDate = initialStartDate ?? habitStore.activeCreationStartDate ?? Date()
                 }
             }
         }
@@ -177,8 +182,18 @@ public struct AddHabitSheet: View {
             Divider()
                 .opacity(0.45)
             
-            List {
-                Section(header: Text("Tap a habit to customize, or tap + Add")) {
+            ScrollView {
+                LazyVStack(spacing: 8) {
+                    HStack {
+                        Text("TAP A HABIT TO CUSTOMIZE, OR TAP + ADD")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 6)
+                    .padding(.bottom, 2)
+                    
                     ForEach(filteredPresets) { preset in
                         HStack(spacing: 12) {
                             Button {
@@ -186,27 +201,28 @@ public struct AddHabitSheet: View {
                             } label: {
                                 HStack(spacing: 12) {
                                     ZStack {
-                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        RoundedRectangle(cornerRadius: 11, style: .continuous)
                                             .fill(Color(hex: preset.colorHex))
-                                            .frame(width: 36, height: 36)
+                                            .frame(width: 38, height: 38)
                                         Image(systemName: preset.icon)
                                             .foregroundStyle(.white)
-                                            .font(.subheadline.weight(.semibold))
+                                            .font(.system(size: 16, weight: .semibold))
                                     }
                                     
-                                    VStack(alignment: .leading, spacing: 2) {
+                                    VStack(alignment: .leading, spacing: 3) {
                                         Text(preset.name)
-                                            .font(.system(.subheadline, design: .rounded).weight(.bold))
+                                            .font(.system(size: 15, weight: .bold, design: .rounded))
                                             .foregroundStyle(.primary)
+                                            .multilineTextAlignment(.leading)
                                         Text("\(preset.timeOfDay.rawValue) • \(preset.trackingType.rawValue)")
-                                            .font(.caption)
+                                            .font(.system(size: 12))
                                             .foregroundStyle(.secondary)
                                     }
                                 }
                             }
                             .buttonStyle(.plain)
                             
-                            Spacer()
+                            Spacer(minLength: 8)
                             
                             Button {
                                 let defaultStrict = HabitStrictness(rawValue: habitStore.defaultStrictnessRaw) ?? .strict
@@ -221,23 +237,39 @@ public struct AddHabitSheet: View {
                                     stepAmount: preset.stepAmount,
                                     targetReps: preset.targetReps,
                                     targetDurationMinutes: preset.targetDurationMinutes,
-                                    strictness: defaultStrict
+                                    strictness: defaultStrict,
+                                    createdAt: Calendar.current.startOfDay(for: startDate)
                                 )
                                 dismiss()
                             } label: {
-                                Label("Add", systemImage: "plus")
-                                    .font(.caption.weight(.bold))
+                                Text("+ Add")
+                                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                                    .foregroundStyle(Color.accentColor)
+                                    .padding(.horizontal, 13)
+                                    .padding(.vertical, 6.5)
+                                    .background(Color.accentColor.opacity(0.14), in: RoundedRectangle(cornerRadius: 9.5, style: .continuous))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 9.5, style: .continuous)
+                                            .stroke(Color.accentColor.opacity(0.25), lineWidth: 0.8)
+                                    )
                             }
-                            .buttonStyle(.borderedProminent)
-                            .buttonBorderShape(.capsule)
-                            .controlSize(.small)
+                            .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.92))
                         }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(
+                            Color(.secondarySystemGroupedBackground),
+                            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(Color.primary.opacity(0.05), lineWidth: 0.8)
+                        )
+                        .padding(.horizontal, 16)
                     }
                 }
+                .padding(.bottom, 24)
             }
-            .listStyle(.insetGrouped)
-            .listSectionSpacing(10)
-            .contentMargins(.top, 6, for: .scrollContent)
         }
     }
     
@@ -320,6 +352,8 @@ public struct AddHabitSheet: View {
             
             // Schedule, Custom Days & Strictness
             Section(header: Text("Schedule & Streak Rules")) {
+                DatePicker("Start Date", selection: $startDate, displayedComponents: [.date])
+                
                 Picker("Frequency", selection: $frequency) {
                     Section("Daily & Standard") {
                         Text(HabitFrequency.daily.rawValue).tag(HabitFrequency.daily)
@@ -566,7 +600,8 @@ public struct AddHabitSheet: View {
                 subtasks: subtasks,
                 reminderEnabled: reminderEnabled,
                 reminderHour: rHour,
-                reminderMinute: rMin
+                reminderMinute: rMin,
+                createdAt: Calendar.current.startOfDay(for: startDate)
             )
         }
         dismiss()

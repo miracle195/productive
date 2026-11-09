@@ -558,6 +558,14 @@ public struct Habit: Identifiable, Codable, Equatable {
     
     public func isDue(on date: Date, calendar: Calendar = .current) -> Bool {
         if isArchived { return false }
+        
+        // Never due on days prior to the habit's chosen start / creation date
+        let targetDay = calendar.startOfDay(for: date)
+        let createdDay = calendar.startOfDay(for: createdAt)
+        if targetDay < createdDay {
+            return false
+        }
+        
         let dateKey = Self.isoDateFormatter.string(from: date)
         
         // Flexible Periodic frequency (weekly / monthly spread)
