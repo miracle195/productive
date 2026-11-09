@@ -284,11 +284,14 @@
                   <!-- Horizontal-Only Scrollable Timeline Ribbon -->
                   <div class="week-ribbon" id="week-ribbon-container"></div>
 
-                  <!-- Compact Jewel-Like Daily Focus Card -->
-                  <div class="progress-hero-card compact-focus-card">
-                    <div class="hero-content">
+                  <!-- Compact Jewel-Like Daily Focus Card with Responsive Progress Circles -->
+                  <div class="progress-hero-card compact-focus-card" id="hero-progress-card">
+                    <div class="hero-content" style="cursor: pointer;" onclick="openDueTasksPopup('all')" title="Tap to view today's due tasks">
                       <div class="hero-text">
-                        <h3 id="hero-motivation-title">Daily Focus</h3>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                          <h3 id="hero-motivation-title">Daily Focus</h3>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                        </div>
                         <p id="hero-motivation-sub">0 of 0 scheduled habits done</p>
                         <div class="streak-chip" id="hero-streak-chip" style="margin-top:6px; display:inline-flex; width:fit-content;">
                           <span>🔥 0d Top Streak</span>
@@ -309,6 +312,9 @@
                         <div class="gauge-center-text" id="hero-gauge-text">0%</div>
                       </div>
                     </div>
+
+                    <!-- Interactive Orbit Circles Strip -->
+                    <div class="hero-circles-orbit-strip" id="hero-circles-orbit"></div>
                   </div>
 
                   <!-- Sliding Segmented Filter Control -->

@@ -43,6 +43,7 @@ public struct TodayView: View {
     @State private var journalSheetTarget: Habit? = nil
     @State private var editingHabitTarget: Habit? = nil
     @State private var activeRoutineBucket: TimeOfDay? = nil
+    @State private var dueTasksPopupTarget: DueTasksPopupFilter? = nil
     
     private var timelineDays: [DayModel] {
         let calendar = Calendar.current
@@ -218,6 +219,14 @@ public struct TodayView: View {
                     .environmentObject(habitStore)
                     .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
+            }
+            // Due Tasks Interactive Screen Widget Popup Sheet
+            .sheet(item: $dueTasksPopupTarget) { target in
+                DueTasksPopupSheet(filter: target, dateKey: activeDateKey)
+                    .environmentObject(habitStore)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+                    .presentationCornerRadius(24)
             }
             .onChange(of: habitStore.requestedRoutineBucket) { _, newBucket in
                 if let bucket = newBucket {
@@ -892,7 +901,7 @@ public struct TodayView: View {
         }
     }
     
-    // MARK: - Balanced, Elegant Daily Focus Card (Matches Image 0 1:1)
+    // MARK: - Creative Responsive Daily Progress Screen Widget
     
     private var dailyProgressCard: some View {
         let due = habitStore.habitsDue(on: activeDate)
@@ -900,64 +909,116 @@ public struct TodayView: View {
         let pct = habitStore.completionPercentage(on: activeDate, dateKey: activeDateKey)
         let bestActiveStreak = habitStore.activeHabits.map(\.streak).max() ?? 0
         
-        return HStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text(
-                    due.isEmpty ? "Ready to Plan" :
-                    pct == 100 ? "All Goals Complete! 🎉" :
-                    pct >= 60 ? "Strong Momentum 🔥" : "Daily Focus"
-                )
-                .font(.system(size: 16.5, weight: .heavy, design: .rounded))
-                .foregroundStyle(.primary)
-                
-                Text(
-                    due.isEmpty ? "Tap + to schedule your first habit" :
-                    doneCount == due.count ? "All \(due.count) scheduled habits done" :
-                    "\(doneCount) of \(due.count) scheduled habits done"
-                )
-                .font(.system(size: 12.5, weight: .medium, design: .rounded))
-                .foregroundStyle(.secondary)
-                
-                // Bottom Top Streak Badge matching Image 0
-                HStack(spacing: 4.5) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 11, weight: .heavy))
-                    Text("\(bestActiveStreak)d Top Streak")
-                        .font(.system(size: 11.5, weight: .bold, design: .rounded))
-                        .contentTransition(.numericText())
+        return VStack(spacing: 11) {
+            // 1. Top Hero Progress Row (Tapping anywhere opens full due tasks popup)
+            Button {
+                habitStore.triggerHaptic(.light)
+                dueTasksPopupTarget = .all
+            } label: {
+                HStack(spacing: 14) {
+                    VStack(alignment: .leading, spacing: 4.5) {
+                        HStack(spacing: 5) {
+                            Text(
+                                due.isEmpty ? "Ready to Plan" :
+                                pct == 100 ? "All Goals Complete! 🎉" :
+                                pct >= 60 ? "Strong Momentum 🔥" : "Daily Focus"
+                            )
+                            .font(.system(size: 16.5, weight: .heavy, design: .rounded))
+                            .foregroundStyle(.primary)
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(Color.accentColor.opacity(0.8))
+                        }
+                        
+                        Text(
+                            due.isEmpty ? "Tap + to schedule your first habit" :
+                            doneCount == due.count ? "All \(due.count) scheduled habits done" :
+                            "\(doneCount) of \(due.count) scheduled habits done"
+                        )
+                        .font(.system(size: 12.5, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        
+                        // Bottom Top Streak Badge
+                        HStack(spacing: 4.5) {
+                            Image(systemName: "flame.fill")
+                                .font(.system(size: 11, weight: .heavy))
+                            Text("\(bestActiveStreak)d Top Streak")
+                                .font(.system(size: 11.5, weight: .bold, design: .rounded))
+                                .contentTransition(.numericText())
+                        }
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 3.5)
+                        .background(.orange.opacity(0.15), in: Capsule())
+                        .padding(.top, 2)
+                    }
+                    
+                    Spacer(minLength: 4)
+                    
+                    // Main Glowing Double-Ring Progress Circle
+                    ZStack {
+                        Circle()
+                            .stroke(Color.primary.opacity(0.08), lineWidth: 6)
+                            .frame(width: 56, height: 56)
+                        
+                        Circle()
+                            .trim(from: 0, to: CGFloat(pct) / 100.0)
+                            .stroke(
+                                LinearGradient(
+                                    colors: pct == 100 ? [.green, .mint] : [Color(hex: "#007AFF"), Color(hex: "#5856D6")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                            )
+                            .frame(width: 56, height: 56)
+                            .rotationEffect(.degrees(-90))
+                            .animation(.snappy(duration: 0.28), value: pct)
+                            .shadow(color: (pct == 100 ? Color.green : Color.accentColor).opacity(0.35), radius: 5, y: 1.5)
+                        
+                        VStack(spacing: 0) {
+                            Text("\(pct)%")
+                                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                                .contentTransition(.numericText())
+                                .foregroundStyle(.primary)
+                        }
+                    }
+                    .frame(width: 58, height: 58)
                 }
-                .foregroundStyle(.orange)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 3.5)
-                .background(.orange.opacity(0.15), in: Capsule())
-                .padding(.top, 2)
             }
+            .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.98))
             
-            Spacer(minLength: 4)
-            
-            ZStack {
-                Circle()
-                    .stroke(Color.primary.opacity(0.09), lineWidth: 6)
-                    .frame(width: 54, height: 54)
+            // 2. Responsive Interactive Circles Orbit Strip
+            if !due.isEmpty {
+                Divider()
+                    .opacity(0.35)
                 
-                Circle()
-                    .trim(from: 0, to: CGFloat(pct) / 100.0)
-                    .stroke(
-                        LinearGradient(
-                            colors: pct == 100 ? [.green, .mint] : [Color(hex: "#007AFF"), Color(hex: "#5856D6")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
-                    )
-                    .frame(width: 54, height: 54)
-                    .rotationEffect(.degrees(-90))
-                    .animation(.snappy(duration: 0.28), value: pct)
-                
-                Text("\(pct)%")
-                    .font(.system(size: 12.5, weight: .heavy, design: .rounded))
-                    .contentTransition(.numericText())
-                    .foregroundStyle(.primary)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        // A. Routine Bucket Circles (Morning, Afternoon, Evening, Anytime)
+                        ForEach(TimeOfDay.allCases) { bucket in
+                            let bucketHabits = due.filter { $0.timeOfDay == bucket }
+                            if !bucketHabits.isEmpty {
+                                routineCircleButton(bucket: bucket, habits: bucketHabits)
+                            }
+                        }
+                        
+                        // Subtle Vertical Divider
+                        Rectangle()
+                            .fill(Color.primary.opacity(0.12))
+                            .frame(width: 1, height: 34)
+                            .padding(.horizontal, 2)
+                        
+                        // B. Individual Due Habit Circle Avatars
+                        ForEach(due) { habit in
+                            habitCircleButton(habit: habit)
+                        }
+                    }
+                    .padding(.horizontal, 2)
+                    .padding(.vertical, 3)
+                }
+                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
             }
         }
         .padding(.horizontal, 16)
@@ -970,6 +1031,123 @@ public struct TodayView: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(Color.primary.opacity(0.07), lineWidth: 0.8)
         )
+    }
+    
+    // MARK: - Interactive Routine Circle Button
+    
+    private func routineCircleButton(bucket: TimeOfDay, habits: [Habit]) -> some View {
+        let doneCount = habits.filter { $0.isCompleted(on: activeDateKey) || $0.isSkipped(on: activeDateKey) }.count
+        let fraction = habits.isEmpty ? 0.0 : Double(doneCount) / Double(habits.count)
+        let isAllDone = doneCount == habits.count && !habits.isEmpty
+        
+        return Button {
+            habitStore.triggerHaptic(.light)
+            dueTasksPopupTarget = .routine(bucket)
+        } label: {
+            VStack(spacing: 4) {
+                ZStack {
+                    Circle()
+                        .stroke(bucket.tintColor.opacity(0.18), lineWidth: 3.5)
+                        .frame(width: 42, height: 42)
+                    
+                    Circle()
+                        .trim(from: 0, to: CGFloat(fraction))
+                        .stroke(
+                            isAllDone ? Color.green : bucket.tintColor,
+                            style: StrokeStyle(lineWidth: 3.5, lineCap: .round)
+                        )
+                        .frame(width: 42, height: 42)
+                        .rotationEffect(.degrees(-90))
+                        .animation(.snappy, value: fraction)
+                    
+                    Image(systemName: isAllDone ? "checkmark" : bucket.icon)
+                        .font(.system(size: 13.5, weight: .bold))
+                        .foregroundStyle(isAllDone ? Color.green : bucket.tintColor)
+                }
+                
+                Text(bucket.rawValue)
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                
+                Text("\(doneCount)/\(habits.count)")
+                    .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                    .foregroundStyle(isAllDone ? Color.green : .secondary)
+            }
+            .frame(width: 56)
+        }
+        .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.90))
+        .accessibilityLabel("\(bucket.rawValue) routine: \(doneCount) of \(habits.count) done")
+    }
+    
+    // MARK: - Interactive Habit Circle Button
+    
+    private func habitCircleButton(habit: Habit) -> some View {
+        let isDone = habit.isCompleted(on: activeDateKey)
+        let isSkipped = habit.isSkipped(on: activeDateKey)
+        let habitColor = Color(hex: habit.colorHex)
+        let progress = habitProgressFraction(for: habit)
+        
+        return Button {
+            habitStore.triggerHaptic(.light)
+            dueTasksPopupTarget = .singleHabit(habit.id)
+        } label: {
+            VStack(spacing: 4) {
+                ZStack {
+                    Circle()
+                        .stroke(habitColor.opacity(0.18), lineWidth: 3.5)
+                        .frame(width: 42, height: 42)
+                    
+                    Circle()
+                        .trim(from: 0, to: CGFloat(progress))
+                        .stroke(
+                            isDone ? Color.green : habitColor,
+                            style: StrokeStyle(lineWidth: 3.5, lineCap: .round)
+                        )
+                        .frame(width: 42, height: 42)
+                        .rotationEffect(.degrees(-90))
+                        .animation(.snappy, value: progress)
+                    
+                    Image(systemName: isDone ? "checkmark" : habit.icon)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(isDone ? Color.green : habitColor)
+                }
+                
+                Text(habit.name)
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .frame(width: 54)
+                
+                Text(isDone ? "Done" : isSkipped ? "Skip" : habit.repeatLabel)
+                    .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                    .foregroundStyle(isDone ? Color.green : isSkipped ? Color.cyan : .secondary)
+                    .lineLimit(1)
+            }
+            .frame(width: 54)
+        }
+        .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.90))
+        .accessibilityLabel("\(habit.name): \(isDone ? "completed" : "pending")")
+    }
+    
+    private func habitProgressFraction(for habit: Habit) -> Double {
+        if habit.isCompleted(on: activeDateKey) { return 1.0 }
+        if habit.isSkipped(on: activeDateKey) { return 1.0 }
+        if habit.polarity == .quit { return 1.0 }
+        if habit.trackingType == .amount {
+            let target = habitStore.effectiveTargetAmount(for: habit, on: activeDateKey)
+            guard target > 0 else { return 0.0 }
+            return min(1.0, habit.amount(on: activeDateKey) / target)
+        }
+        if habit.trackingType == .reps {
+            guard habit.targetReps > 0 else { return 0.0 }
+            return min(1.0, Double(habit.reps(on: activeDateKey)) / Double(habit.targetReps))
+        }
+        if !habit.subtasks.isEmpty {
+            let done = habit.history[activeDateKey]?.completedSubtaskIds.count ?? 0
+            return Double(done) / Double(habit.subtasks.count)
+        }
+        return 0.0
     }
     
     // MARK: - Floating Active Timer Mini-Player

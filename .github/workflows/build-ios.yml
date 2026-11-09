@@ -50,7 +50,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: v3.2.10-ios
-        name: Productive v3.2.10 Native SwiftUI iOS (Clean Header, Removed Snow & Menu Dots, Full Date Title & No Truncation)
+        tag_name: v3.2.11-ios
+        name: Productive v3.2.11 Native SwiftUI iOS (Daily Progress Circles Screen Widget & Interactive Due Tasks Popup)
         files: ios-swiftui/build/Productive.ipa
       continue-on-error: true

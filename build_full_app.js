@@ -1285,6 +1285,8 @@ function renderTodayScreen() {
     else heroTitle.textContent = 'Daily Focus';
   }
 
+  renderHeroCirclesOrbit(dueHabits);
+
   renderWeekRibbon();
 
   if (document.querySelectorAll) {
@@ -2265,6 +2267,200 @@ function openCalendarJumpModal() {
   }
   html += '</div>';
   openNativeModal(html, 'calendar');
+}
+
+// ============================================================================
+// RESPONSIVE DUE TASKS SCREEN WIDGET & CIRCLES ORBIT
+// ============================================================================
+
+function renderHeroCirclesOrbit(dueHabits) {
+  const container = document.getElementById('hero-circles-orbit');
+  if (!container) return;
+
+  if (!dueHabits || dueHabits.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = 'flex';
+
+  const routines = [
+    { key: 'morning', label: 'Morning', icon: '☀️', color: '#FF9500' },
+    { key: 'afternoon', label: 'Afternoon', icon: '🌤️', color: '#FF7450' },
+    { key: 'evening', label: 'Evening', icon: '🌙', color: '#5856D6' },
+    { key: 'anytime', label: 'Anytime', icon: '⏰', color: '#007AFF' }
+  ];
+
+  let html = '';
+
+  // 1. Routine Circles
+  routines.forEach(rt => {
+    const list = dueHabits.filter(h => h.timeOfDay === rt.key);
+    if (list.length === 0) return;
+    const done = list.filter(h => {
+      const rec = h.history && h.history[state.selectedDay];
+      return rec && (rec.done || rec.skipped || rec.usedShield);
+    }).length;
+    const pct = Math.round((done / list.length) * 100);
+    const circ = 2 * Math.PI * 18; // ~113.1
+    const offset = circ - (circ * pct) / 100;
+    const isAllDone = done === list.length;
+
+    html +=
+      '<button type="button" class="orbit-circle-btn" onclick="event.stopPropagation(); openDueTasksPopup(&apos;' + rt.key + '&apos;)" title="' + rt.label + ' Routine (' + done + '/' + list.length + ')">' +
+        '<div class="orbit-ring-box">' +
+          '<svg class="orbit-svg" viewBox="0 0 44 44">' +
+            '<circle class="orbit-ring-bg" cx="22" cy="22" r="18"/>' +
+            '<circle class="orbit-ring-val" cx="22" cy="22" r="18" style="stroke:' + (isAllDone ? '#34C759' : rt.color) + '; stroke-dasharray:' + circ + '; stroke-dashoffset:' + offset + ';"/>' +
+          '</svg>' +
+          '<span class="orbit-icon-center">' + (isAllDone ? '✓' : rt.icon) + '</span>' +
+        '</div>' +
+        '<span class="orbit-circle-title">' + rt.label + '</span>' +
+        '<span class="orbit-circle-sub" style="color:' + (isAllDone ? '#34C759' : 'inherit') + ';">' + done + '/' + list.length + '</span>' +
+      '</button>';
+  });
+
+  html += '<div class="orbit-divider"></div>';
+
+  // 2. Individual Due Habit Circle Avatars
+  dueHabits.forEach(habit => {
+    const rec = habit.history && habit.history[state.selectedDay];
+    const isDone = !!(rec && rec.done);
+    const isSkipped = !!(rec && rec.skipped);
+    const circ = 2 * Math.PI * 18;
+    const progress = isDone ? 1.0 : (isSkipped ? 1.0 : (habit.type === 'amount' && habit.targetAmount > 0 ? Math.min(1.0, (rec ? (rec.amount || 0) : 0) / habit.targetAmount) : 0.0));
+    const offset = circ - (circ * progress);
+
+    html +=
+      '<button type="button" class="orbit-circle-btn" onclick="event.stopPropagation(); openDueTasksPopup(' + habit.id + ')" title="' + escapeHtml(habit.name) + '">' +
+        '<div class="orbit-ring-box">' +
+          '<svg class="orbit-svg" viewBox="0 0 44 44">' +
+            '<circle class="orbit-ring-bg" cx="22" cy="22" r="18"/>' +
+            '<circle class="orbit-ring-val" cx="22" cy="22" r="18" style="stroke:' + (isDone ? '#34C759' : (habit.color || '#007AFF')) + '; stroke-dasharray:' + circ + '; stroke-dashoffset:' + offset + ';"/>' +
+          '</svg>' +
+          '<span class="orbit-icon-center" style="font-size:12px;">' + (isDone ? '✓' : getIconSvg(habit.icon, habit.color || '#007AFF', 16)) + '</span>' +
+        '</div>' +
+        '<span class="orbit-circle-title">' + escapeHtml(habit.name) + '</span>' +
+        '<span class="orbit-circle-sub" style="color:' + (isDone ? '#34C759' : (isSkipped ? '#32ADE6' : 'inherit')) + ';">' + (isDone ? 'Done' : (isSkipped ? 'Skip' : (habit.repeatLabel || 'Due'))) + '</span>' +
+      '</button>';
+  });
+
+  container.innerHTML = html;
+}
+
+function openDueTasksPopup(filterTarget) {
+  sound.playClick();
+  const due = state.activeHabits.filter(h => state.isHabitDueOnDate(h, state.selectedDay));
+  let list = due;
+  let title = "Today's Due Tasks";
+  let icon = '📋';
+  let badgeColor = '#007AFF';
+
+  if (filterTarget === 'morning') {
+    list = due.filter(h => h.timeOfDay === 'morning');
+    title = 'Morning Routine Tasks';
+    icon = '☀️';
+    badgeColor = '#FF9500';
+  } else if (filterTarget === 'afternoon') {
+    list = due.filter(h => h.timeOfDay === 'afternoon');
+    title = 'Afternoon Routine Tasks';
+    icon = '🌤️';
+    badgeColor = '#FF7450';
+  } else if (filterTarget === 'evening') {
+    list = due.filter(h => h.timeOfDay === 'evening');
+    title = 'Evening Routine Tasks';
+    icon = '🌙';
+    badgeColor = '#5856D6';
+  } else if (filterTarget === 'anytime') {
+    list = due.filter(h => h.timeOfDay === 'anytime');
+    title = 'Anytime Tasks';
+    icon = '⏰';
+    badgeColor = '#007AFF';
+  } else if (typeof filterTarget === 'number') {
+    const single = state.habits.find(h => h.id === filterTarget);
+    if (single) {
+      list = [single];
+      title = single.name;
+      icon = '✨';
+      badgeColor = single.color || '#007AFF';
+    }
+  }
+
+  const doneCount = list.filter(h => {
+    const rec = h.history && h.history[state.selectedDay];
+    return rec && (rec.done || rec.skipped || rec.usedShield);
+  }).length;
+  const pct = list.length > 0 ? Math.round((doneCount / list.length) * 100) : 0;
+
+  let html = '<div class="due-popup-container">';
+  html += '<div class="due-popup-header-card">' +
+    '<div class="due-popup-icon" style="background:' + badgeColor + ';">' + icon + '</div>' +
+    '<div class="due-popup-header-info">' +
+      '<h4>' + escapeHtml(title) + '</h4>' +
+      '<p>' + doneCount + ' of ' + list.length + ' completed • ' + pct + '%</p>' +
+      '<div class="due-popup-bar-track">' +
+        '<div class="due-popup-bar-fill" style="width:' + pct + '%; background:' + (pct === 100 ? '#34C759' : badgeColor) + ';"></div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  html += '<div class="due-popup-list">';
+  if (list.length === 0) {
+    html += '<p style="text-align:center; color:var(--app-text-muted); padding:20px;">No scheduled tasks for this filter.</p>';
+  } else {
+    list.forEach(h => {
+      const rec = h.history && h.history[state.selectedDay];
+      const isDone = !!(rec && rec.done);
+      html +=
+        '<div class="due-popup-row">' +
+          '<div class="due-popup-row-left">' +
+            '<div class="due-popup-row-icon" style="background:' + (h.color || '#007AFF') + ';">' + getIconSvg(h.icon, '#FFFFFF', 16) + '</div>' +
+            '<div class="due-popup-row-info">' +
+              '<h5 style="' + (isDone ? 'text-decoration:line-through; opacity:0.6;' : '') + '">' + escapeHtml(h.name) + '</h5>' +
+              '<span>' + escapeHtml(h.timeOfDay || 'anytime') + ' • ' + (h.repeatLabel || 'Every day') + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<button type="button" class="due-popup-check-btn ' + (isDone ? 'done' : '') + '" onclick="toggleHabitFromPopup(' + h.id + ', &apos;' + (typeof filterTarget === 'string' ? filterTarget : 'all') + '&apos;)">' +
+            (isDone ? '✓' : '') +
+          '</button>' +
+        '</div>';
+    });
+  }
+  html += '</div>';
+
+  html += '<div class="due-popup-actions">';
+  if (doneCount < list.length) {
+    html += '<button type="button" class="due-popup-btn-complete" onclick="completeAllFromPopup(&apos;' + (typeof filterTarget === 'string' ? filterTarget : 'all') + '&apos;)">Complete All</button>';
+  }
+  html += '<button type="button" class="due-popup-btn-close" onclick="closeNativeModal()">Done</button>';
+  html += '</div>';
+  html += '</div>';
+
+  openNativeModal(html, 'due_popup');
+}
+
+function toggleHabitFromPopup(habitId, filterTarget) {
+  state.toggleHabit(habitId, state.selectedDay);
+  sound.playClick();
+  renderTodayScreen();
+  openDueTasksPopup(filterTarget);
+}
+
+function completeAllFromPopup(filterTarget) {
+  const due = state.activeHabits.filter(h => state.isHabitDueOnDate(h, state.selectedDay));
+  let list = due;
+  if (['morning', 'afternoon', 'evening', 'anytime'].includes(filterTarget)) {
+    list = due.filter(h => h.timeOfDay === filterTarget);
+  }
+  list.forEach(h => {
+    const rec = h.history && h.history[state.selectedDay];
+    if (!rec || !rec.done) {
+      state.toggleHabit(h.id, state.selectedDay);
+    }
+  });
+  sound.playSuccess();
+  confetti.burst();
+  renderTodayScreen();
+  openDueTasksPopup(filterTarget);
 }
 
 // ============================================================================
