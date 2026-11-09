@@ -2460,7 +2460,7 @@ function completeAllFromPopup(filterTarget) {
 }
 
 // ============================================================================
-// iOS LOCK SCREEN SYSTEM WIDGETS ENGINE (CIRCULAR & RECTANGULAR GAUGES)
+// iOS LOCK SCREEN SYSTEM WIDGETS ENGINE (SIMPLIFIED DAILY FOCUS & POPUP)
 // ============================================================================
 
 function updateLockScreenWidgets() {
@@ -2476,10 +2476,6 @@ function updateLockScreenWidgets() {
   const done = doneHabits.length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const streak = state.activeHabits.reduce((max, h) => Math.max(max, h.streak || 0), 0);
-  const nextPending = due.find(h => {
-    const rec = h.history && h.history[state.selectedDay];
-    return !rec || (!rec.done && !rec.skipped);
-  });
 
   // 1. Clock & Date
   const now = new Date();
@@ -2499,63 +2495,247 @@ function updateLockScreenWidgets() {
     inlineEl.textContent = '🔥 ' + streak + 'd • ' + done + ' of ' + total + ' habits done (' + pct + '%)';
   }
 
-  // 3. Circular Widget (.accessoryCircular)
-  const circ = 2 * Math.PI * 21; // ~131.95
-  const circOffset = circ - (circ * pct) / 100;
-  const circRing = document.getElementById('ls-circular-ring');
-  if (circRing) {
-    circRing.style.strokeDasharray = circ;
-    circRing.style.strokeDashoffset = circOffset;
-    circRing.style.stroke = pct === 100 ? '#34C759' : '#007AFF';
+  // 3. Simplified Daily Focus Widget Header
+  const streakPill = document.getElementById('ls-focus-streak');
+  if (streakPill) streakPill.textContent = '🔥 ' + streak + 'd';
+
+  const fractionEl = document.getElementById('ls-focus-fraction');
+  if (fractionEl) fractionEl.textContent = done + ' of ' + total + ' done • ' + pct + '%';
+
+  // 4. Interactive Circles Row
+  const circlesRow = document.getElementById('ls-focus-circles-row');
+  if (circlesRow) {
+    const circ = 2 * Math.PI * 18; // ~113.1
+    const heroOffset = circ - (circ * pct) / 100;
+    const isAllDone = total > 0 && done === total;
+
+    let circlesHtml = '';
+
+    // Circle A: Main Hero Daily Progress Circle
+    circlesHtml +=
+      '<button type="button" class="ls-circle-item" onclick="showCircleDetailPopup(&apos;all&apos;, event)" title="Daily Progress Focus (' + done + '/' + total + ')">' +
+        '<div class="ls-circle-ring-box">' +
+          '<svg class="ls-circle-svg" viewBox="0 0 44 44">' +
+            '<circle class="ls-circle-bg" cx="22" cy="22" r="18"/>' +
+            '<circle class="ls-circle-val" cx="22" cy="22" r="18" style="stroke:' + (isAllDone ? '#34C759' : '#007AFF') + '; stroke-dasharray:' + circ + '; stroke-dashoffset:' + heroOffset + ';"/>' +
+          '</svg>' +
+          '<span class="ls-circle-center">' + (isAllDone ? '✓' : pct + '%') + '</span>' +
+        '</div>' +
+        '<span class="ls-circle-label">Daily</span>' +
+        '<span class="ls-circle-sub" style="color:' + (isAllDone ? '#34C759' : 'inherit') + ';">' + done + '/' + total + '</span>' +
+      '</button>';
+
+    // Circle B: Routine Circles
+    const routines = [
+      { key: 'morning', label: 'Morning', icon: '🌅', color: '#FF9500' },
+      { key: 'afternoon', label: 'Afternoon', icon: '☀️', color: '#FF7450' },
+      { key: 'evening', label: 'Evening', icon: '🌙', color: '#5856D6' },
+      { key: 'anytime', label: 'Anytime', icon: '⏰', color: '#007AFF' }
+    ];
+
+    routines.forEach(rt => {
+      const list = due.filter(h => h.timeOfDay === rt.key);
+      if (list.length === 0) return;
+      const rtDone = list.filter(h => {
+        const rec = h.history && h.history[state.selectedDay];
+        return rec && (rec.done || rec.skipped || rec.usedShield);
+      }).length;
+      const rtPct = Math.round((rtDone / list.length) * 100);
+      const rtOffset = circ - (circ * rtPct) / 100;
+      const rtAllDone = rtDone === list.length;
+
+      circlesHtml +=
+        '<button type="button" class="ls-circle-item" onclick="showCircleDetailPopup(&apos;' + rt.key + '&apos;, event)" title="' + rt.label + ' Routine (' + rtDone + '/' + list.length + ')">' +
+          '<div class="ls-circle-ring-box">' +
+            '<svg class="ls-circle-svg" viewBox="0 0 44 44">' +
+              '<circle class="ls-circle-bg" cx="22" cy="22" r="18"/>' +
+              '<circle class="ls-circle-val" cx="22" cy="22" r="18" style="stroke:' + (rtAllDone ? '#34C759' : rt.color) + '; stroke-dasharray:' + circ + '; stroke-dashoffset:' + rtOffset + ';"/>' +
+            '</svg>' +
+            '<span class="ls-circle-center">' + (rtAllDone ? '✓' : rt.icon) + '</span>' +
+          '</div>' +
+          '<span class="ls-circle-label">' + rt.label + '</span>' +
+          '<span class="ls-circle-sub" style="color:' + (rtAllDone ? '#34C759' : 'inherit') + ';">' + rtDone + '/' + list.length + '</span>' +
+        '</button>';
+    });
+
+    // Circle C: Individual Habit Avatars (up to 4 habits)
+    due.slice(0, 5).forEach(habit => {
+      const rec = habit.history && habit.history[state.selectedDay];
+      const isHDone = !!(rec && rec.done);
+      const isHSkipped = !!(rec && rec.skipped);
+      const progress = isHDone ? 1.0 : (isHSkipped ? 1.0 : (habit.type === 'amount' && habit.targetAmount > 0 ? Math.min(1.0, (rec ? (rec.amount || 0) : 0) / habit.targetAmount) : 0.0));
+      const hOffset = circ - (circ * progress);
+
+      circlesHtml +=
+        '<button type="button" class="ls-circle-item" onclick="showCircleDetailPopup(' + habit.id + ', event)" title="' + escapeHtml(habit.name) + '">' +
+          '<div class="ls-circle-ring-box">' +
+            '<svg class="ls-circle-svg" viewBox="0 0 44 44">' +
+              '<circle class="ls-circle-bg" cx="22" cy="22" r="18"/>' +
+              '<circle class="ls-circle-val" cx="22" cy="22" r="18" style="stroke:' + (isHDone ? '#34C759' : (habit.color || '#007AFF')) + '; stroke-dasharray:' + circ + '; stroke-dashoffset:' + hOffset + ';"/>' +
+            '</svg>' +
+            '<span class="ls-circle-center" style="font-size:12px;">' + (isHDone ? '✓' : getIconSvg(habit.icon, habit.color || '#007AFF', 16)) + '</span>' +
+          '</div>' +
+          '<span class="ls-circle-label">' + escapeHtml(habit.name) + '</span>' +
+          '<span class="ls-circle-sub" style="color:' + (isHDone ? '#34C759' : (isHSkipped ? '#32ADE6' : 'inherit')) + ';">' + (isHDone ? 'Done' : (isHSkipped ? 'Skip' : (habit.repeatLabel || 'Due'))) + '</span>' +
+        '</button>';
+    });
+
+    circlesRow.innerHTML = circlesHtml;
   }
-  const circIcon = document.getElementById('ls-circular-icon');
-  const circText = document.getElementById('ls-circular-text');
-  if (circIcon && circText) {
-    if (pct === 100 && total > 0) {
-      circIcon.textContent = '✓';
-      circText.textContent = 'Done';
-      circText.style.color = '#34C759';
-    } else if (streak > 0) {
-      circIcon.textContent = '🔥';
-      circText.textContent = streak + 'd';
-      circText.style.color = '#FFFFFF';
-    } else {
-      circIcon.textContent = '📋';
-      circText.textContent = pct + '%';
-      circText.style.color = '#FFFFFF';
+}
+
+// MARK: - Lock Screen Circle Details Elaboration Modal Popup
+
+function showCircleDetailPopup(filterTarget, event) {
+  if (event) event.stopPropagation();
+  sound.playClick();
+
+  const backdrop = document.getElementById('ls-detail-popup-backdrop');
+  const card = document.getElementById('ls-detail-popup-card');
+  if (!backdrop || !card) return;
+
+  const due = state.activeHabits.filter(h => state.isHabitDueOnDate(h, state.selectedDay));
+  let list = due;
+  let title = "Daily Focus Details";
+  let icon = "📋";
+  let themeColor = "#007AFF";
+  let desc = "";
+
+  if (filterTarget === 'morning') {
+    list = due.filter(h => h.timeOfDay === 'morning');
+    title = 'Morning Routine Details';
+    icon = '🌅';
+    themeColor = '#FF9500';
+  } else if (filterTarget === 'afternoon') {
+    list = due.filter(h => h.timeOfDay === 'afternoon');
+    title = 'Afternoon Routine Details';
+    icon = '☀️';
+    themeColor = '#FF7450';
+  } else if (filterTarget === 'evening') {
+    list = due.filter(h => h.timeOfDay === 'evening');
+    title = 'Evening Routine Details';
+    icon = '🌙';
+    themeColor = '#5856D6';
+  } else if (filterTarget === 'anytime') {
+    list = due.filter(h => h.timeOfDay === 'anytime');
+    title = 'Anytime Tasks Details';
+    icon = '⏰';
+    themeColor = '#007AFF';
+  } else if (typeof filterTarget === 'number') {
+    const single = state.habits.find(h => h.id === filterTarget);
+    if (single) {
+      list = [single];
+      title = single.name + ' Details';
+      icon = '✨';
+      themeColor = single.color || '#007AFF';
     }
   }
 
-  // 4. Rectangular Widget (.accessoryRectangular)
-  const rectCirc = 2 * Math.PI * 15; // ~94.25
-  const rectOffset = rectCirc - (rectCirc * pct) / 100;
-  const rectRing = document.getElementById('ls-rect-ring');
-  if (rectRing) {
-    rectRing.style.strokeDasharray = rectCirc;
-    rectRing.style.strokeDashoffset = rectOffset;
-    rectRing.style.stroke = pct === 100 ? '#34C759' : '#007AFF';
+  const doneCount = list.filter(h => {
+    const rec = h.history && h.history[state.selectedDay];
+    return rec && (rec.done || rec.skipped || rec.usedShield);
+  }).length;
+  const pct = list.length > 0 ? Math.round((doneCount / list.length) * 100) : 0;
+  desc = doneCount + ' of ' + list.length + ' completed • ' + pct + '% accomplished';
+
+  let html =
+    '<div class="ls-popup-header">' +
+      '<div class="ls-popup-icon" style="background:' + themeColor + ';">' + icon + '</div>' +
+      '<div class="ls-popup-title-group">' +
+        '<h4 class="ls-popup-title">' + escapeHtml(title) + '</h4>' +
+        '<p class="ls-popup-desc">' + escapeHtml(desc) + '</p>' +
+      '</div>' +
+    '</div>' +
+    '<div class="ls-popup-progress-track">' +
+      '<div class="ls-popup-progress-fill" style="width:' + pct + '%; background:' + (pct === 100 ? '#34C759' : themeColor) + ';"></div>' +
+    '</div>' +
+    '<div class="ls-popup-items-list">';
+
+  if (list.length === 0) {
+    html += '<p style="text-align:center; color:rgba(255,255,255,0.6); padding:20px;">No scheduled tasks for this filter.</p>';
+  } else {
+    list.forEach(h => {
+      const rec = h.history && h.history[state.selectedDay];
+      const isDone = !!(rec && rec.done);
+      const isSkipped = !!(rec && rec.skipped);
+
+      let subDetail = escapeHtml(h.timeOfDay || 'anytime') + ' • ' + (h.repeatLabel || 'Every day');
+      if (h.subtasks && h.subtasks.length > 0) {
+        const completedSub = (rec && rec.completedSubtaskIds) ? rec.completedSubtaskIds.length : 0;
+        subDetail += ' • ' + completedSub + '/' + h.subtasks.length + ' steps';
+      }
+      if (h.type === 'amount' && h.targetAmount > 0) {
+        const amt = rec ? (rec.amount || 0) : 0;
+        subDetail += ' • ' + amt + '/' + h.targetAmount + ' ' + (h.unit || '');
+      }
+
+      const argFilter = typeof filterTarget === 'string' ? filterTarget : 'all';
+
+      html +=
+        '<div class="ls-popup-item">' +
+          '<div class="ls-popup-item-left">' +
+            '<div class="ls-popup-item-icon" style="background:' + (h.color || '#007AFF') + ';">' +
+              getIconSvg(h.icon, '#FFFFFF', 16) +
+            '</div>' +
+            '<div class="ls-popup-item-info">' +
+              '<h6 style="' + (isDone ? 'text-decoration:line-through; opacity:0.6;' : '') + '">' + escapeHtml(h.name) + '</h6>' +
+              '<span>' + subDetail + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<button type="button" class="ls-popup-check ' + (isDone ? 'done' : '') + '" onclick="toggleHabitFromLsPopup(' + h.id + ', &apos;' + argFilter + '&apos;)">' +
+            (isDone ? '✓' : '') +
+          '</button>' +
+        '</div>';
+    });
   }
-  const rectPct = document.getElementById('ls-rect-pct');
-  if (rectPct) rectPct.textContent = pct + '%';
 
-  const rectStreak = document.getElementById('ls-rect-streak');
-  if (rectStreak) rectStreak.textContent = '• 🔥' + streak + 'd';
+  html += '</div>';
 
-  const rectHabit = document.getElementById('ls-rect-habit');
-  if (rectHabit) {
-    if (pct === 100 && total > 0) {
-      rectHabit.textContent = 'All goals done! 🎉';
-    } else if (nextPending) {
-      rectHabit.textContent = nextPending.name;
-    } else {
-      rectHabit.textContent = 'Ready to plan';
+  html +=
+    '<div class="ls-popup-actions">';
+  if (doneCount < list.length) {
+    const argFilter = typeof filterTarget === 'string' ? filterTarget : 'all';
+    html += '<button type="button" class="ls-popup-btn primary" onclick="completeAllFromLsPopup(&apos;' + argFilter + '&apos;)">Complete All</button>';
+  }
+  html +=
+      '<button type="button" class="ls-popup-btn secondary" onclick="unlockAndOpenDueTasks(&apos;' + (typeof filterTarget === 'string' ? filterTarget : 'all') + '&apos;)">Open in App</button>' +
+      '<button type="button" class="ls-popup-btn secondary" onclick="closeLockscreenDetailPopup()">Done</button>' +
+    '</div>';
+
+  card.innerHTML = html;
+  backdrop.style.display = 'flex';
+}
+
+function closeLockscreenDetailPopup() {
+  const backdrop = document.getElementById('ls-detail-popup-backdrop');
+  if (backdrop) backdrop.style.display = 'none';
+}
+
+function toggleHabitFromLsPopup(habitId, filterTarget) {
+  state.toggleHabit(habitId, state.selectedDay);
+  sound.playClick();
+  updateLockScreenWidgets();
+  renderTodayScreen();
+  showCircleDetailPopup(filterTarget);
+}
+
+function completeAllFromLsPopup(filterTarget) {
+  const due = state.activeHabits.filter(h => state.isHabitDueOnDate(h, state.selectedDay));
+  let list = due;
+  if (['morning', 'afternoon', 'evening', 'anytime'].includes(filterTarget)) {
+    list = due.filter(h => h.timeOfDay === filterTarget);
+  }
+  list.forEach(h => {
+    const rec = h.history && h.history[state.selectedDay];
+    if (!rec || !rec.done) {
+      state.toggleHabit(h.id, state.selectedDay);
     }
-  }
-
-  const rectSub = document.getElementById('ls-rect-sub');
-  if (rectSub) {
-    rectSub.textContent = done + ' of ' + total + ' habits done';
-  }
+  });
+  sound.playSuccess();
+  confetti.burst();
+  updateLockScreenWidgets();
+  renderTodayScreen();
+  showCircleDetailPopup(filterTarget);
 }
 
 function toggleLockScreen() {
@@ -2565,10 +2745,12 @@ function toggleLockScreen() {
   if (!overlay) return;
 
   if (overlay.style.display === 'none' || !overlay.style.display) {
+    closeLockscreenDetailPopup();
     updateLockScreenWidgets();
     overlay.style.display = 'flex';
     if (btn) btn.style.background = 'rgba(255, 255, 255, 0.25)';
   } else {
+    closeLockscreenDetailPopup();
     overlay.style.display = 'none';
     if (btn) btn.style.background = '';
   }
@@ -2576,6 +2758,7 @@ function toggleLockScreen() {
 
 function unlockAndOpenDueTasks(filterTarget) {
   sound.playSuccess();
+  closeLockscreenDetailPopup();
   const overlay = document.getElementById('ios-lockscreen-overlay');
   const btn = document.getElementById('tool-lockscreen-btn');
   if (overlay) overlay.style.display = 'none';
@@ -2586,6 +2769,10 @@ function unlockAndOpenDueTasks(filterTarget) {
 }
 
 window.updateLockScreenWidgets = updateLockScreenWidgets;
+window.showCircleDetailPopup = showCircleDetailPopup;
+window.closeLockscreenDetailPopup = closeLockscreenDetailPopup;
+window.toggleHabitFromLsPopup = toggleHabitFromLsPopup;
+window.completeAllFromLsPopup = completeAllFromLsPopup;
 window.toggleLockScreen = toggleLockScreen;
 window.unlockAndOpenDueTasks = unlockAndOpenDueTasks;
 

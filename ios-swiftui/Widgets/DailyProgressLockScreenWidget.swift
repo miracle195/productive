@@ -123,61 +123,118 @@ struct LockScreenCircularWidgetView: View {
     }
 }
 
-// MARK: - 2. Lock Screen Rectangular Card (.accessoryRectangular)
+// MARK: - 2. Lock Screen Rectangular Card (.accessoryRectangular - Simplified Daily Focus with Circles)
 
 struct LockScreenRectangularWidgetView: View {
     let snapshot: WidgetDailySnapshot
     
     var body: some View {
-        let fraction = snapshot.totalDueCount > 0 ? Double(snapshot.completedCount) / Double(snapshot.totalDueCount) : 0.0
         let isAllDone = snapshot.totalDueCount > 0 && snapshot.completedCount >= snapshot.totalDueCount
+        let fraction = snapshot.totalDueCount > 0 ? Double(snapshot.completedCount) / Double(snapshot.totalDueCount) : 0.0
         
-        HStack(spacing: 8) {
-            Gauge(value: fraction) {
-                Text("\(snapshot.completedCount)/\(snapshot.totalDueCount)")
-            } currentValueLabel: {
-                if isAllDone {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 11, weight: .bold))
-                } else {
-                    Text("\(snapshot.completionPercentage)%")
-                        .font(.system(size: 9, weight: .bold, design: .rounded))
+        VStack(alignment: .leading, spacing: 4) {
+            // Header: Daily Focus + Streak + Fraction
+            HStack(spacing: 4) {
+                Text("Daily Focus")
+                    .font(.system(size: 11.5, weight: .heavy, design: .rounded))
+                if snapshot.streakDays > 0 {
+                    Text("• 🔥\(snapshot.streakDays)d")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
                 }
+                Spacer(minLength: 2)
+                Text("\(snapshot.completedCount)/\(snapshot.totalDueCount) • \(snapshot.completionPercentage)%")
+                    .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.secondary)
             }
-            .gaugeStyle(.accessoryCircularCapacity)
-            .frame(width: 40, height: 40)
             
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
-                    Text("Daily Focus")
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                    if snapshot.streakDays > 0 {
-                        Text("• 🔥\(snapshot.streakDays)d")
-                            .font(.system(size: 10, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.secondary)
+            // Simplified Circles Row (Tap any circle to elaborate details)
+            HStack(spacing: 8) {
+                // 1. Overall Daily Ring
+                Link(destination: URL(string: "productive://due-tasks?filter=all")!) {
+                    miniCircle(
+                        icon: isAllDone ? "checkmark" : "flame.fill",
+                        fraction: fraction,
+                        color: isAllDone ? .green : .white,
+                        label: "\(snapshot.completionPercentage)%"
+                    )
+                }
+                
+                // 2. Morning Routine Circle
+                if snapshot.morningTotal > 0 {
+                    Link(destination: URL(string: "productive://due-tasks?filter=routine_morning")!) {
+                        let mFrac = Double(snapshot.morningDone) / Double(snapshot.morningTotal)
+                        miniCircle(
+                            icon: snapshot.morningDone >= snapshot.morningTotal ? "checkmark" : "sunrise.fill",
+                            fraction: mFrac,
+                            color: snapshot.morningDone >= snapshot.morningTotal ? .green : .orange,
+                            label: "\(snapshot.morningDone)/\(snapshot.morningTotal)"
+                        )
                     }
                 }
                 
-                if let next = snapshot.nextDueHabitName, !next.isEmpty, !isAllDone {
-                    Text(next)
-                        .font(.system(size: 11.5, weight: .semibold, design: .rounded))
-                        .lineLimit(1)
-                } else if isAllDone {
-                    Text("All goals done! 🎉")
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("Ready to start")
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundStyle(.secondary)
+                // 3. Afternoon Routine Circle
+                if snapshot.afternoonTotal > 0 {
+                    Link(destination: URL(string: "productive://due-tasks?filter=routine_afternoon")!) {
+                        let aFrac = Double(snapshot.afternoonDone) / Double(snapshot.afternoonTotal)
+                        miniCircle(
+                            icon: snapshot.afternoonDone >= snapshot.afternoonTotal ? "checkmark" : "sun.max.fill",
+                            fraction: aFrac,
+                            color: snapshot.afternoonDone >= snapshot.afternoonTotal ? .green : .yellow,
+                            label: "\(snapshot.afternoonDone)/\(snapshot.afternoonTotal)"
+                        )
+                    }
                 }
                 
-                Text("\(snapshot.completedCount) of \(snapshot.totalDueCount) habits done")
-                    .font(.system(size: 9.5, weight: .regular, design: .rounded))
-                    .foregroundStyle(.secondary)
+                // 4. Evening Routine Circle
+                if snapshot.eveningTotal > 0 {
+                    Link(destination: URL(string: "productive://due-tasks?filter=routine_evening")!) {
+                        let eFrac = Double(snapshot.eveningDone) / Double(snapshot.eveningTotal)
+                        miniCircle(
+                            icon: snapshot.eveningDone >= snapshot.eveningTotal ? "checkmark" : "moon.stars.fill",
+                            fraction: eFrac,
+                            color: snapshot.eveningDone >= snapshot.eveningTotal ? .green : .indigo,
+                            label: "\(snapshot.eveningDone)/\(snapshot.eveningTotal)"
+                        )
+                    }
+                }
+                
+                // 5. Anytime Circle
+                if snapshot.anytimeTotal > 0 {
+                    Link(destination: URL(string: "productive://due-tasks?filter=routine_anytime")!) {
+                        let anFrac = Double(snapshot.anytimeDone) / Double(snapshot.anytimeTotal)
+                        miniCircle(
+                            icon: snapshot.anytimeDone >= snapshot.anytimeTotal ? "checkmark" : "clock.fill",
+                            fraction: anFrac,
+                            color: snapshot.anytimeDone >= snapshot.anytimeTotal ? .green : .blue,
+                            label: "\(snapshot.anytimeDone)/\(snapshot.anytimeTotal)"
+                        )
+                    }
+                }
             }
         }
         .widgetURL(URL(string: "productive://due-tasks?filter=all"))
+    }
+    
+    private func miniCircle(icon: String, fraction: Double, color: Color, label: String) -> some View {
+        VStack(spacing: 2) {
+            ZStack {
+                Circle()
+                    .stroke(Color.white.opacity(0.18), lineWidth: 2.5)
+                    .frame(width: 26, height: 26)
+                Circle()
+                    .trim(from: 0, to: CGFloat(fraction))
+                    .stroke(color, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                    .frame(width: 26, height: 26)
+                    .rotationEffect(.degrees(-90))
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(color)
+            }
+            Text(label)
+                .font(.system(size: 7.5, weight: .bold, design: .rounded))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
     }
 }
 

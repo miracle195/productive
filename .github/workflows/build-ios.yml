@@ -56,7 +56,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: v3.2.12-ios
-        name: Productive v3.2.12 Native SwiftUI iOS (Lock Screen & System Widgets, Due Tasks Deep Linking)
+        tag_name: v3.2.13-ios
+        name: Productive v3.2.13 Native SwiftUI iOS (Simplified Daily Focus Lock Screen Widget & Interactive Circles Elaboration Popup)
         files: ios-swiftui/build/Productive.ipa
       continue-on-error: true

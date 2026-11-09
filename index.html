@@ -113,43 +113,31 @@
                 <div class="lockscreen-clock" id="lockscreen-clock">09:41</div>
                 <div class="lockscreen-date" id="lockscreen-date">Monday, Nov 9</div>
 
-                <!-- Lock Screen Widgets Row (Imported System Widgets) -->
-                <div class="lockscreen-widgets-container">
-                  <div class="lockscreen-widgets-title-row">
-                    <span>LOCK SCREEN WIDGETS</span>
-                    <span class="ls-badge">Tap to pop up tasks</span>
+                <!-- SIMPLIFIED DAILY FOCUS WIDGET (Imported to Lock Screen) -->
+                <div class="lockscreen-daily-focus-widget" id="lockscreen-daily-focus-widget">
+                  <!-- Widget Header -->
+                  <div class="ls-focus-header">
+                    <div class="ls-focus-title-group">
+                      <span class="ls-focus-title">Daily Focus</span>
+                      <span class="ls-focus-streak-pill" id="ls-focus-streak">🔥 0d</span>
+                    </div>
+                    <span class="ls-focus-fraction" id="ls-focus-fraction">0 of 0 done • 0%</span>
                   </div>
-                  <div class="lockscreen-widgets-row">
-                    <!-- Circular Gauge Widget (.accessoryCircular) -->
-                    <div class="lockscreen-widget-circular" id="lockscreen-widget-circular" onclick="unlockAndOpenDueTasks('all')" title="Daily Progress Circular Widget - Tap to open due tasks">
-                      <svg class="ls-ring-svg" viewBox="0 0 52 52">
-                        <circle class="ls-ring-bg" cx="26" cy="26" r="21"/>
-                        <circle class="ls-ring-val" id="ls-circular-ring" cx="26" cy="26" r="21"/>
-                      </svg>
-                      <div class="ls-ring-center">
-                        <span class="ls-ring-icon" id="ls-circular-icon">🔥</span>
-                        <span class="ls-ring-val-text" id="ls-circular-text">0%</span>
-                      </div>
-                    </div>
 
-                    <!-- Rectangular Widget (.accessoryRectangular) -->
-                    <div class="lockscreen-widget-rectangular" id="lockscreen-widget-rectangular" onclick="unlockAndOpenDueTasks('all')" title="Daily Focus Rectangular Widget - Tap to open due tasks">
-                      <div class="ls-rect-gauge-box">
-                        <svg class="ls-rect-svg" viewBox="0 0 38 38">
-                          <circle class="ls-ring-bg" cx="19" cy="19" r="15"/>
-                          <circle class="ls-ring-val" id="ls-rect-ring" cx="19" cy="19" r="15"/>
-                        </svg>
-                        <span class="ls-rect-pct" id="ls-rect-pct">0%</span>
-                      </div>
-                      <div class="ls-rect-info">
-                        <div class="ls-rect-header">
-                          <span class="ls-rect-title">Daily Focus</span>
-                          <span class="ls-rect-streak" id="ls-rect-streak">• 🔥0d</span>
-                        </div>
-                        <div class="ls-rect-habit" id="ls-rect-habit">All habits done! 🎉</div>
-                        <div class="ls-rect-sub" id="ls-rect-sub">0 of 0 habits done</div>
-                      </div>
-                    </div>
+                  <!-- Interactive Circles Row (Daily Progress, Routines & Habits) -->
+                  <div class="ls-focus-circles-row" id="ls-focus-circles-row">
+                    <!-- Populated dynamically with interactive circles -->
+                  </div>
+
+                  <div class="ls-focus-footer-hint">
+                    Tap any circle to view &amp; elaborate details 🔍
+                  </div>
+                </div>
+
+                <!-- Lock Screen Circle Details Popup Modal -->
+                <div class="ls-detail-popup-backdrop" id="ls-detail-popup-backdrop" style="display:none;" onclick="closeLockscreenDetailPopup()">
+                  <div class="ls-detail-popup-card" id="ls-detail-popup-card" onclick="event.stopPropagation()">
+                    <!-- Populated dynamically by showCircleDetailPopup() -->
                   </div>
                 </div>
               </div>
