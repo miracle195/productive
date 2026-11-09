@@ -236,7 +236,7 @@ public class HabitStore: ObservableObject {
         let anytimeHabits = effectiveDueHabits.filter { $0.timeOfDay == .anytime }
         let anytimeDone = anytimeHabits.filter { $0.isCompleted(on: tKey) || $0.isSkipped(on: tKey) }.count
         
-        let nextPending = dueHabits.first(where: { !$0.isCompleted(on: tKey) && !$0.isSkipped(on: tKey) })
+        let nextPending = effectiveDueHabits.first(where: { !$0.isCompleted(on: tKey) && !$0.isSkipped(on: tKey) })
         
         let snapshot = WidgetDailySnapshot(
             dateKey: tKey,

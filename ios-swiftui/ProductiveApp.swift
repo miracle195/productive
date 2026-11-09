@@ -28,7 +28,7 @@ struct ProductiveApp: App {
                     handleDeepLink(url)
                 }
         }
-        .onChange(of: scenePhase) { newPhase in
+        .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 habitStore.syncWidgetSnapshot()
             }
