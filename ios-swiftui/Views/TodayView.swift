@@ -253,26 +253,32 @@ public struct TodayView: View {
                         .font(.system(size: 11, weight: .bold, design: .rounded))
                         .foregroundStyle(.secondary)
                         .tracking(0.6)
+                        .lineLimit(1)
                     
                     HStack(alignment: .center, spacing: 8) {
                         Button {
                             refocusToToday()
                         } label: {
                             Text(headerDateTitle)
-                                .font(.system(size: 29, weight: .heavy, design: .rounded))
+                                .font(.system(size: 28, weight: .heavy, design: .rounded))
                                 .foregroundStyle(.primary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                                .fixedSize(horizontal: true, vertical: false)
                         }
                         .buttonStyle(.plain)
+                        .layoutPriority(2)
                         
                         if !isViewingToday {
                             Button {
                                 refocusToToday()
                             } label: {
-                                HStack(spacing: 3) {
+                                HStack(spacing: 3.5) {
                                     Image(systemName: "arrow.uturn.backward")
                                         .font(.system(size: 10, weight: .heavy))
                                     Text("Today")
                                         .font(.system(size: 12, weight: .bold, design: .rounded))
+                                        .lineLimit(1)
                                 }
                                 .foregroundStyle(Color(hex: "#FF7450"))
                                 .padding(.horizontal, 9)
@@ -282,30 +288,20 @@ public struct TodayView: View {
                                     Capsule()
                                         .stroke(Color(hex: "#FF7450").opacity(0.35), lineWidth: 0.8)
                                 )
+                                .fixedSize(horizontal: true, vertical: false)
                             }
                             .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.92))
+                            .layoutPriority(1)
                             .transition(.scale(scale: 0.86).combined(with: .opacity))
                         }
                     }
                 }
+                .layoutPriority(1)
                 
-                Spacer(minLength: 4)
+                Spacer(minLength: 8)
                 
-                // Trailing: Freeze Shields + Search Toggle + Calendar + Menu + Add
-                HStack(spacing: 7) {
-                    // Freeze Shield Pill
-                    HStack(spacing: 3.5) {
-                        Image(systemName: "snowflake")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.cyan)
-                        Text("\(habitStore.streakFreezeShields)")
-                            .font(.system(size: 13, weight: .heavy, design: .rounded))
-                            .contentTransition(.numericText())
-                    }
-                    .padding(.horizontal, 9)
-                    .frame(height: 34)
-                    .background(Color.cyan.opacity(0.14), in: Capsule())
-                    
+                // Trailing: Search Toggle + Calendar Jump + Add Habit (Snow & Three-Dots removed!)
+                HStack(spacing: 8) {
                     // Search Button [🔍]
                     Button {
                         withAnimation(.snappy(duration: 0.22)) {
@@ -314,9 +310,9 @@ public struct TodayView: View {
                         habitStore.triggerHaptic(.light)
                     } label: {
                         Image(systemName: "magnifyingglass")
-                            .font(.system(size: 13.5, weight: .bold))
+                            .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(isSearchVisible ? Color.accentColor : Color.primary)
-                            .frame(width: 34, height: 34)
+                            .frame(width: 36, height: 36)
                             .background(Color(.secondarySystemGroupedBackground), in: Circle())
                             .overlay(
                                 Circle()
@@ -333,58 +329,13 @@ public struct TodayView: View {
                         habitStore.triggerHaptic(.light)
                     } label: {
                         Image(systemName: "calendar")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: 14.5, weight: .bold))
                             .foregroundStyle(Color.primary)
-                            .frame(width: 34, height: 34)
+                            .frame(width: 36, height: 36)
                             .background(Color(.secondarySystemGroupedBackground), in: Circle())
                     }
                     .buttonStyle(TactileScaleButtonStyle())
                     .accessibilityLabel("Jump to Date")
-                    
-                    // Quick Menu Button [...]
-                    Menu {
-                        Button {
-                            withAnimation(.snappy) {
-                                listEditMode = (listEditMode == .active) ? .inactive : .active
-                            }
-                        } label: {
-                            Label(
-                                listEditMode == .active ? "Done Reordering" : "Reorder Habits",
-                                systemImage: listEditMode == .active ? "checkmark.circle" : "arrow.up.arrow.down"
-                            )
-                        }
-                        
-                        Button {
-                            habitStore.vacationModeEnabled.toggle()
-                        } label: {
-                            Label(
-                                habitStore.vacationModeEnabled ? "Disable Vacation Mode" : "Enable Vacation Mode",
-                                systemImage: "beach.umbrella"
-                            )
-                        }
-                        
-                        Button {
-                            _ = habitStore.quickLogNextDueHabit()
-                        } label: {
-                            Label("Quick Log Next Habit", systemImage: "bolt.fill")
-                        }
-                        
-                        Divider()
-                        
-                        Button {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                habitStore.seedRichDemoData()
-                            }
-                        } label: {
-                            Label("Load Rich Demo Habits", systemImage: "sparkles")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.system(size: 13.5, weight: .bold))
-                            .foregroundStyle(.primary)
-                            .frame(width: 34, height: 34)
-                            .background(Color(.secondarySystemGroupedBackground), in: Circle())
-                    }
                     
                     // Primary Add Habit Button [+]
                     Button {
@@ -393,9 +344,9 @@ public struct TodayView: View {
                         habitStore.triggerHaptic(.medium)
                     } label: {
                         Image(systemName: "plus")
-                            .font(.system(size: 15.5, weight: .heavy))
+                            .font(.system(size: 16, weight: .heavy))
                             .foregroundStyle(.white)
-                            .frame(width: 36, height: 36)
+                            .frame(width: 38, height: 38)
                             .background(
                                 LinearGradient(
                                     colors: [Color(hex: "#007AFF"), Color(hex: "#5856D6")],
@@ -429,9 +380,11 @@ public struct TodayView: View {
                         Text("Viewing \(activeDateContextName) (\(statusText))")
                             .font(.system(size: 13, weight: .bold, design: .rounded))
                             .foregroundStyle(Color(hex: "#B45309"))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
                     }
                     
-                    Spacer()
+                    Spacer(minLength: 6)
                     
                     Button {
                         refocusToToday()
@@ -441,6 +394,7 @@ public struct TodayView: View {
                                 .font(.system(size: 10, weight: .heavy))
                             Text("Today")
                                 .font(.system(size: 11.5, weight: .bold, design: .rounded))
+                                .lineLimit(1)
                         }
                         .foregroundStyle(Color(hex: "#9A3412"))
                         .padding(.horizontal, 9)
@@ -449,6 +403,7 @@ public struct TodayView: View {
                         .overlay(
                             Capsule().stroke(Color.orange.opacity(0.35), lineWidth: 0.8)
                         )
+                        .fixedSize(horizontal: true, vertical: false)
                     }
                     .buttonStyle(TactileScaleButtonStyle(pressedScale: 0.92))
                 }
