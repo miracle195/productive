@@ -541,9 +541,19 @@ public struct Habit: Identifiable, Codable, Equatable {
         return isCompleted(on: key) ? 1 : 0
     }
     
+    public func periodicCompletedCount(on dateKey: String, calendar: Calendar = .current) -> Int {
+        let d = Self.isoDateFormatter.date(from: dateKey) ?? Date()
+        return periodicCompletedCount(on: d, calendar: calendar)
+    }
+    
     public func isPeriodicAccomplished(on date: Date, calendar: Calendar = .current) -> Bool {
         guard frequency.isPeriodic else { return false }
         return periodicCompletedCount(on: date, calendar: calendar) >= periodicTargetCount
+    }
+    
+    public func isPeriodicAccomplished(on dateKey: String, calendar: Calendar = .current) -> Bool {
+        let d = Self.isoDateFormatter.date(from: dateKey) ?? Date()
+        return isPeriodicAccomplished(on: d, calendar: calendar)
     }
     
     public func isDue(on date: Date, calendar: Calendar = .current) -> Bool {

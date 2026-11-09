@@ -1109,6 +1109,7 @@ public class HabitStore: ObservableObject {
             repeatSchedule: "Every day",
             createdAt: d4
         )
+        water.history[d4Key] = HabitDayRecord(isCompleted: true, amount: 2000)
         water.history[d3Key] = HabitDayRecord(isCompleted: true, amount: 2000)
         water.history[d2Key] = HabitDayRecord(isCompleted: true, amount: 2000, note: "Felt super hydrated after morning walk!", mood: .great)
         water.history[d1Key] = HabitDayRecord(isCompleted: false, amount: 1500)

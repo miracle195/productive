@@ -20,6 +20,10 @@ public struct HabitCardView: View {
         dateKey.isEmpty ? habitStore.todayKey : dateKey
     }
     
+    private var activeDate: Date {
+        Habit.isoDateFormatter.date(from: activeDateKey) ?? Date()
+    }
+    
     private var liveHabit: Habit {
         habitStore.habits.first(where: { $0.id == habit.id }) ?? habit
     }
