@@ -5,7 +5,9 @@
 	<key>com.apple.security.application-groups</key>
 	<array>
 		<string>group.com.apalon.productive.tracker</string>
+		<string>group.com.apalon.productive.tracker.widgets</string>
+		<string>group.com.rileytestut.AltStore</string>
+		<string>group.sideloadly</string>
 	</array>
 </dict>
 </plist>
-

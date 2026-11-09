@@ -38,7 +38,7 @@ jobs:
                    CODE_SIGNING_ALLOWED=NO \
                    archive
 
-        # Package into unsigned Payload/Productive.app IPA with App Group Entitlements
+        # Package into Payload/Productive.app IPA with embedded App Group Entitlements
         mkdir -p build/Payload
         cp -r build/Productive.xcarchive/Products/Applications/Productive.app build/Payload/
         cp Productive.entitlements build/Payload/Productive.app/Productive.entitlements || true
@@ -46,7 +46,11 @@ jobs:
         if [ -d "build/Payload/Productive.app/PlugIns/ProductiveWidgets.appex" ]; then
           cp Widgets/ProductiveWidgets.entitlements build/Payload/Productive.app/PlugIns/ProductiveWidgets.appex/ProductiveWidgets.entitlements || true
           cp Widgets/ProductiveWidgets.entitlements build/Payload/Productive.app/PlugIns/ProductiveWidgets.appex/archived-expanded-entitlements.xcent || true
+          # Ad-hoc sign widget extension to embed App Group entitlements directly into Mach-O header
+          codesign -s - --force --entitlements Widgets/ProductiveWidgets.entitlements build/Payload/Productive.app/PlugIns/ProductiveWidgets.appex || true
         fi
+        # Ad-hoc sign main app to embed App Group entitlements directly into Mach-O header
+        codesign -s - --force --entitlements Productive.entitlements build/Payload/Productive.app || true
         cd build
         zip -r Productive.ipa Payload
         echo "IPA successfully packaged at ios-swiftui/build/Productive.ipa"
@@ -62,7 +66,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: v3.2.17-ios
-        name: Productive v3.2.17 Native SwiftUI iOS (Real-time Live Sync of Due & Completed Period Counts)
+        tag_name: v3.2.18-ios
+        name: Productive v3.2.18 Native SwiftUI iOS (Accurate Lock Screen Widget Done Sync & Resilient Routine Circles)
         files: ios-swiftui/build/Productive.ipa
       continue-on-error: true

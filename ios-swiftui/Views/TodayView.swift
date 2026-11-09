@@ -288,7 +288,7 @@ public struct TodayView: View {
                                 .font(.system(size: 28, weight: .heavy, design: .rounded))
                                 .foregroundStyle(.primary)
                                 .lineLimit(1)
-                                .minimumScaleFactor(0.85)
+                                .minimumScaleFactor(0.70)
                                 .fixedSize(horizontal: true, vertical: false)
                         }
                         .buttonStyle(.plain)

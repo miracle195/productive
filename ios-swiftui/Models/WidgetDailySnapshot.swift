@@ -126,22 +126,22 @@ public struct WidgetDailySnapshot: Codable, Equatable {
         WidgetDailySnapshot(
             dateKey: "2026-11-09",
             totalDueCount: 4,
-            completedCount: 0,
-            completionPercentage: 0,
-            streakDays: 0,
-            topStreakDays: 0,
+            completedCount: 2,
+            completionPercentage: 50,
+            streakDays: 4,
+            topStreakDays: 12,
             morningTotal: 2,
-            morningDone: 0,
+            morningDone: 2,
             afternoonTotal: 0,
             afternoonDone: 0,
             eveningTotal: 2,
             eveningDone: 0,
             anytimeTotal: 0,
             anytimeDone: 0,
-            nextDueHabitName: "Brush & floss teeth",
+            nextDueHabitName: "استخدم نانوأكسديل",
             nextDueHabitIcon: "sparkles",
-            nextDueHabitColorHex: "#FF9500",
-            nextDueHabitTimeOfDay: "Morning",
+            nextDueHabitColorHex: "#5856D6",
+            nextDueHabitTimeOfDay: "Evening",
             lastUpdated: Date()
         )
     }
@@ -150,22 +150,22 @@ public struct WidgetDailySnapshot: Codable, Equatable {
         WidgetDailySnapshot(
             dateKey: "2026-11-09",
             totalDueCount: 4,
-            completedCount: 1,
-            completionPercentage: 25,
+            completedCount: 2,
+            completionPercentage: 50,
             streakDays: 4,
             topStreakDays: 12,
             morningTotal: 2,
-            morningDone: 1,
+            morningDone: 2,
             afternoonTotal: 0,
             afternoonDone: 0,
             eveningTotal: 2,
             eveningDone: 0,
             anytimeTotal: 0,
             anytimeDone: 0,
-            nextDueHabitName: "Brush & floss teeth",
+            nextDueHabitName: "استخدم نانوأكسديل",
             nextDueHabitIcon: "sparkles",
-            nextDueHabitColorHex: "#FF9500",
-            nextDueHabitTimeOfDay: "Morning",
+            nextDueHabitColorHex: "#5856D6",
+            nextDueHabitTimeOfDay: "Evening",
             lastUpdated: Date()
         )
     }
@@ -178,23 +178,34 @@ public enum WidgetSnapshotStore {
     
     /// Parses provisioned AppGroup identifiers directly from embedded.mobileprovision if signed by AltStore/Sideloadly
     private static func appGroupsFromProvisioningProfile() -> [String] {
-        guard let url = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision"),
-              let data = try? Data(contentsOf: url),
-              let string = String(data: data, encoding: .isoLatin1) else {
-            return []
+        var profileURLs: [URL] = []
+        if let direct = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision") {
+            profileURLs.append(direct)
         }
+        // In app extension, Bundle.main is .../Productive.app/PlugIns/ProductiveWidgets.appex
+        let parentApp = Bundle.main.bundleURL.deletingLastPathComponent().deletingLastPathComponent()
+        let parentProfile = parentApp.appendingPathComponent("embedded.mobileprovision")
+        if FileManager.default.fileExists(atPath: parentProfile.path) {
+            profileURLs.append(parentProfile)
+        }
+        
         var groups: [String] = []
-        if let range = string.range(of: "<key>com.apple.security.application-groups</key>") {
-            let remainder = string[range.upperBound...]
-            if let arrayStart = remainder.range(of: "<array>"),
-               let arrayEnd = remainder.range(of: "</array>") {
-                let arrayContent = String(remainder[arrayStart.upperBound..<arrayEnd.lowerBound])
-                let pattern = "<string>([^<]+)</string>"
-                if let regex = try? NSRegularExpression(pattern: pattern) {
-                    let matches = regex.matches(in: arrayContent, range: NSRange(location: 0, length: arrayContent.utf16.count))
-                    for match in matches {
-                        if let stringRange = Range(match.range(at: 1), in: arrayContent) {
-                            groups.append(String(arrayContent[stringRange]))
+        for url in profileURLs {
+            guard let data = try? Data(contentsOf: url),
+                  let string = String(data: data, encoding: .isoLatin1) else { continue }
+            if let range = string.range(of: "<key>com.apple.security.application-groups</key>") {
+                let remainder = string[range.upperBound...]
+                if let arrayStart = remainder.range(of: "<array>"),
+                   let arrayEnd = remainder.range(of: "</array>") {
+                    let arrayContent = String(remainder[arrayStart.upperBound..<arrayEnd.lowerBound])
+                    let pattern = "<string>([^<]+)</string>"
+                    if let regex = try? NSRegularExpression(pattern: pattern) {
+                        let matches = regex.matches(in: arrayContent, range: NSRange(location: 0, length: arrayContent.utf16.count))
+                        for match in matches {
+                            if let stringRange = Range(match.range(at: 1), in: arrayContent) {
+                                let g = String(arrayContent[stringRange])
+                                if !groups.contains(g) { groups.append(g) }
+                            }
                         }
                     }
                 }
@@ -210,16 +221,29 @@ public enum WidgetSnapshotStore {
         for g in appGroupsFromProvisioningProfile() {
             if !ids.contains(g) { ids.append(g) }
         }
-        // 2. Primary configured group
+        // 2. Primary configured groups
         if !ids.contains(primaryAppGroupId) { ids.append(primaryAppGroupId) }
+        if !ids.contains("group.com.apalon.productive.tracker.widgets") {
+            ids.append("group.com.apalon.productive.tracker.widgets")
+        }
         // 3. Derived bundle groups (both app and extension)
         if let baseId = Bundle.main.bundleIdentifier {
-            let cleanBase = baseId.replacingOccurrences(of: ".widgets", with: "").replacingOccurrences(of: ".Widgets", with: "")
+            let cleanBase = baseId
+                .replacingOccurrences(of: ".widgets", with: "")
+                .replacingOccurrences(of: ".Widgets", with: "")
+                .replacingOccurrences(of: ".appex", with: "")
             let dynamicGroup = "group.\(cleanBase)"
             if !ids.contains(dynamicGroup) { ids.append(dynamicGroup) }
+            let dynamicWidgetsGroup = "group.\(cleanBase).widgets"
+            if !ids.contains(dynamicWidgetsGroup) { ids.append(dynamicWidgetsGroup) }
         }
-        // 4. Common AltStore/SideStore AppGroup aliases
-        let commonGroups = ["group.com.rileytestut.AltStore", "group.sideloadly"]
+        // 4. Common AltStore/SideStore/Sideloadly AppGroup aliases
+        let commonGroups = [
+            "group.com.rileytestut.AltStore",
+            "group.sideloadly",
+            "group.com.scarlet",
+            "group.trollstore"
+        ]
         for cg in commonGroups {
             if !ids.contains(cg) { ids.append(cg) }
         }

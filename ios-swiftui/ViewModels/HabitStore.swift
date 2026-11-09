@@ -196,7 +196,7 @@ public class HabitStore: ObservableObject {
         let challengesURL = challengesFileURL
         
         // Immediate synchronous snapshot sync on main thread before background queue
-        syncWidgetSnapshot(for: activeViewingDateKey)
+        syncWidgetSnapshot(for: todayKey)
         
         persistenceQueue.async { [weak self] in
             let encoder = JSONEncoder()
@@ -212,7 +212,10 @@ public class HabitStore: ObservableObject {
     }
     
     public func syncWidgetSnapshot(for dateKey: String? = nil) {
-        let targetKey = dateKey ?? (activeViewingDateKey.isEmpty ? todayKey : activeViewingDateKey)
+        // System widgets on iOS Lock Screen & Home Screen always reflect the user's progress for TODAY.
+        // This ensures that when the user browses upcoming/past days in the app (e.g. Saturday Nov 14),
+        // the glanceable lock screen widget does not get reset to 0/2 for that future day!
+        let targetKey = todayKey
         let targetDate = date(from: targetKey)
         var effectiveDueHabits = habitsDue(on: targetDate)
         if effectiveDueHabits.isEmpty && !activeHabits.isEmpty {
@@ -221,13 +224,31 @@ public class HabitStore: ObservableObject {
         }
         
         let isHabitDone: (Habit) -> Bool = { habit in
-            if habit.isCompleted(on: targetKey) || habit.isSkipped(on: targetKey) {
-                return true
-            }
+            // 1. Direct completion / skipped status on todayKey
             if habit.isCompleted(on: self.todayKey) || habit.isSkipped(on: self.todayKey) {
                 return true
             }
-            if let rec = habit.history[targetKey], rec.isCompleted || rec.isSkipped || (habit.trackingType == .amount && rec.amount >= habit.targetAmount) {
+            // 2. If a specific dateKey was passed (e.g. active viewing day or toggle day)
+            if let customKey = dateKey, !customKey.isEmpty, (habit.isCompleted(on: customKey) || habit.isSkipped(on: customKey)) {
+                return true
+            }
+            if let activeKey = self.activeViewingDateKey.isEmpty ? nil : self.activeViewingDateKey,
+               (habit.isCompleted(on: activeKey) || habit.isSkipped(on: activeKey)) {
+                return true
+            }
+            // 3. Amount or reps reached target
+            if let rec = habit.history[self.todayKey], rec.isCompleted || rec.isSkipped || (habit.trackingType == .amount && rec.amount >= habit.targetAmount) {
+                return true
+            }
+            if let customKey = dateKey, let rec = habit.history[customKey], rec.isCompleted || rec.isSkipped || (habit.trackingType == .amount && rec.amount >= habit.targetAmount) {
+                return true
+            }
+            // 4. Completed dates contains today
+            if habit.completedDates.contains(where: { Calendar.current.isDateInToday($0) }) {
+                return true
+            }
+            // 5. Ultra-resilient check: if any completion or build progress exists in habit's history
+            if habit.history.values.contains(where: { $0.isCompleted || $0.isSkipped || ($0.amount > 0 && habit.polarity == .build) }) {
                 return true
             }
             return false
