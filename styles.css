@@ -3233,78 +3233,41 @@ body {
 }
 
 /* ==========================================================================
-   SIMPLIFIED DAILY FOCUS WIDGET (LOCK SCREEN & SYSTEM WIDGETS)
+   PERIOD CIRCLES CARD WIDGET (LOCK SCREEN & SYSTEM WIDGETS)
    ========================================================================== */
 
 .lockscreen-daily-focus-widget {
   width: 100%;
   max-width: 335px;
-  background: rgba(255, 255, 255, 0.12);
+  min-height: 88px;
+  background: rgba(255, 255, 255, 0.14);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
   border-radius: 22px;
-  padding: 13px 14px 10px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.45);
-  display: flex;
-  flex-direction: column;
-}
-
-.ls-focus-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 11px;
-}
-
-.ls-focus-title-group {
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
-}
-
-.ls-focus-title {
-  font-size: 14px;
-  font-weight: 800;
-  color: #FFFFFF;
-  letter-spacing: -0.2px;
-}
-
-.ls-focus-streak-pill {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: #FF9500;
-  background: rgba(255, 149, 0, 0.2);
-  padding: 2px 7px;
-  border-radius: 8px;
-  margin-left: 6px;
-  border: 1px solid rgba(255, 149, 0, 0.3);
-}
-
-.ls-focus-fraction {
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.78);
+  justify-content: center;
 }
 
 .ls-focus-circles-row {
   display: flex;
-  gap: 8px;
+  width: 100%;
   align-items: center;
-  justify-content: flex-start;
-  overflow-x: auto;
-  padding: 2px 2px 8px 2px;
-  scrollbar-width: none;
-}
-.ls-focus-circles-row::-webkit-scrollbar {
-  display: none;
+  justify-content: space-evenly;
+  gap: 10px;
+  padding: 0;
 }
 
 .ls-circle-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 54px;
-  flex-shrink: 0;
+  justify-content: center;
+  flex: 1;
+  max-width: 78px;
   background: none;
   border: none;
   cursor: pointer;
@@ -3313,33 +3276,33 @@ body {
   user-select: none;
 }
 .ls-circle-item:active {
-  transform: scale(0.88);
+  transform: scale(0.90);
 }
 
 .ls-circle-ring-box {
   position: relative;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .ls-circle-svg {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   transform: rotate(-90deg);
 }
 
 .ls-circle-bg {
   fill: none;
   stroke: rgba(255, 255, 255, 0.18);
-  stroke-width: 3.5;
+  stroke-width: 3.8;
 }
 
 .ls-circle-val {
   fill: none;
-  stroke-width: 3.5;
+  stroke-width: 3.8;
   stroke-linecap: round;
   transition: stroke-dashoffset 0.4s ease;
 }
@@ -3349,39 +3312,29 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 17px;
   font-weight: 800;
   color: #FFFFFF;
   pointer-events: none;
 }
 
 .ls-circle-label {
-  font-size: 10px;
+  font-size: 11.5px;
   font-weight: 700;
   color: #FFFFFF;
-  margin-top: 4px;
+  margin-top: 5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 52px;
   text-align: center;
 }
 
 .ls-circle-sub {
-  font-size: 9px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.72);
-  line-height: 1.1;
-  text-align: center;
-}
-
-.ls-focus-footer-hint {
   font-size: 10px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.78);
+  margin-top: 1px;
   text-align: center;
-  margin-top: 4px;
-  letter-spacing: 0.02em;
 }
 
 /* ==========================================================================

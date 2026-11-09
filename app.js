@@ -2495,37 +2495,11 @@ function updateLockScreenWidgets() {
     inlineEl.textContent = '🔥 ' + streak + 'd • ' + done + ' of ' + total + ' habits done (' + pct + '%)';
   }
 
-  // 3. Simplified Daily Focus Widget Header
-  const streakPill = document.getElementById('ls-focus-streak');
-  if (streakPill) streakPill.textContent = '🔥 ' + streak + 'd';
-
-  const fractionEl = document.getElementById('ls-focus-fraction');
-  if (fractionEl) fractionEl.textContent = done + ' of ' + total + ' done • ' + pct + '%';
-
-  // 4. Interactive Circles Row
+  // 3. Period Circles Card Row (Fills area like a card, showing only periods containing tasks today)
   const circlesRow = document.getElementById('ls-focus-circles-row');
   if (circlesRow) {
-    const circ = 2 * Math.PI * 18; // ~113.1
-    const heroOffset = circ - (circ * pct) / 100;
-    const isAllDone = total > 0 && done === total;
+    const circ = 2 * Math.PI * 20; // ~125.66 for r=20 in 48x48 box
 
-    let circlesHtml = '';
-
-    // Circle A: Main Hero Daily Progress Circle
-    circlesHtml +=
-      '<button type="button" class="ls-circle-item" onclick="showCircleDetailPopup(&apos;all&apos;, event)" title="Daily Progress Focus (' + done + '/' + total + ')">' +
-        '<div class="ls-circle-ring-box">' +
-          '<svg class="ls-circle-svg" viewBox="0 0 44 44">' +
-            '<circle class="ls-circle-bg" cx="22" cy="22" r="18"/>' +
-            '<circle class="ls-circle-val" cx="22" cy="22" r="18" style="stroke:' + (isAllDone ? '#34C759' : '#007AFF') + '; stroke-dasharray:' + circ + '; stroke-dashoffset:' + heroOffset + ';"/>' +
-          '</svg>' +
-          '<span class="ls-circle-center">' + (isAllDone ? '✓' : pct + '%') + '</span>' +
-        '</div>' +
-        '<span class="ls-circle-label">Daily</span>' +
-        '<span class="ls-circle-sub" style="color:' + (isAllDone ? '#34C759' : 'inherit') + ';">' + done + '/' + total + '</span>' +
-      '</button>';
-
-    // Circle B: Routine Circles
     const routines = [
       { key: 'morning', label: 'Morning', icon: '🌅', color: '#FF9500' },
       { key: 'afternoon', label: 'Afternoon', icon: '☀️', color: '#FF7450' },
@@ -2533,52 +2507,40 @@ function updateLockScreenWidgets() {
       { key: 'anytime', label: 'Anytime', icon: '⏰', color: '#007AFF' }
     ];
 
-    routines.forEach(rt => {
-      const list = due.filter(h => h.timeOfDay === rt.key);
-      if (list.length === 0) return;
-      const rtDone = list.filter(h => {
-        const rec = h.history && h.history[state.selectedDay];
-        return rec && (rec.done || rec.skipped || rec.usedShield);
-      }).length;
-      const rtPct = Math.round((rtDone / list.length) * 100);
-      const rtOffset = circ - (circ * rtPct) / 100;
-      const rtAllDone = rtDone === list.length;
-
-      circlesHtml +=
-        '<button type="button" class="ls-circle-item" onclick="showCircleDetailPopup(&apos;' + rt.key + '&apos;, event)" title="' + rt.label + ' Routine (' + rtDone + '/' + list.length + ')">' +
-          '<div class="ls-circle-ring-box">' +
-            '<svg class="ls-circle-svg" viewBox="0 0 44 44">' +
-              '<circle class="ls-circle-bg" cx="22" cy="22" r="18"/>' +
-              '<circle class="ls-circle-val" cx="22" cy="22" r="18" style="stroke:' + (rtAllDone ? '#34C759' : rt.color) + '; stroke-dasharray:' + circ + '; stroke-dashoffset:' + rtOffset + ';"/>' +
-            '</svg>' +
-            '<span class="ls-circle-center">' + (rtAllDone ? '✓' : rt.icon) + '</span>' +
-          '</div>' +
-          '<span class="ls-circle-label">' + rt.label + '</span>' +
-          '<span class="ls-circle-sub" style="color:' + (rtAllDone ? '#34C759' : 'inherit') + ';">' + rtDone + '/' + list.length + '</span>' +
-        '</button>';
+    // ONLY show the periods chosen that contain tasks on this day!
+    const activeRoutines = routines.filter(rt => {
+      return due.some(h => h.timeOfDay === rt.key);
     });
 
-    // Circle C: Individual Habit Avatars (up to 4 habits)
-    due.slice(0, 5).forEach(habit => {
-      const rec = habit.history && habit.history[state.selectedDay];
-      const isHDone = !!(rec && rec.done);
-      const isHSkipped = !!(rec && rec.skipped);
-      const progress = isHDone ? 1.0 : (isHSkipped ? 1.0 : (habit.type === 'amount' && habit.targetAmount > 0 ? Math.min(1.0, (rec ? (rec.amount || 0) : 0) / habit.targetAmount) : 0.0));
-      const hOffset = circ - (circ * progress);
+    let circlesHtml = '';
 
-      circlesHtml +=
-        '<button type="button" class="ls-circle-item" onclick="showCircleDetailPopup(' + habit.id + ', event)" title="' + escapeHtml(habit.name) + '">' +
-          '<div class="ls-circle-ring-box">' +
-            '<svg class="ls-circle-svg" viewBox="0 0 44 44">' +
-              '<circle class="ls-circle-bg" cx="22" cy="22" r="18"/>' +
-              '<circle class="ls-circle-val" cx="22" cy="22" r="18" style="stroke:' + (isHDone ? '#34C759' : (habit.color || '#007AFF')) + '; stroke-dasharray:' + circ + '; stroke-dashoffset:' + hOffset + ';"/>' +
-            '</svg>' +
-            '<span class="ls-circle-center" style="font-size:12px;">' + (isHDone ? '✓' : getIconSvg(habit.icon, habit.color || '#007AFF', 16)) + '</span>' +
-          '</div>' +
-          '<span class="ls-circle-label">' + escapeHtml(habit.name) + '</span>' +
-          '<span class="ls-circle-sub" style="color:' + (isHDone ? '#34C759' : (isHSkipped ? '#32ADE6' : 'inherit')) + ';">' + (isHDone ? 'Done' : (isHSkipped ? 'Skip' : (habit.repeatLabel || 'Due'))) + '</span>' +
-        '</button>';
-    });
+    if (activeRoutines.length === 0) {
+      circlesHtml = '<div style="color:rgba(255,255,255,0.7); font-size:12px; font-weight:600; padding:12px; text-align:center;">No scheduled tasks for this day</div>';
+    } else {
+      activeRoutines.forEach(rt => {
+        const list = due.filter(h => h.timeOfDay === rt.key);
+        const rtDone = list.filter(h => {
+          const rec = h.history && h.history[state.selectedDay];
+          return rec && (rec.done || rec.skipped || rec.usedShield);
+        }).length;
+        const rtPct = Math.round((rtDone / list.length) * 100);
+        const rtOffset = circ - (circ * rtPct) / 100;
+        const rtAllDone = rtDone === list.length;
+
+        circlesHtml +=
+          '<button type="button" class="ls-circle-item" onclick="showCircleDetailPopup(&apos;' + rt.key + '&apos;, event)" title="' + rt.label + ' (' + rtDone + '/' + list.length + ')">' +
+            '<div class="ls-circle-ring-box">' +
+              '<svg class="ls-circle-svg" viewBox="0 0 48 48">' +
+                '<circle class="ls-circle-bg" cx="24" cy="24" r="20"/>' +
+                '<circle class="ls-circle-val" cx="24" cy="24" r="20" style="stroke:' + (rtAllDone ? '#34C759' : rt.color) + '; stroke-dasharray:' + circ + '; stroke-dashoffset:' + rtOffset + ';"/>' +
+              '</svg>' +
+              '<span class="ls-circle-center">' + (rtAllDone ? '✓' : rt.icon) + '</span>' +
+            '</div>' +
+            '<span class="ls-circle-label">' + rt.label + '</span>' +
+            '<span class="ls-circle-sub" style="color:' + (rtAllDone ? '#34C759' : 'inherit') + ';">' + rtDone + '/' + list.length + '</span>' +
+          '</button>';
+      });
+    }
 
     circlesRow.innerHTML = circlesHtml;
   }
