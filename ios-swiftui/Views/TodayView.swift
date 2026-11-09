@@ -234,6 +234,12 @@ public struct TodayView: View {
                     habitStore.requestedRoutineBucket = nil
                 }
             }
+            .onChange(of: habitStore.requestedDueTasksPopupFilter) { _, newFilter in
+                if let filter = newFilter {
+                    dueTasksPopupTarget = filter
+                    habitStore.requestedDueTasksPopupFilter = nil
+                }
+            }
             .onChange(of: habitStore.refocusTodayRequestCount) { _, _ in
                 refocusToToday()
             }

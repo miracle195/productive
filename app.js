@@ -1281,6 +1281,7 @@ function renderTodayScreen() {
   }
 
   renderHeroCirclesOrbit(dueHabits);
+  updateLockScreenWidgets();
 
   renderWeekRibbon();
 
@@ -2457,6 +2458,136 @@ function completeAllFromPopup(filterTarget) {
   renderTodayScreen();
   openDueTasksPopup(filterTarget);
 }
+
+// ============================================================================
+// iOS LOCK SCREEN SYSTEM WIDGETS ENGINE (CIRCULAR & RECTANGULAR GAUGES)
+// ============================================================================
+
+function updateLockScreenWidgets() {
+  const overlay = document.getElementById('ios-lockscreen-overlay');
+  if (!overlay) return;
+
+  const due = state.activeHabits.filter(h => state.isHabitDueOnDate(h, state.selectedDay));
+  const doneHabits = due.filter(h => {
+    const rec = h.history && h.history[state.selectedDay];
+    return rec && (rec.done || rec.skipped || rec.usedShield);
+  });
+  const total = due.length;
+  const done = doneHabits.length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const streak = state.activeHabits.reduce((max, h) => Math.max(max, h.streak || 0), 0);
+  const nextPending = due.find(h => {
+    const rec = h.history && h.history[state.selectedDay];
+    return !rec || (!rec.done && !rec.skipped);
+  });
+
+  // 1. Clock & Date
+  const now = new Date();
+  const hrs = String(now.getHours()).padStart(2, '0');
+  const mins = String(now.getMinutes()).padStart(2, '0');
+  const clockEl = document.getElementById('lockscreen-clock');
+  if (clockEl) clockEl.textContent = hrs + ':' + mins;
+
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dateEl = document.getElementById('lockscreen-date');
+  if (dateEl) dateEl.textContent = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
+
+  // 2. Inline Widget (.accessoryInline)
+  const inlineEl = document.getElementById('lockscreen-inline-widget');
+  if (inlineEl) {
+    inlineEl.textContent = '🔥 ' + streak + 'd • ' + done + ' of ' + total + ' habits done (' + pct + '%)';
+  }
+
+  // 3. Circular Widget (.accessoryCircular)
+  const circ = 2 * Math.PI * 21; // ~131.95
+  const circOffset = circ - (circ * pct) / 100;
+  const circRing = document.getElementById('ls-circular-ring');
+  if (circRing) {
+    circRing.style.strokeDasharray = circ;
+    circRing.style.strokeDashoffset = circOffset;
+    circRing.style.stroke = pct === 100 ? '#34C759' : '#007AFF';
+  }
+  const circIcon = document.getElementById('ls-circular-icon');
+  const circText = document.getElementById('ls-circular-text');
+  if (circIcon && circText) {
+    if (pct === 100 && total > 0) {
+      circIcon.textContent = '✓';
+      circText.textContent = 'Done';
+      circText.style.color = '#34C759';
+    } else if (streak > 0) {
+      circIcon.textContent = '🔥';
+      circText.textContent = streak + 'd';
+      circText.style.color = '#FFFFFF';
+    } else {
+      circIcon.textContent = '📋';
+      circText.textContent = pct + '%';
+      circText.style.color = '#FFFFFF';
+    }
+  }
+
+  // 4. Rectangular Widget (.accessoryRectangular)
+  const rectCirc = 2 * Math.PI * 15; // ~94.25
+  const rectOffset = rectCirc - (rectCirc * pct) / 100;
+  const rectRing = document.getElementById('ls-rect-ring');
+  if (rectRing) {
+    rectRing.style.strokeDasharray = rectCirc;
+    rectRing.style.strokeDashoffset = rectOffset;
+    rectRing.style.stroke = pct === 100 ? '#34C759' : '#007AFF';
+  }
+  const rectPct = document.getElementById('ls-rect-pct');
+  if (rectPct) rectPct.textContent = pct + '%';
+
+  const rectStreak = document.getElementById('ls-rect-streak');
+  if (rectStreak) rectStreak.textContent = '• 🔥' + streak + 'd';
+
+  const rectHabit = document.getElementById('ls-rect-habit');
+  if (rectHabit) {
+    if (pct === 100 && total > 0) {
+      rectHabit.textContent = 'All goals done! 🎉';
+    } else if (nextPending) {
+      rectHabit.textContent = nextPending.name;
+    } else {
+      rectHabit.textContent = 'Ready to plan';
+    }
+  }
+
+  const rectSub = document.getElementById('ls-rect-sub');
+  if (rectSub) {
+    rectSub.textContent = done + ' of ' + total + ' habits done';
+  }
+}
+
+function toggleLockScreen() {
+  sound.playClick();
+  const overlay = document.getElementById('ios-lockscreen-overlay');
+  const btn = document.getElementById('tool-lockscreen-btn');
+  if (!overlay) return;
+
+  if (overlay.style.display === 'none' || !overlay.style.display) {
+    updateLockScreenWidgets();
+    overlay.style.display = 'flex';
+    if (btn) btn.style.background = 'rgba(255, 255, 255, 0.25)';
+  } else {
+    overlay.style.display = 'none';
+    if (btn) btn.style.background = '';
+  }
+}
+
+function unlockAndOpenDueTasks(filterTarget) {
+  sound.playSuccess();
+  const overlay = document.getElementById('ios-lockscreen-overlay');
+  const btn = document.getElementById('tool-lockscreen-btn');
+  if (overlay) overlay.style.display = 'none';
+  if (btn) btn.style.background = '';
+  setTimeout(function() {
+    openDueTasksPopup(filterTarget || 'all');
+  }, 100);
+}
+
+window.updateLockScreenWidgets = updateLockScreenWidgets;
+window.toggleLockScreen = toggleLockScreen;
+window.unlockAndOpenDueTasks = unlockAndOpenDueTasks;
 
 // ============================================================================
 // DETAILS, INSIGHTS (SWIFT CHARTS) & CHALLENGES SCREENS

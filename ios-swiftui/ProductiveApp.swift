@@ -23,6 +23,44 @@ struct ProductiveApp: App {
             MainTabView()
                 .environmentObject(habitStore)
                 .preferredColorScheme(resolvedColorScheme)
+                .onOpenURL { url in
+                    handleDeepLink(url)
+                }
+        }
+    }
+    
+    private func handleDeepLink(_ url: URL) {
+        guard url.scheme == "productive" else { return }
+        
+        let host = url.host ?? url.path
+        if host.contains("due-tasks") {
+            let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            let filterParam = components?.queryItems?.first(where: { $0.name == "filter" })?.value ?? "all"
+            
+            let filter: DueTasksPopupFilter
+            switch filterParam {
+            case "routine_morning", "morning":
+                filter = .routine(.morning)
+            case "routine_afternoon", "afternoon":
+                filter = .routine(.afternoon)
+            case "routine_evening", "evening":
+                filter = .routine(.evening)
+            case "routine_anytime", "anytime":
+                filter = .routine(.anytime)
+            default:
+                if filterParam.hasPrefix("habit_") {
+                    let uuidStr = String(filterParam.dropFirst(6))
+                    if let uuid = UUID(uuidString: uuidStr) {
+                        filter = .singleHabit(uuid)
+                    } else {
+                        filter = .all
+                    }
+                } else {
+                    filter = .all
+                }
+            }
+            
+            habitStore.requestedDueTasksPopupFilter = filter
         }
     }
 }

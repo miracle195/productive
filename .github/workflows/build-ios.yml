@@ -20,6 +20,12 @@ jobs:
       run: |
         xcodebuild -version
 
+    - name: Generate Xcode Project (XcodeGen)
+      run: |
+        which xcodegen || brew install xcodegen
+        cd ios-swiftui
+        xcodegen generate
+
     - name: Build iOS IPA
       run: |
         cd ios-swiftui
@@ -50,7 +56,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: v3.2.11-ios
-        name: Productive v3.2.11 Native SwiftUI iOS (Daily Progress Circles Screen Widget & Interactive Due Tasks Popup)
+        tag_name: v3.2.12-ios
+        name: Productive v3.2.12 Native SwiftUI iOS (Lock Screen & System Widgets, Due Tasks Deep Linking)
         files: ios-swiftui/build/Productive.ipa
       continue-on-error: true

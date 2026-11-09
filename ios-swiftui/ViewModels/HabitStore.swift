@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import WidgetKit
 
 public enum FocusTimerMode: String, CaseIterable, Identifiable {
     case countdown = "Countdown"
@@ -31,6 +32,7 @@ public class HabitStore: ObservableObject {
     @Published public var challenges: [HabitChallenge] = []
     @Published public var selectedDate: Date = Date()
     @Published public var requestedRoutineBucket: TimeOfDay? = nil
+    @Published public var requestedDueTasksPopupFilter: DueTasksPopupFilter? = nil
     @Published public var refocusTodayRequestCount: Int = 0
     @Published public var activeCreationStartDate: Date? = nil
     
@@ -160,6 +162,7 @@ public class HabitStore: ObservableObject {
         }
         
         recalculateAllStreaks()
+        syncWidgetSnapshot()
     }
     
     public var autoBackupFileURL: URL? {
@@ -201,7 +204,60 @@ public class HabitStore: ObservableObject {
                 try? cEncoded.write(to: challengesURL, options: [.atomic])
             }
             self?.saveAutoBackupToDocuments()
+            DispatchQueue.main.async {
+                self?.syncWidgetSnapshot()
+            }
         }
+    }
+    
+    public func syncWidgetSnapshot() {
+        let tKey = todayKey
+        let today = Date()
+        let dueHabits = habitsDue(on: today)
+        let doneHabits = dueHabits.filter { $0.isCompleted(on: tKey) || $0.isSkipped(on: tKey) }
+        let totalDue = dueHabits.count
+        let doneCount = doneHabits.count
+        let pct = totalDue > 0 ? Int(round((Double(doneCount) / Double(totalDue)) * 100)) : 0
+        let bestStreak = activeHabits.map(\.streak).max() ?? 0
+        
+        let morningHabits = dueHabits.filter { $0.timeOfDay == .morning }
+        let morningDone = morningHabits.filter { $0.isCompleted(on: tKey) || $0.isSkipped(on: tKey) }.count
+        
+        let afternoonHabits = dueHabits.filter { $0.timeOfDay == .afternoon }
+        let afternoonDone = afternoonHabits.filter { $0.isCompleted(on: tKey) || $0.isSkipped(on: tKey) }.count
+        
+        let eveningHabits = dueHabits.filter { $0.timeOfDay == .evening }
+        let eveningDone = eveningHabits.filter { $0.isCompleted(on: tKey) || $0.isSkipped(on: tKey) }.count
+        
+        let anytimeHabits = dueHabits.filter { $0.timeOfDay == .anytime }
+        let anytimeDone = anytimeHabits.filter { $0.isCompleted(on: tKey) || $0.isSkipped(on: tKey) }.count
+        
+        let nextPending = dueHabits.first(where: { !$0.isCompleted(on: tKey) && !$0.isSkipped(on: tKey) })
+        
+        let snapshot = WidgetDailySnapshot(
+            dateKey: tKey,
+            totalDueCount: totalDue,
+            completedCount: doneCount,
+            completionPercentage: pct,
+            streakDays: bestStreak,
+            topStreakDays: bestStreak,
+            morningTotal: morningHabits.count,
+            morningDone: morningDone,
+            afternoonTotal: afternoonHabits.count,
+            afternoonDone: afternoonDone,
+            eveningTotal: eveningHabits.count,
+            eveningDone: eveningDone,
+            anytimeTotal: anytimeHabits.count,
+            anytimeDone: anytimeDone,
+            nextDueHabitName: nextPending?.name,
+            nextDueHabitIcon: nextPending?.icon,
+            nextDueHabitColorHex: nextPending?.colorHex,
+            nextDueHabitTimeOfDay: nextPending?.timeOfDay.rawValue,
+            lastUpdated: Date()
+        )
+        
+        WidgetSnapshotStore.save(snapshot)
+        WidgetCenter.shared.reloadAllTimelines()
     }
     
     public static func defaultChallenges() -> [HabitChallenge] {
@@ -319,12 +375,14 @@ public class HabitStore: ObservableObject {
             self.defaultStrictnessRaw = payload.defaultStrictness
             self.streakFreezeShields = payload.streakFreezeShields
             recalculateAllStreaks()
+        syncWidgetSnapshot()
             saveHabits()
             triggerHaptic(.success)
             return true
         } else if let legacyArray = try? decoder.decode([Habit].self, from: data) {
             self.habits = legacyArray
             recalculateAllStreaks()
+        syncWidgetSnapshot()
             saveHabits()
             triggerHaptic(.success)
             return true
@@ -1276,6 +1334,7 @@ public class HabitStore: ObservableObject {
         
         self.habits = list
         recalculateAllStreaks()
+        syncWidgetSnapshot()
         saveHabits()
         triggerHaptic(.success)
     }

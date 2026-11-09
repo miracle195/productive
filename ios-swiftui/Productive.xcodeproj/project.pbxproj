@@ -25,6 +25,7 @@
 		A10000112C00000000000011 /* RoutinePlayerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000112C00000000000011 /* RoutinePlayerSheet.swift */; };
 		A10000122C00000000000012 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000122C00000000000012 /* InsightsView.swift */; };
 		A10000142C00000000000014 /* DueTasksPopupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000142C00000000000014 /* DueTasksPopupSheet.swift */; };
+		A10000152C00000000000015 /* WidgetDailySnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000152C00000000000015 /* WidgetDailySnapshot.swift */; };
 		A10000132C00000000000013 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10000132C00000000000013 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -49,6 +50,7 @@
 		B10000112C00000000000011 /* RoutinePlayerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/RoutinePlayerSheet.swift; sourceTree = "<group>"; };
 		B10000122C00000000000012 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/InsightsView.swift; sourceTree = "<group>"; };
 		B10000142C00000000000014 /* DueTasksPopupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/DueTasksPopupSheet.swift; sourceTree = "<group>"; };
+		B10000152C00000000000015 /* WidgetDailySnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/WidgetDailySnapshot.swift; sourceTree = "<group>"; };
 		B10000132C00000000000013 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -81,6 +83,7 @@
 				B10000112C00000000000011 /* RoutinePlayerSheet.swift */,
 				B10000122C00000000000012 /* InsightsView.swift */,
 				B10000142C00000000000014 /* DueTasksPopupSheet.swift */,
+				B10000152C00000000000015 /* WidgetDailySnapshot.swift */,
 				B10000082C00000000000008 /* ChallengesView.swift */,
 				B10000092C00000000000009 /* SettingsView.swift */,
 				B100000A2C0000000000000A /* DynamicIslandActivity.swift */,
@@ -184,6 +187,7 @@
 				A10000112C00000000000011 /* RoutinePlayerSheet.swift in Sources */,
 				A10000122C00000000000012 /* InsightsView.swift in Sources */,
 				A10000142C00000000000014 /* DueTasksPopupSheet.swift in Sources */,
+				A10000152C00000000000015 /* WidgetDailySnapshot.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -247,7 +251,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGNING_REQUIRED = NO;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 16;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Info.plist;
@@ -255,7 +259,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.2.11;
+				MARKETING_VERSION = 3.2.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.apalon.productive.tracker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -271,7 +275,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGNING_REQUIRED = NO;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 16;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Info.plist;
@@ -279,7 +283,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.2.11;
+				MARKETING_VERSION = 3.2.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.apalon.productive.tracker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

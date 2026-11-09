@@ -57,6 +57,10 @@
           ⚡ Action
         </button>
 
+        <button class="tool-btn" id="tool-lockscreen-btn" onclick="toggleLockScreen()" title="Switch to iOS Lock Screen with System Progress Circles Widget">
+          🔒 Lock Screen
+        </button>
+
         <button class="tool-btn" onclick="simulatePushNotification()" title="Simulate Interactive iOS Lock Screen Notification Banner">
           🔔 Push
         </button>
@@ -85,6 +89,76 @@
             <div class="ios-toast" id="ios-toast">
               <span>✨</span>
               <span class="toast-msg">Habit logged!</span>
+            </div>
+
+            <!-- iOS LOCK SCREEN SIMULATOR OVERLAY WITH PROGRESS CIRCLES WIDGET -->
+            <div class="ios-lockscreen-overlay" id="ios-lockscreen-overlay" style="display: none;">
+              <div class="lockscreen-status-bar">
+                <span class="lockscreen-carrier">Productive</span>
+                <div class="lockscreen-status-icons">
+                  <span>5G</span>
+                  <span>📶</span>
+                  <span>🔋</span>
+                </div>
+              </div>
+
+              <div class="lockscreen-content">
+                <div class="lockscreen-padlock" onclick="toggleLockScreen()" title="Tap to unlock">🔒</div>
+                
+                <!-- Accessory Inline Widget -->
+                <div class="lockscreen-inline-widget" id="lockscreen-inline-widget" onclick="unlockAndOpenDueTasks('all')">
+                  🔥 0d • 0 of 0 habits done (0%)
+                </div>
+
+                <div class="lockscreen-clock" id="lockscreen-clock">09:41</div>
+                <div class="lockscreen-date" id="lockscreen-date">Monday, Nov 9</div>
+
+                <!-- Lock Screen Widgets Row (Imported System Widgets) -->
+                <div class="lockscreen-widgets-container">
+                  <div class="lockscreen-widgets-title-row">
+                    <span>LOCK SCREEN WIDGETS</span>
+                    <span class="ls-badge">Tap to pop up tasks</span>
+                  </div>
+                  <div class="lockscreen-widgets-row">
+                    <!-- Circular Gauge Widget (.accessoryCircular) -->
+                    <div class="lockscreen-widget-circular" id="lockscreen-widget-circular" onclick="unlockAndOpenDueTasks('all')" title="Daily Progress Circular Widget - Tap to open due tasks">
+                      <svg class="ls-ring-svg" viewBox="0 0 52 52">
+                        <circle class="ls-ring-bg" cx="26" cy="26" r="21"/>
+                        <circle class="ls-ring-val" id="ls-circular-ring" cx="26" cy="26" r="21"/>
+                      </svg>
+                      <div class="ls-ring-center">
+                        <span class="ls-ring-icon" id="ls-circular-icon">🔥</span>
+                        <span class="ls-ring-val-text" id="ls-circular-text">0%</span>
+                      </div>
+                    </div>
+
+                    <!-- Rectangular Widget (.accessoryRectangular) -->
+                    <div class="lockscreen-widget-rectangular" id="lockscreen-widget-rectangular" onclick="unlockAndOpenDueTasks('all')" title="Daily Focus Rectangular Widget - Tap to open due tasks">
+                      <div class="ls-rect-gauge-box">
+                        <svg class="ls-rect-svg" viewBox="0 0 38 38">
+                          <circle class="ls-ring-bg" cx="19" cy="19" r="15"/>
+                          <circle class="ls-ring-val" id="ls-rect-ring" cx="19" cy="19" r="15"/>
+                        </svg>
+                        <span class="ls-rect-pct" id="ls-rect-pct">0%</span>
+                      </div>
+                      <div class="ls-rect-info">
+                        <div class="ls-rect-header">
+                          <span class="ls-rect-title">Daily Focus</span>
+                          <span class="ls-rect-streak" id="ls-rect-streak">• 🔥0d</span>
+                        </div>
+                        <div class="ls-rect-habit" id="ls-rect-habit">All habits done! 🎉</div>
+                        <div class="ls-rect-sub" id="ls-rect-sub">0 of 0 habits done</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="lockscreen-bottom-bar">
+                <div class="ls-bottom-btn ls-flashlight">🔦</div>
+                <div class="ls-swipe-hint" onclick="toggleLockScreen()">Swipe up or tap widget to open</div>
+                <div class="ls-bottom-btn ls-camera">📷</div>
+              </div>
             </div>
 
             <!-- Interactive Lock Screen Push Notification Banner -->
@@ -605,6 +679,30 @@
                       </div>
                     </div>
                     <button class="settings-btn-danger" onclick="resetToDefaults()">Reset</button>
+                  </div>
+                </div>
+
+                <div class="settings-section-title">LOCK SCREEN & SYSTEM WIDGETS</div>
+                <div class="settings-group">
+                  <div class="settings-row">
+                    <div class="settings-row-left">
+                      <div class="settings-row-icon" style="background: #5856D6;">🔒</div>
+                      <div>
+                        <div class="settings-label">Lock Screen Widgets</div>
+                        <div class="settings-sublabel">Preview circular & rectangular gauges</div>
+                      </div>
+                    </div>
+                    <button class="settings-btn-primary" onclick="toggleLockScreen()">Preview</button>
+                  </div>
+                  <div class="settings-row">
+                    <div class="settings-row-left">
+                      <div class="settings-row-icon" style="background: #34C759;">🔄</div>
+                      <div>
+                        <div class="settings-label">Sync Widgets Timeline</div>
+                        <div class="settings-sublabel">Update live widget states</div>
+                      </div>
+                    </div>
+                    <button class="settings-btn-secondary" onclick="updateLockScreenWidgets(); showToast('Widget timelines synchronized! 🔄'); sound.playSuccess();">Sync</button>
                   </div>
                 </div>
 
