@@ -27,16 +27,16 @@ struct ProductiveApp: App {
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+                    habitStore.activeViewingDateKey = habitStore.todayKey
+                    habitStore.syncWidgetSnapshot()
+                }
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 habitStore.activeViewingDateKey = habitStore.todayKey
                 habitStore.syncWidgetSnapshot()
             }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
-            habitStore.activeViewingDateKey = habitStore.todayKey
-            habitStore.syncWidgetSnapshot()
         }
     }
     
