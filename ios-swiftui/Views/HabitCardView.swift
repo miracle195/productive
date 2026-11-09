@@ -131,6 +131,23 @@ public struct HabitCardView: View {
                                     Label("Max \(Int(liveHabit.targetAmount)) \(liveHabit.unit)", systemImage: "gauge.with.dots.needle.33percent")
                                         .font(.caption2.weight(.bold))
                                         .foregroundStyle(.purple)
+                                } else if liveHabit.frequency.isPeriodic {
+                                    let done = liveHabit.periodicCompletedCount(on: activeDate)
+                                    let target = liveHabit.periodicTargetCount
+                                    let unitText = liveHabit.frequency.isWeeklyPeriodic ? "this wk" : "this mo"
+                                    if done >= target {
+                                        Label("\(done)/\(target) \(unitText) ✓", systemImage: "checkmark.seal.fill")
+                                            .font(.caption2.weight(.bold))
+                                            .foregroundStyle(.green)
+                                            .lineLimit(1)
+                                            .fixedSize(horizontal: true, vertical: false)
+                                    } else {
+                                        Label("\(done)/\(target) \(unitText)", systemImage: "calendar.badge.clock")
+                                            .font(.caption2.weight(.bold))
+                                            .foregroundStyle(accentColor)
+                                            .lineLimit(1)
+                                            .fixedSize(horizontal: true, vertical: false)
+                                    }
                                 } else {
                                     Text(liveHabit.repeatLabel)
                                         .font(.caption2.weight(.medium))
@@ -161,11 +178,11 @@ public struct HabitCardView: View {
                                 
                                 HStack(spacing: 2) {
                                     Image(systemName: "flame.fill")
-                                    Text("\(liveHabit.streak)d")
+                                    Text(liveHabit.streakDisplay)
                                         .contentTransition(.numericText())
                                 }
                                 .font(.caption2.weight(.bold))
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(liveHabit.streak > 0 ? .orange : .secondary)
                                 .lineLimit(1)
                                 .fixedSize(horizontal: true, vertical: false)
                             }

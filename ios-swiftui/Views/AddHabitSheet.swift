@@ -27,6 +27,7 @@ public struct AddHabitSheet: View {
     @State private var targetReps: Int = 3
     @State private var targetDurationMinutes: Int = 15
     @State private var frequency: HabitFrequency = .daily
+    @State private var frequencyTargetTimes: Int = 1
     @State private var customWeekdays: Set<Int> = [2, 3, 4, 5, 6]
     @State private var strictness: HabitStrictness = .strict
     @State private var selectedTimeOfDay: TimeOfDay = .morning
@@ -117,6 +118,7 @@ public struct AddHabitSheet: View {
                     targetReps = h.targetReps
                     targetDurationMinutes = h.targetDurationMinutes
                     frequency = h.frequency
+                    frequencyTargetTimes = h.periodicTargetCount
                     customWeekdays = Set(h.customWeekdays)
                     strictness = h.strictness
                     selectedTimeOfDay = h.timeOfDay
@@ -319,8 +321,46 @@ public struct AddHabitSheet: View {
             // Schedule, Custom Days & Strictness
             Section(header: Text("Schedule & Streak Rules")) {
                 Picker("Frequency", selection: $frequency) {
-                    ForEach(HabitFrequency.allCases) { freq in
-                        Text(freq.rawValue).tag(freq)
+                    Section("Daily & Standard") {
+                        Text(HabitFrequency.daily.rawValue).tag(HabitFrequency.daily)
+                        Text(HabitFrequency.weekdays.rawValue).tag(HabitFrequency.weekdays)
+                        Text(HabitFrequency.weekends.rawValue).tag(HabitFrequency.weekends)
+                        Text(HabitFrequency.every2Days.rawValue).tag(HabitFrequency.every2Days)
+                        Text(HabitFrequency.every3Days.rawValue).tag(HabitFrequency.every3Days)
+                        Text(HabitFrequency.customDays.rawValue).tag(HabitFrequency.customDays)
+                    }
+                    
+                    Section("Weekly (Spread across week)") {
+                        Text(HabitFrequency.oncePerWeek.rawValue).tag(HabitFrequency.oncePerWeek)
+                        Text(HabitFrequency.twicePerWeek.rawValue).tag(HabitFrequency.twicePerWeek)
+                        Text(HabitFrequency.threePerWeek.rawValue).tag(HabitFrequency.threePerWeek)
+                        Text(HabitFrequency.fourPerWeek.rawValue).tag(HabitFrequency.fourPerWeek)
+                        Text(HabitFrequency.fivePerWeek.rawValue).tag(HabitFrequency.fivePerWeek)
+                        Text(HabitFrequency.customTimesPerWeek.rawValue).tag(HabitFrequency.customTimesPerWeek)
+                    }
+                    
+                    Section("Monthly (Spread across month)") {
+                        Text(HabitFrequency.oncePerMonth.rawValue).tag(HabitFrequency.oncePerMonth)
+                        Text(HabitFrequency.twicePerMonth.rawValue).tag(HabitFrequency.twicePerMonth)
+                        Text(HabitFrequency.thricePerMonth.rawValue).tag(HabitFrequency.thricePerMonth)
+                        Text(HabitFrequency.fourPerMonth.rawValue).tag(HabitFrequency.fourPerMonth)
+                        Text(HabitFrequency.customTimesPerMonth.rawValue).tag(HabitFrequency.customTimesPerMonth)
+                    }
+                }
+                
+                if frequency == .customTimesPerWeek {
+                    Stepper("Target: \(frequencyTargetTimes) times / week", value: $frequencyTargetTimes, in: 1...6)
+                } else if frequency == .customTimesPerMonth {
+                    Stepper("Target: \(frequencyTargetTimes) times / month", value: $frequencyTargetTimes, in: 1...28)
+                }
+                
+                if frequency.isPeriodic {
+                    HStack(spacing: 6) {
+                        Image(systemName: "calendar.badge.clock")
+                            .foregroundStyle(.tint)
+                        Text("Flexible schedule: complete on any day(s) during the \(frequency.isWeeklyPeriodic ? "week" : "month") to reach your goal.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 
@@ -481,6 +521,7 @@ public struct AddHabitSheet: View {
         let rHour = comps.hour ?? 9
         let rMin = comps.minute ?? 0
         let effectiveType: HabitTrackingType = polarity == .limit ? .amount : (polarity == .quit ? .binary : trackingType)
+        let effectiveTargetTimes = frequency.isPeriodic ? (frequency == .customTimesPerWeek || frequency == .customTimesPerMonth ? frequencyTargetTimes : frequency.defaultTargetCount) : 1
         
         if var existing = editingHabit {
             existing.name = cleanName
@@ -492,8 +533,9 @@ public struct AddHabitSheet: View {
             existing.targetReps = targetReps
             existing.targetDurationMinutes = targetDurationMinutes
             existing.frequency = frequency
+            existing.frequencyTargetTimes = effectiveTargetTimes
             existing.customWeekdays = Array(customWeekdays).sorted()
-            existing.repeatSchedule = frequency.rawValue
+            existing.repeatSchedule = existing.repeatLabel
             existing.strictness = strictness
             existing.timeOfDay = selectedTimeOfDay
             existing.colorHex = selectedColorHex
@@ -517,6 +559,7 @@ public struct AddHabitSheet: View {
                 targetReps: targetReps,
                 targetDurationMinutes: targetDurationMinutes,
                 frequency: frequency,
+                frequencyTargetTimes: effectiveTargetTimes,
                 customWeekdays: Array(customWeekdays).sorted(),
                 strictness: strictness,
                 repeatSchedule: frequency.rawValue,

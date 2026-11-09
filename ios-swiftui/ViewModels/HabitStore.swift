@@ -451,29 +451,62 @@ public class HabitStore: ObservableObject {
         habit.currentAmount = habit.amount(on: todayKey)
         habit.currentReps = habit.reps(on: todayKey)
         
-        // Compute current streak walking backwards up to 365 days
+        // Periodic frequencies calculate streak by week or month periods
         var currentStreak = 0
-        for offset in 0..<365 {
-            guard let checkDate = calendar.date(byAdding: .day, value: -offset, to: todayStart) else { break }
-            let key = Self.dateFormatter.string(from: checkDate)
-            let rec = habit.history[key]
-            
-            if rec?.isCompleted == true {
-                currentStreak += 1
-                continue
+        if habit.frequency.isWeeklyPeriodic {
+            let target = habit.periodicTargetCount
+            for weekOffset in 0..<52 {
+                guard let checkDate = calendar.date(byAdding: .weekOfYear, value: -weekOffset, to: todayStart),
+                      let interval = calendar.dateInterval(of: .weekOfYear, for: checkDate) else { break }
+                let completedInWeek = habit.completedCount(in: interval, calendar: calendar)
+                if completedInWeek >= target {
+                    currentStreak += 1
+                } else if weekOffset == 0 {
+                    // Current week in progress
+                    continue
+                } else {
+                    break
+                }
             }
-            if rec?.isSkipped == true || rec?.usedFreezeShield == true || vacationModeEnabled {
-                continue
+        } else if habit.frequency.isMonthlyPeriodic {
+            let target = habit.periodicTargetCount
+            for monthOffset in 0..<24 {
+                guard let checkDate = calendar.date(byAdding: .month, value: -monthOffset, to: todayStart),
+                      let interval = calendar.dateInterval(of: .month, for: checkDate) else { break }
+                let completedInMonth = habit.completedCount(in: interval, calendar: calendar)
+                if completedInMonth >= target {
+                    currentStreak += 1
+                } else if monthOffset == 0 {
+                    // Current month in progress
+                    continue
+                } else {
+                    break
+                }
             }
-            if offset == 0 {
-                // Today still in progress—don't break yesterday's streak yet
-                continue
+        } else {
+            // Standard daily streak walking backwards up to 365 days
+            for offset in 0..<365 {
+                guard let checkDate = calendar.date(byAdding: .day, value: -offset, to: todayStart) else { break }
+                let key = Self.dateFormatter.string(from: checkDate)
+                let rec = habit.history[key]
+                
+                if rec?.isCompleted == true {
+                    currentStreak += 1
+                    continue
+                }
+                if rec?.isSkipped == true || rec?.usedFreezeShield == true || vacationModeEnabled {
+                    continue
+                }
+                if offset == 0 {
+                    // Today still in progress—don't break yesterday's streak yet
+                    continue
+                }
+                if !habit.isDue(on: checkDate, calendar: calendar) {
+                    continue
+                }
+                // Scheduled past day was missed
+                break
             }
-            if !habit.isDue(on: checkDate, calendar: calendar) {
-                continue
-            }
-            // Scheduled past day was missed
-            break
         }
         
         let previousStreak = habit.streak
@@ -870,6 +903,7 @@ public class HabitStore: ObservableObject {
         targetReps: Int = 3,
         targetDurationMinutes: Int = 15,
         frequency: HabitFrequency = .daily,
+        frequencyTargetTimes: Int = 1,
         customWeekdays: [Int] = [2, 3, 4, 5, 6],
         strictness: HabitStrictness = .strict,
         repeatSchedule: String = "Every day",
@@ -893,6 +927,7 @@ public class HabitStore: ObservableObject {
             currentReps: 0,
             targetDurationMinutes: targetDurationMinutes,
             frequency: frequency,
+            frequencyTargetTimes: frequencyTargetTimes,
             customWeekdays: customWeekdays,
             strictness: strictness,
             repeatSchedule: repeatSchedule,
@@ -1175,6 +1210,41 @@ public class HabitStore: ObservableObject {
         quitSnack.history[d1Key] = HabitDayRecord(isCompleted: true)
         quitSnack.history[t0Key] = HabitDayRecord(isCompleted: true)
         list.append(quitSnack)
+        
+        // 7. Weekly Periodic Habit: Strength Workout (3 times / week, spread across week)
+        var gym = Habit(
+            name: "Strength Workout",
+            icon: "dumbbell.fill",
+            colorHex: "#FF9500",
+            timeOfDay: .afternoon,
+            polarity: .build,
+            trackingType: .binary,
+            frequency: .threePerWeek,
+            frequencyTargetTimes: 3,
+            strictness: .flexible,
+            repeatSchedule: "3x / week",
+            createdAt: d4
+        )
+        gym.history[d3Key] = HabitDayRecord(isCompleted: true)
+        gym.history[d1Key] = HabitDayRecord(isCompleted: true)
+        list.append(gym)
+        
+        // 8. Monthly Periodic Habit: Deep Clean & Declutter (Twice a month)
+        var clean = Habit(
+            name: "Deep Clean & Declutter",
+            icon: "sparkles",
+            colorHex: "#32ADE6",
+            timeOfDay: .anytime,
+            polarity: .build,
+            trackingType: .binary,
+            frequency: .twicePerMonth,
+            frequencyTargetTimes: 2,
+            strictness: .flexible,
+            repeatSchedule: "Twice a month",
+            createdAt: d4
+        )
+        clean.history[d2Key] = HabitDayRecord(isCompleted: true, note: "Pantry and closet fully organized.")
+        list.append(clean)
         
         self.habits = list
         recalculateAllStreaks()

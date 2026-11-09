@@ -98,6 +98,93 @@ function addDaysToKey(dateKey, deltaDays) {
   return getISODateKey(d);
 }
 
+function isWeeklyPeriodic(freq) {
+  return ['1_per_week', '2_per_week', '3_per_week', '4_per_week', '5_per_week', 'custom_times_per_week'].includes(freq);
+}
+
+function isMonthlyPeriodic(freq) {
+  return ['1_per_month', '2_per_month', '3_per_month', '4_per_month', 'custom_times_per_month'].includes(freq);
+}
+
+function isPeriodicFrequency(freq) {
+  return isWeeklyPeriodic(freq) || isMonthlyPeriodic(freq);
+}
+
+function getPeriodicTargetCount(habit) {
+  switch (habit.frequency) {
+    case '1_per_week': return 1;
+    case '2_per_week': return 2;
+    case '3_per_week': return 3;
+    case '4_per_week': return 4;
+    case '5_per_week': return 5;
+    case 'custom_times_per_week': return Math.max(1, Number(habit.frequencyTargetTimes) || 3);
+    case '1_per_month': return 1;
+    case '2_per_month': return 2;
+    case '3_per_month': return 3;
+    case '4_per_month': return 4;
+    case 'custom_times_per_month': return Math.max(1, Number(habit.frequencyTargetTimes) || 2);
+    default: return 1;
+  }
+}
+
+function getWeekDateKeys(dateKey) {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const day = date.getDay(); // 0 = Sun
+  const sun = new Date(date);
+  sun.setDate(date.getDate() - day);
+  const keys = [];
+  for (let i = 0; i < 7; i++) {
+    const cur = new Date(sun);
+    cur.setDate(sun.getDate() + i);
+    keys.push(getISODateKey(cur));
+  }
+  return keys;
+}
+
+function getMonthDateKeys(dateKey) {
+  const [y, m] = dateKey.split('-').map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const keys = [];
+  for (let i = 1; i <= daysInMonth; i++) {
+    const dayStr = String(i).padStart(2, '0');
+    const monthStr = String(m).padStart(2, '0');
+    keys.push(y + '-' + monthStr + '-' + dayStr);
+  }
+  return keys;
+}
+
+function getRepeatLabel(habit) {
+  if (habit.polarity === 'quit') return 'Quit • Stay Clean';
+  if (habit.polarity === 'limit') return 'Max ' + habit.targetAmount + ' ' + (habit.unit || 'units');
+  switch (habit.frequency) {
+    case 'daily': return 'Every day';
+    case 'weekdays': return 'Weekdays';
+    case 'weekends': return 'Weekends';
+    case 'every_2_days': return 'Every 2 days';
+    case 'every_3_days': return 'Every 3 days';
+    case '1_per_week': return 'Once a week';
+    case '2_per_week': return 'Twice a week';
+    case '3_per_week': return '3x / week';
+    case '4_per_week': return '4x / week';
+    case '5_per_week': return '5x / week';
+    case 'custom_times_per_week': return getPeriodicTargetCount(habit) + 'x / week';
+    case '1_per_month': return 'Once a month';
+    case '2_per_month': return 'Twice a month';
+    case '3_per_month': return '3x / month';
+    case '4_per_month': return '4x / month';
+    case 'custom_times_per_month': return getPeriodicTargetCount(habit) + 'x / month';
+    case 'custom_days':
+      if (!Array.isArray(habit.customWeekdays) || habit.customWeekdays.length === 0 || habit.customWeekdays.length === 7) return 'Every day';
+      const map = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 0: 'Sun' };
+      const names = [1, 2, 3, 4, 5, 6, 0].filter(d => habit.customWeekdays.includes(d)).map(d => map[d]);
+      if (names.length === 5 && !habit.customWeekdays.includes(0) && !habit.customWeekdays.includes(6)) return 'Weekdays';
+      if (names.length === 2 && habit.customWeekdays.includes(0) && habit.customWeekdays.includes(6)) return 'Weekends';
+      return names.join(', ');
+    default: return habit.repeatLabel || 'Every day';
+  }
+}
+
 class ProductiveState {
   constructor() {
     this.todayKey = getISODateKey();
@@ -252,15 +339,48 @@ class ProductiveState {
     return this.habits.filter(h => h.isArchived);
   }
 
+  getPeriodicCompletedCount(habit, dateKey = this.selectedDay) {
+    if (!isPeriodicFrequency(habit.frequency)) {
+      return (habit.history && habit.history[dateKey] && habit.history[dateKey].done) ? 1 : 0;
+    }
+    const isWk = isWeeklyPeriodic(habit.frequency);
+    const keys = isWk ? getWeekDateKeys(dateKey) : getMonthDateKeys(dateKey);
+    let count = 0;
+    const history = habit.history || {};
+    keys.forEach(k => {
+      if (history[k] && history[k].done) count++;
+    });
+    return count;
+  }
+
+  isPeriodicAccomplished(habit, dateKey = this.selectedDay) {
+    if (!isPeriodicFrequency(habit.frequency)) return false;
+    const target = getPeriodicTargetCount(habit);
+    const done = this.getPeriodicCompletedCount(habit, dateKey);
+    return done >= target;
+  }
+
   isHabitDueOnDate(habit, dateKey = this.selectedDay) {
     if (habit.isArchived) return false;
+
+    // Flexible Periodic frequency (weekly / monthly spread)
+    if (isPeriodicFrequency(habit.frequency)) {
+      const rec = habit.history && habit.history[dateKey];
+      if (rec && (rec.done || rec.skipped || rec.usedShield)) {
+        return true;
+      }
+      if (this.isPeriodicAccomplished(habit, dateKey)) {
+        return false;
+      }
+      return true;
+    }
+
     const d = parseISODateKey(dateKey);
     const dayOfWeek = d.getDay(); // 0=Sun, 1=Mon ... 6=Sat
     switch (habit.frequency) {
       case 'daily': return true;
       case 'weekdays': return dayOfWeek >= 1 && dayOfWeek <= 5;
       case 'weekends': return dayOfWeek === 0 || dayOfWeek === 6;
-      case '3_per_week': return [1, 3, 5].includes(dayOfWeek);
       case 'custom_days':
         return Array.isArray(habit.customWeekdays) && habit.customWeekdays.length > 0
           ? habit.customWeekdays.includes(dayOfWeek)
@@ -326,23 +446,53 @@ class ProductiveState {
     habit.totalLogs = totalLogs;
 
     let curStreak = 0;
-    for (let offset = 0; offset < 365; offset++) {
-      const key = addDaysToKey(this.todayKey, -offset);
-      const rec = history[key];
-      if (rec && rec.done) {
-        curStreak++;
-        continue;
+    if (isWeeklyPeriodic(habit.frequency)) {
+      const target = getPeriodicTargetCount(habit);
+      for (let w = 0; w < 52; w++) {
+        const checkKey = addDaysToKey(this.todayKey, -w * 7);
+        const doneInWk = this.getPeriodicCompletedCount(habit, checkKey);
+        if (doneInWk >= target) {
+          curStreak++;
+        } else if (w === 0) {
+          continue;
+        } else {
+          break;
+        }
       }
-      if ((rec && (rec.skipped || rec.usedShield)) || this.vacationMode) {
-        continue;
+    } else if (isMonthlyPeriodic(habit.frequency)) {
+      const target = getPeriodicTargetCount(habit);
+      const [ty, tm] = this.todayKey.split('-').map(Number);
+      for (let m = 0; m < 24; m++) {
+        const monthDate = new Date(ty, tm - 1 - m, 15);
+        const checkKey = getISODateKey(monthDate);
+        const doneInMo = this.getPeriodicCompletedCount(habit, checkKey);
+        if (doneInMo >= target) {
+          curStreak++;
+        } else if (m === 0) {
+          continue;
+        } else {
+          break;
+        }
       }
-      if (offset === 0) {
-        continue;
+    } else {
+      for (let offset = 0; offset < 365; offset++) {
+        const key = addDaysToKey(this.todayKey, -offset);
+        const rec = history[key];
+        if (rec && rec.done) {
+          curStreak++;
+          continue;
+        }
+        if ((rec && (rec.skipped || rec.usedShield)) || this.vacationMode) {
+          continue;
+        }
+        if (offset === 0) {
+          continue;
+        }
+        if (!this.isHabitDueOnDate(habit, key)) {
+          continue;
+        }
+        break;
       }
-      if (!this.isHabitDueOnDate(habit, key)) {
-        continue;
-      }
-      break;
     }
 
     const prevStreak = habit.streak || 0;
@@ -1233,8 +1383,17 @@ function renderHabitRowHTML(habit) {
     html += '<span class="habit-tag" style="background:rgba(255,45,85,0.15); color:#FF2D55;">✋ Quit</span>';
   } else if (habit.polarity === 'limit') {
     html += '<span class="habit-tag" style="background:rgba(191,90,242,0.15); color:#BF5AF2;">📉 Max ' + habit.targetAmount + ' ' + escapeHtml(habit.unit) + '</span>';
+  } else if (isPeriodicFrequency(habit.frequency)) {
+    const done = state.getPeriodicCompletedCount(habit, dateKey);
+    const target = getPeriodicTargetCount(habit);
+    const unitText = isWeeklyPeriodic(habit.frequency) ? 'this wk' : 'this mo';
+    if (done >= target) {
+      html += '<span class="habit-tag" style="background:rgba(48,209,88,0.16); color:#30D158; font-weight:700; white-space:nowrap;">✓ ' + done + '/' + target + ' ' + unitText + ' ✓</span>';
+    } else {
+      html += '<span class="habit-tag" style="background:rgba(10,132,255,0.15); color:' + (habit.color || '#0A84FF') + '; font-weight:700; white-space:nowrap;">📅 ' + done + '/' + target + ' ' + unitText + '</span>';
+    }
   } else {
-    html += '<span class="habit-tag tag-freq">' + escapeHtml(habit.repeatLabel) + '</span>';
+    html += '<span class="habit-tag tag-freq">' + escapeHtml(getRepeatLabel(habit)) + '</span>';
   }
   if (isSkipped) {
     html += '<span class="habit-tag" style="background:rgba(50,173,230,0.16); color:#32ADE6;">' + (rec.usedShield ? '❄️ Shielded' : '⏭️ Skipped') + '</span>';
@@ -1245,7 +1404,10 @@ function renderHabitRowHTML(habit) {
   } else if (rolloverExtra > 0) {
     html += '<span class="habit-tag tag-rollover">🔄 +' + rolloverExtra + ' rollover</span>';
   }
-  html += '<span style="color:#FF9F0A; font-size:11px; font-weight:800;">🔥 ' + (habit.streak || 0) + 'd</span>';
+  let streakUnit = 'd';
+  if (isWeeklyPeriodic(habit.frequency)) streakUnit = 'w';
+  else if (isMonthlyPeriodic(habit.frequency)) streakUnit = 'm';
+  html += '<span style="color:#FF9F0A; font-size:11px; font-weight:800; white-space:nowrap;">🔥 ' + (habit.streak || 0) + streakUnit + '</span>';
   html += '</div>';
   html += '</div></div>';
 
@@ -2385,6 +2547,9 @@ function openAddHabitSheet() {
   renderBuilderSubtasks();
   onPolarityChange('build');
   onTrackingModeChange('binary');
+  const freqSel = document.getElementById('custom-frequency-select');
+  if (freqSel) freqSel.value = 'daily';
+  onFrequencySelectChange('daily');
   renderSheetView();
   const bd = document.getElementById('sheet-backdrop');
   if (bd) bd.classList.add('active');
@@ -2414,6 +2579,7 @@ function openEditHabitSheet(habitId) {
   setVal('custom-reps-count', h.targetReps);
   setVal('custom-duration-minutes', h.targetDuration);
   setVal('custom-frequency-select', h.frequency);
+  setVal('custom-frequency-target-input', h.frequencyTargetTimes || getPeriodicTargetCount(h));
   setVal('custom-strictness-select', h.strictness);
   setVal('custom-time-select', h.timeOfDay);
   setVal('custom-reminder-time', h.reminderTime || '09:00');
@@ -2629,6 +2795,32 @@ function onFrequencySelectChange(val) {
   const picker = document.getElementById('custom-weekdays-picker');
   if (picker) picker.style.display = val === 'custom_days' ? 'grid' : 'none';
   syncWeekdayCirclesUI();
+
+  const targetRow = document.getElementById('custom-frequency-target-row');
+  const targetLabel = document.getElementById('custom-frequency-target-label');
+  const targetInput = document.getElementById('custom-frequency-target-input');
+  const hintEl = document.getElementById('custom-frequency-hint');
+
+  if (val === 'custom_times_per_week') {
+    if (targetRow) targetRow.style.display = 'block';
+    if (targetLabel) targetLabel.textContent = 'TARGET TIMES PER WEEK';
+    if (targetInput) { targetInput.min = '1'; targetInput.max = '6'; if (!targetInput.value || Number(targetInput.value) > 6) targetInput.value = '3'; }
+  } else if (val === 'custom_times_per_month') {
+    if (targetRow) targetRow.style.display = 'block';
+    if (targetLabel) targetLabel.textContent = 'TARGET TIMES PER MONTH';
+    if (targetInput) { targetInput.min = '1'; targetInput.max = '28'; if (!targetInput.value || Number(targetInput.value) > 28) targetInput.value = '2'; }
+  } else {
+    if (targetRow) targetRow.style.display = 'none';
+  }
+
+  if (hintEl) {
+    hintEl.style.display = isPeriodicFrequency(val) ? 'block' : 'none';
+    if (isWeeklyPeriodic(val)) {
+      hintEl.textContent = '📅 Flexible schedule: accomplish on any day(s) during the week to fulfill your target goal.';
+    } else if (isMonthlyPeriodic(val)) {
+      hintEl.textContent = '📅 Flexible schedule: accomplish on any day(s) during the month to fulfill your target goal.';
+    }
+  }
 }
 
 function toggleCustomWeekday(dayNum) {
@@ -2998,6 +3190,43 @@ function seedRichDemoData() {
     }
   });
 
+  // 6. Weekly Periodic Habit: Strength Workout (3 times / week, spread across week)
+  state.addCustomHabit({
+    name: 'Strength Workout',
+    icon: 'ic_gym',
+    color: '#FF9500',
+    timeOfDay: 'afternoon',
+    polarity: 'build',
+    type: 'binary',
+    frequency: '3_per_week',
+    frequencyTargetTimes: 3,
+    repeatLabel: '3x / week',
+    strictness: 'flexible',
+    createdAtKey: d4,
+    history: {
+      [d3]: { done: true },
+      [d1]: { done: true }
+    }
+  });
+
+  // 7. Monthly Periodic Habit: Deep Clean & Declutter (Twice a month)
+  state.addCustomHabit({
+    name: 'Deep Clean & Declutter',
+    icon: 'ic_all_habits',
+    color: '#32ADE6',
+    timeOfDay: 'anytime',
+    polarity: 'build',
+    type: 'binary',
+    frequency: '2_per_month',
+    frequencyTargetTimes: 2,
+    repeatLabel: 'Twice a month',
+    strictness: 'flexible',
+    createdAtKey: d4,
+    history: {
+      [d2]: { done: true, note: 'Pantry and closet fully organized.' }
+    }
+  });
+
   state.joinChallenge('hydration_hero_14');
   state.saveSettings();
   state.saveHabits();
@@ -3329,6 +3558,9 @@ if (typeof window !== 'undefined' && window.addEventListener) {
         const name = document.getElementById('custom-name-input').value.trim();
         if (!name) return;
         const freqSel = document.getElementById('custom-frequency-select');
+        const targetInput = document.getElementById('custom-frequency-target-input');
+        const freqVal = freqSel ? freqSel.value : 'daily';
+        const targetTimes = Number(targetInput ? targetInput.value : 1) || 1;
         const payload = {
           name,
           polarity: state.customPolarity,
@@ -3338,9 +3570,10 @@ if (typeof window !== 'undefined' && window.addEventListener) {
           stepAmount: Number(document.getElementById('custom-step-amount').value) || 250,
           targetReps: Number(document.getElementById('custom-reps-count').value) || 3,
           targetDuration: Number(document.getElementById('custom-duration-minutes').value) || 15,
-          frequency: freqSel.value,
+          frequency: freqVal,
+          frequencyTargetTimes: targetTimes,
           customWeekdays: state.customWeekdays.slice(),
-          repeatLabel: freqSel.selectedOptions[0].text,
+          repeatLabel: (freqSel && freqSel.selectedOptions && freqSel.selectedOptions[0]) ? freqSel.selectedOptions[0].text : 'Every day',
           strictness: document.getElementById('custom-strictness-select').value,
           subtasks: state.builderSubtasks.slice(),
           timeOfDay: document.getElementById('custom-time-select').value,

@@ -88,10 +88,71 @@ public enum HabitFrequency: String, Codable, CaseIterable, Identifiable {
     case weekends = "Weekends only"
     case every2Days = "Every 2 days"
     case every3Days = "Every 3 days"
-    case threePerWeek = "3 days / week"
     case customDays = "Specific weekdays"
     
+    // Weekly Periodic (spread to whole week)
+    case oncePerWeek = "Once a week"
+    case twicePerWeek = "Twice a week"
+    case threePerWeek = "3 times / week"
+    case fourPerWeek = "4 times / week"
+    case fivePerWeek = "5 times / week"
+    case customTimesPerWeek = "Custom times / week"
+    
+    // Monthly Periodic (spread to whole month)
+    case oncePerMonth = "Once a month"
+    case twicePerMonth = "Twice a month"
+    case thricePerMonth = "Thrice a month"
+    case fourPerMonth = "4 times / month"
+    case customTimesPerMonth = "Custom times / month"
+    
     public var id: String { rawValue }
+    
+    public var isWeeklyPeriodic: Bool {
+        switch self {
+        case .oncePerWeek, .twicePerWeek, .threePerWeek, .fourPerWeek, .fivePerWeek, .customTimesPerWeek:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    public var isMonthlyPeriodic: Bool {
+        switch self {
+        case .oncePerMonth, .twicePerMonth, .thricePerMonth, .fourPerMonth, .customTimesPerMonth:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    public var isPeriodic: Bool {
+        isWeeklyPeriodic || isMonthlyPeriodic
+    }
+    
+    public var defaultTargetCount: Int {
+        switch self {
+        case .oncePerWeek, .oncePerMonth: return 1
+        case .twicePerWeek, .twicePerMonth: return 2
+        case .threePerWeek, .thricePerMonth: return 3
+        case .fourPerWeek, .fourPerMonth: return 4
+        case .fivePerWeek: return 5
+        case .customTimesPerWeek: return 3
+        case .customTimesPerMonth: return 2
+        default: return 1
+        }
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        if raw == "3 days / week" {
+            self = .threePerWeek
+        } else if let val = HabitFrequency(rawValue: raw) {
+            self = val
+        } else {
+            self = .daily
+        }
+    }
 }
 
 // MARK: - Time of Day
@@ -247,6 +308,7 @@ public struct Habit: Identifiable, Codable, Equatable {
     
     // Recurrence, Custom Days & Strictness
     public var frequency: HabitFrequency
+    public var frequencyTargetTimes: Int
     public var customWeekdays: [Int] // 1 = Sun, 2 = Mon ... 7 = Sat (Calendar.current)
     public var strictness: HabitStrictness
     public var repeatSchedule: String
@@ -291,6 +353,7 @@ public struct Habit: Identifiable, Codable, Equatable {
         currentReps: Int = 0,
         targetDurationMinutes: Int = 15,
         frequency: HabitFrequency = .daily,
+        frequencyTargetTimes: Int? = nil,
         customWeekdays: [Int] = [2, 3, 4, 5, 6],
         strictness: HabitStrictness = .strict,
         repeatSchedule: String = "Every day",
@@ -326,6 +389,7 @@ public struct Habit: Identifiable, Codable, Equatable {
         self.currentReps = currentReps
         self.targetDurationMinutes = targetDurationMinutes
         self.frequency = frequency
+        self.frequencyTargetTimes = frequencyTargetTimes ?? frequency.defaultTargetCount
         self.customWeekdays = customWeekdays
         self.strictness = strictness
         self.repeatSchedule = repeatSchedule
@@ -364,7 +428,9 @@ public struct Habit: Identifiable, Codable, Equatable {
         self.targetReps = try c.decodeIfPresent(Int.self, forKey: .targetReps) ?? 3
         self.currentReps = try c.decodeIfPresent(Int.self, forKey: .currentReps) ?? 0
         self.targetDurationMinutes = try c.decodeIfPresent(Int.self, forKey: .targetDurationMinutes) ?? 15
-        self.frequency = try c.decodeIfPresent(HabitFrequency.self, forKey: .frequency) ?? .daily
+        let freq = try c.decodeIfPresent(HabitFrequency.self, forKey: .frequency) ?? .daily
+        self.frequency = freq
+        self.frequencyTargetTimes = try c.decodeIfPresent(Int.self, forKey: .frequencyTargetTimes) ?? freq.defaultTargetCount
         self.customWeekdays = try c.decodeIfPresent([Int].self, forKey: .customWeekdays) ?? [2, 3, 4, 5, 6]
         self.strictness = try c.decodeIfPresent(HabitStrictness.self, forKey: .strictness) ?? .strict
         self.repeatSchedule = try c.decodeIfPresent(String.self, forKey: .repeatSchedule) ?? "Every day"
@@ -417,8 +483,87 @@ public struct Habit: Identifiable, Codable, Equatable {
         history[dateKey]?.mood
     }
     
+    // MARK: - Periodic Frequencies & Spread Calculations
+    
+    public var periodicTargetCount: Int {
+        if frequency == .customTimesPerWeek || frequency == .customTimesPerMonth {
+            return max(1, frequencyTargetTimes)
+        }
+        return frequency.defaultTargetCount
+    }
+    
+    public var streakDisplay: String {
+        if frequency.isWeeklyPeriodic {
+            return "\(streak)w"
+        } else if frequency.isMonthlyPeriodic {
+            return "\(streak)m"
+        }
+        return "\(streak)d"
+    }
+    
+    public static let isoDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+    
+    public func weekInterval(for date: Date, calendar: Calendar = .current) -> DateInterval? {
+        calendar.dateInterval(of: .weekOfYear, for: date)
+    }
+    
+    public func monthInterval(for date: Date, calendar: Calendar = .current) -> DateInterval? {
+        calendar.dateInterval(of: .month, for: date)
+    }
+    
+    public func completedCount(in interval: DateInterval, calendar: Calendar = .current) -> Int {
+        var count = 0
+        for (key, record) in history where record.isCompleted {
+            if let d = Self.isoDateFormatter.date(from: key) {
+                let dayMid = calendar.startOfDay(for: d).addingTimeInterval(43200)
+                if interval.contains(dayMid) {
+                    count += 1
+                }
+            }
+        }
+        return count
+    }
+    
+    public func periodicCompletedCount(on date: Date, calendar: Calendar = .current) -> Int {
+        if frequency.isWeeklyPeriodic {
+            guard let interval = weekInterval(for: date, calendar: calendar) else { return 0 }
+            return completedCount(in: interval, calendar: calendar)
+        } else if frequency.isMonthlyPeriodic {
+            guard let interval = monthInterval(for: date, calendar: calendar) else { return 0 }
+            return completedCount(in: interval, calendar: calendar)
+        }
+        let key = Self.isoDateFormatter.string(from: date)
+        return isCompleted(on: key) ? 1 : 0
+    }
+    
+    public func isPeriodicAccomplished(on date: Date, calendar: Calendar = .current) -> Bool {
+        guard frequency.isPeriodic else { return false }
+        return periodicCompletedCount(on: date, calendar: calendar) >= periodicTargetCount
+    }
+    
     public func isDue(on date: Date, calendar: Calendar = .current) -> Bool {
         if isArchived { return false }
+        let dateKey = Self.isoDateFormatter.string(from: date)
+        
+        // Flexible Periodic frequency (weekly / monthly spread)
+        if frequency.isPeriodic {
+            // If already completed or skipped on this specific date, keep it due so it displays as completed
+            if history[dateKey]?.isCompleted == true || history[dateKey]?.isSkipped == true {
+                return true
+            }
+            // If the period's quota is already accomplished, it is not due on other days of the period
+            if isPeriodicAccomplished(on: date, calendar: calendar) {
+                return false
+            }
+            // Period quota still pending -> habit is spread and due throughout the active period
+            return true
+        }
+        
         let weekday = calendar.component(.weekday, from: date) // 1 = Sun ... 7 = Sat
         switch frequency {
         case .daily:
@@ -427,8 +572,6 @@ public struct Habit: Identifiable, Codable, Equatable {
             return (2...6).contains(weekday)
         case .weekends:
             return weekday == 1 || weekday == 7
-        case .threePerWeek:
-            return [2, 4, 6].contains(weekday) // Mon, Wed, Fri
         case .customDays:
             return customWeekdays.isEmpty ? true : customWeekdays.contains(weekday)
         case .every2Days:
@@ -441,6 +584,8 @@ public struct Habit: Identifiable, Codable, Equatable {
             let target = calendar.startOfDay(for: date)
             let diff = abs(calendar.dateComponents([.day], from: anchor, to: target).day ?? 0)
             return diff % 3 == 0
+        default:
+            return true
         }
     }
     
@@ -456,8 +601,28 @@ public struct Habit: Identifiable, Codable, Equatable {
             return "Every 2 days"
         case .every3Days:
             return "Every 3 days"
+        case .oncePerWeek:
+            return "Once a week"
+        case .twicePerWeek:
+            return "Twice a week"
         case .threePerWeek:
-            return "3 days / week"
+            return "3x / week"
+        case .fourPerWeek:
+            return "4x / week"
+        case .fivePerWeek:
+            return "5x / week"
+        case .customTimesPerWeek:
+            return "\(periodicTargetCount)x / week"
+        case .oncePerMonth:
+            return "Once a month"
+        case .twicePerMonth:
+            return "Twice a month"
+        case .thricePerMonth:
+            return "3x / month"
+        case .fourPerMonth:
+            return "4x / month"
+        case .customTimesPerMonth:
+            return "\(periodicTargetCount)x / month"
         case .customDays:
             if customWeekdays.isEmpty || customWeekdays.count == 7 {
                 return "Every day"
