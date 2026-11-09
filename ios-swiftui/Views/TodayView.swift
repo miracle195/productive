@@ -253,6 +253,10 @@ public struct TodayView: View {
                     habitStore.syncWidgetSnapshot(for: key)
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+                refocusToToday()
+                habitStore.syncWidgetSnapshot()
+            }
         }
     }
     

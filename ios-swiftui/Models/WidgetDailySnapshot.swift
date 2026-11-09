@@ -124,14 +124,14 @@ public struct WidgetDailySnapshot: Codable, Equatable {
     
     public static var fallback: WidgetDailySnapshot {
         WidgetDailySnapshot(
-            dateKey: "2026-11-09",
+            dateKey: WidgetSnapshotStore.todayKey,
             totalDueCount: 4,
-            completedCount: 2,
-            completionPercentage: 50,
+            completedCount: 0,
+            completionPercentage: 0,
             streakDays: 4,
             topStreakDays: 12,
             morningTotal: 2,
-            morningDone: 2,
+            morningDone: 0,
             afternoonTotal: 0,
             afternoonDone: 0,
             eveningTotal: 2,
@@ -140,22 +140,22 @@ public struct WidgetDailySnapshot: Codable, Equatable {
             anytimeDone: 0,
             nextDueHabitName: "Brush & floss teeth",
             nextDueHabitIcon: "sparkles",
-            nextDueHabitColorHex: "#5856D6",
-            nextDueHabitTimeOfDay: "Evening",
+            nextDueHabitColorHex: "#FF9500",
+            nextDueHabitTimeOfDay: "Morning",
             lastUpdated: Date()
         )
     }
     
     public static var preview: WidgetDailySnapshot {
         WidgetDailySnapshot(
-            dateKey: "2026-11-09",
+            dateKey: WidgetSnapshotStore.todayKey,
             totalDueCount: 4,
-            completedCount: 2,
-            completionPercentage: 50,
+            completedCount: 0,
+            completionPercentage: 0,
             streakDays: 4,
             topStreakDays: 12,
             morningTotal: 2,
-            morningDone: 2,
+            morningDone: 0,
             afternoonTotal: 0,
             afternoonDone: 0,
             eveningTotal: 2,
@@ -164,8 +164,8 @@ public struct WidgetDailySnapshot: Codable, Equatable {
             anytimeDone: 0,
             nextDueHabitName: "Brush & floss teeth",
             nextDueHabitIcon: "sparkles",
-            nextDueHabitColorHex: "#5856D6",
-            nextDueHabitTimeOfDay: "Evening",
+            nextDueHabitColorHex: "#FF9500",
+            nextDueHabitTimeOfDay: "Morning",
             lastUpdated: Date()
         )
     }
@@ -175,6 +175,13 @@ public enum WidgetSnapshotStore {
     public static let primaryAppGroupId = "group.com.apalon.productive.tracker"
     public static let snapshotKey = "productive_widget_snapshot_v1"
     public static let snapshotFileName = "productive_widget_snapshot_v1.json"
+    
+    public static var todayKey: String {
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        df.timeZone = .current
+        return df.string(from: Date())
+    }
     
     /// Parses provisioned AppGroup identifiers directly from embedded.mobileprovision if signed by AltStore/Sideloadly
     private static func appGroupsFromProvisioningProfile() -> [String] {
@@ -279,13 +286,33 @@ public enum WidgetSnapshotStore {
             candidates.append(snapshot)
         }
         
-        // Pick the freshest available snapshot
+        // Pick the freshest available snapshot or fallback
+        var activeSnapshot: WidgetDailySnapshot
         if let freshest = candidates.max(by: { $0.lastUpdated < $1.lastUpdated }) {
-            return freshest
+            activeSnapshot = freshest
+        } else {
+            activeSnapshot = .fallback
         }
         
-        // 4. Fallback: resilient fallback with Morning (2) and Evening (2), ZERO afternoon
-        return .fallback
+        let currentToday = todayKey
+        // AUTOMATIC NEW DAY ROLLOVER:
+        // If the snapshot date does not match current today (i.e. midnight passed into a new day),
+        // reset today's completion counts to 0 while preserving routine period totals and habit structures!
+        if activeSnapshot.dateKey != currentToday {
+            activeSnapshot.dateKey = currentToday
+            activeSnapshot.completedCount = 0
+            activeSnapshot.completionPercentage = 0
+            activeSnapshot.morningDone = 0
+            activeSnapshot.afternoonDone = 0
+            activeSnapshot.eveningDone = 0
+            activeSnapshot.anytimeDone = 0
+            activeSnapshot.lastUpdated = Date()
+            
+            // Persist clean new-day state across candidate shared stores
+            save(activeSnapshot)
+        }
+        
+        return activeSnapshot
     }
     
     public static func save(_ snapshot: WidgetDailySnapshot) {

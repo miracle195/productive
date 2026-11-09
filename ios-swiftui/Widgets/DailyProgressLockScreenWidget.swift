@@ -31,10 +31,29 @@ public struct DailyProgressWidgetProvider: TimelineProvider {
     }
     
     public func getTimeline(in context: Context, completion: @escaping (Timeline<DailyProgressEntry>) -> Void) {
-        let snapshot = WidgetSnapshotStore.load()
-        let entry = DailyProgressEntry(date: Date(), snapshot: snapshot)
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 5, to: Date()) ?? Date().addingTimeInterval(300)
-        let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
+        let now = Date()
+        let currentSnapshot = WidgetSnapshotStore.load()
+        var entries: [DailyProgressEntry] = [DailyProgressEntry(date: now, snapshot: currentSnapshot)]
+        
+        let calendar = Calendar.current
+        // Midnight transition entry: automatically flips to a clean new-day state at 00:00:00!
+        if let midnight = calendar.nextDate(after: now, matching: DateComponents(hour: 0, minute: 0, second: 0), matchingPolicy: .nextTime) {
+            var midnightSnapshot = currentSnapshot
+            let df = DateFormatter()
+            df.dateFormat = "yyyy-MM-dd"
+            df.timeZone = .current
+            midnightSnapshot.dateKey = df.string(from: midnight)
+            midnightSnapshot.completedCount = 0
+            midnightSnapshot.completionPercentage = 0
+            midnightSnapshot.morningDone = 0
+            midnightSnapshot.afternoonDone = 0
+            midnightSnapshot.eveningDone = 0
+            midnightSnapshot.anytimeDone = 0
+            entries.append(DailyProgressEntry(date: midnight, snapshot: midnightSnapshot))
+        }
+        
+        let nextUpdate = calendar.date(byAdding: .minute, value: 5, to: now) ?? now.addingTimeInterval(300)
+        let timeline = Timeline(entries: entries, policy: .after(nextUpdate))
         completion(timeline)
     }
 }

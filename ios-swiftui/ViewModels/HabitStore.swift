@@ -224,31 +224,18 @@ public class HabitStore: ObservableObject {
         }
         
         let isHabitDone: (Habit) -> Bool = { habit in
-            // 1. Direct completion / skipped status on todayKey
+            // 1. Direct completion or skipped status on todayKey
             if habit.isCompleted(on: self.todayKey) || habit.isSkipped(on: self.todayKey) {
                 return true
             }
-            // 2. If a specific dateKey was passed (e.g. active viewing day or toggle day)
-            if let customKey = dateKey, !customKey.isEmpty, (habit.isCompleted(on: customKey) || habit.isSkipped(on: customKey)) {
-                return true
+            // 2. Amount or reps reached target on todayKey
+            if let rec = habit.history[self.todayKey] {
+                if rec.isCompleted || rec.isSkipped { return true }
+                if habit.trackingType == .amount && rec.amount >= habit.targetAmount { return true }
+                if habit.trackingType == .reps && rec.reps >= habit.targetReps { return true }
             }
-            if let activeKey = self.activeViewingDateKey.isEmpty ? nil : self.activeViewingDateKey,
-               (habit.isCompleted(on: activeKey) || habit.isSkipped(on: activeKey)) {
-                return true
-            }
-            // 3. Amount or reps reached target
-            if let rec = habit.history[self.todayKey], rec.isCompleted || rec.isSkipped || (habit.trackingType == .amount && rec.amount >= habit.targetAmount) {
-                return true
-            }
-            if let customKey = dateKey, let rec = habit.history[customKey], rec.isCompleted || rec.isSkipped || (habit.trackingType == .amount && rec.amount >= habit.targetAmount) {
-                return true
-            }
-            // 4. Completed dates contains today
+            // 3. Completed dates contains today
             if habit.completedDates.contains(where: { Calendar.current.isDateInToday($0) }) {
-                return true
-            }
-            // 5. Ultra-resilient check: if any completion or build progress exists in habit's history
-            if habit.history.values.contains(where: { $0.isCompleted || $0.isSkipped || ($0.amount > 0 && habit.polarity == .build) }) {
                 return true
             }
             return false

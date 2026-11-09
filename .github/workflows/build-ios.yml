@@ -66,7 +66,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: v3.2.18-ios
-        name: Productive v3.2.18 Native SwiftUI iOS (Accurate Lock Screen Widget Done Sync & Resilient Routine Circles)
+        tag_name: v3.2.19-ios
+        name: Productive v3.2.19 Native SwiftUI iOS (Midnight Rollover & Clean New Day Widget Reset)
         files: ios-swiftui/build/Productive.ipa
       continue-on-error: true

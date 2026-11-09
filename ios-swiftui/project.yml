@@ -27,8 +27,8 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Productive.entitlements
         PRODUCT_NAME: Productive
         SWIFT_VERSION: "5.9"
-        CURRENT_PROJECT_VERSION: 22
-        MARKETING_VERSION: "3.2.18"
+        CURRENT_PROJECT_VERSION: 23
+        MARKETING_VERSION: "3.2.19"
         DEVELOPMENT_TEAM: ""
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: ""
@@ -50,8 +50,8 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Widgets/ProductiveWidgets.entitlements
         PRODUCT_NAME: ProductiveWidgets
         SWIFT_VERSION: "5.9"
-        CURRENT_PROJECT_VERSION: 22
-        MARKETING_VERSION: "3.2.18"
+        CURRENT_PROJECT_VERSION: 23
+        MARKETING_VERSION: "3.2.19"
         DEVELOPMENT_TEAM: ""
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: ""
