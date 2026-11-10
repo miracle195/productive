@@ -152,6 +152,32 @@ public struct HabitCardView: View {
                                             .lineLimit(1)
                                             .fixedSize(horizontal: true, vertical: false)
                                     }
+                                } else if liveHabit.frequency == .atLeastOnceEvery2Days {
+                                    let isDoneToday = liveHabit.isCompleted(on: activeDateKey)
+                                    let calendar = Calendar.current
+                                    let yesterday = calendar.date(byAdding: .day, value: -1, to: activeDate) ?? activeDate
+                                    let yesterdayKey = Habit.isoDateFormatter.string(from: yesterday)
+                                    let isDoneYesterday = liveHabit.isCompleted(on: yesterdayKey)
+                                    
+                                    if isDoneToday {
+                                        Label("Done today ✓", systemImage: "checkmark.seal.fill")
+                                            .font(.caption2.weight(.bold))
+                                            .foregroundStyle(.green)
+                                            .lineLimit(1)
+                                            .fixedSize(horizontal: true, vertical: false)
+                                    } else if isDoneYesterday {
+                                        Label("Satisfied yesterday ✓", systemImage: "shield.lefthalf.filled")
+                                            .font(.caption2.weight(.bold))
+                                            .foregroundStyle(.blue)
+                                            .lineLimit(1)
+                                            .fixedSize(horizontal: true, vertical: false)
+                                    } else {
+                                        Label("Due today (2-day rule)", systemImage: "exclamationmark.circle.fill")
+                                            .font(.caption2.weight(.bold))
+                                            .foregroundStyle(.orange)
+                                            .lineLimit(1)
+                                            .fixedSize(horizontal: true, vertical: false)
+                                    }
                                 } else {
                                     Text(liveHabit.repeatLabel.uppercased())
                                         .font(.system(size: 10, weight: .bold, design: .rounded))

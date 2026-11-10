@@ -86,6 +86,7 @@ public enum HabitFrequency: String, Codable, CaseIterable, Identifiable {
     case daily = "Every day"
     case weekdays = "Weekdays only"
     case weekends = "Weekends only"
+    case atLeastOnceEvery2Days = "At least once every 2 days"
     case every2Days = "Every 2 days"
     case every3Days = "Every 3 days"
     case customDays = "Specific weekdays"
@@ -147,6 +148,8 @@ public enum HabitFrequency: String, Codable, CaseIterable, Identifiable {
         let raw = try container.decode(String.self)
         if raw == "3 days / week" {
             self = .threePerWeek
+        } else if raw == "once_every_2_days" || raw == "at_least_once_every_2_days" || raw == "every_2_days_at_least" || raw == "Every 2 days (at least once)" {
+            self = .atLeastOnceEvery2Days
         } else if let val = HabitFrequency(rawValue: raw) {
             self = val
         } else {
@@ -592,6 +595,37 @@ public struct Habit: Identifiable, Codable, Equatable {
             return weekday == 1 || weekday == 7
         case .customDays:
             return customWeekdays.isEmpty ? true : customWeekdays.contains(weekday)
+        case .atLeastOnceEvery2Days:
+            // Never due on days prior to habit's creation
+            if targetDay < createdDay { return false }
+            
+            // 1. If already completed, skipped, or frozen on THIS date, keep it due and completed
+            if history[dateKey]?.isCompleted == true || history[dateKey]?.isSkipped == true || history[dateKey]?.usedFreezeShield == true {
+                return true
+            }
+            
+            // 2. Check yesterday: if completed yesterday, today's requirement for the 2-day period is already satisfied!
+            guard let yesterday = calendar.date(byAdding: .day, value: -1, to: date) else { return true }
+            let yesterdayStart = calendar.startOfDay(for: yesterday)
+            
+            // If yesterday was before createdAt, today is day 1 of the habit -> due today!
+            if yesterdayStart < createdDay {
+                return true
+            }
+            
+            let yesterdayKey = Self.isoDateFormatter.string(from: yesterday)
+            let yesterdayCompleted = history[yesterdayKey]?.isCompleted == true ||
+                                     history[yesterdayKey]?.isSkipped == true ||
+                                     history[yesterdayKey]?.usedFreezeShield == true
+            
+            // If completed yesterday, today is a satisfied rest day (not due)
+            if yesterdayCompleted {
+                return false
+            }
+            
+            // Yesterday was NOT completed -> Today is mandatory (due) to prevent missing 2 consecutive days!
+            return true
+            
         case .every2Days:
             let anchor = calendar.startOfDay(for: createdAt)
             let target = calendar.startOfDay(for: date)
@@ -615,6 +649,8 @@ public struct Habit: Identifiable, Codable, Equatable {
             return "Weekdays"
         case .weekends:
             return "Weekends"
+        case .atLeastOnceEvery2Days:
+            return "At least once / 2 days"
         case .every2Days:
             return "Every 2 days"
         case .every3Days:

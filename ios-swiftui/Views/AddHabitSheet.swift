@@ -359,6 +359,7 @@ public struct AddHabitSheet: View {
                         Text(HabitFrequency.daily.rawValue).tag(HabitFrequency.daily)
                         Text(HabitFrequency.weekdays.rawValue).tag(HabitFrequency.weekdays)
                         Text(HabitFrequency.weekends.rawValue).tag(HabitFrequency.weekends)
+                        Text(HabitFrequency.atLeastOnceEvery2Days.rawValue).tag(HabitFrequency.atLeastOnceEvery2Days)
                         Text(HabitFrequency.every2Days.rawValue).tag(HabitFrequency.every2Days)
                         Text(HabitFrequency.every3Days.rawValue).tag(HabitFrequency.every3Days)
                         Text(HabitFrequency.customDays.rawValue).tag(HabitFrequency.customDays)
@@ -386,6 +387,16 @@ public struct AddHabitSheet: View {
                     Stepper("Target: \(frequencyTargetTimes) times / week", value: $frequencyTargetTimes, in: 1...6)
                 } else if frequency == .customTimesPerMonth {
                     Stepper("Target: \(frequencyTargetTimes) times / month", value: $frequencyTargetTimes, in: 1...28)
+                }
+                
+                if frequency == .atLeastOnceEvery2Days {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
+                            .foregroundStyle(Color.accentColor)
+                        Text("2-Day Rule: Must be completed at least once every 2 days. Completing yesterday satisfies today; missing yesterday makes today due.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 
                 if frequency.isPeriodic {

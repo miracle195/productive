@@ -66,7 +66,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: v3.2.19-ios
-        name: Productive v3.2.19 Native SwiftUI iOS (Midnight Rollover & Clean New Day Widget Reset)
+        tag_name: v3.2.20-ios
+        name: Productive v3.2.20 Native SwiftUI iOS (At Least Once Every 2 Days Frequency & 2-Day Rule)
         files: ios-swiftui/build/Productive.ipa
       continue-on-error: true

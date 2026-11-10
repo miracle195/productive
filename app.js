@@ -162,6 +162,7 @@ function getRepeatLabel(habit) {
     case 'weekdays': return 'Weekdays';
     case 'weekends': return 'Weekends';
     case 'every_2_days': return 'Every 2 days';
+    case 'at_least_once_every_2_days': return 'At least once / 2 days';
     case 'every_3_days': return 'Every 3 days';
     case '1_per_week': return 'Once a week';
     case '2_per_week': return 'Twice a week';
@@ -391,6 +392,29 @@ class ProductiveState {
         return Array.isArray(habit.customWeekdays) && habit.customWeekdays.length > 0
           ? habit.customWeekdays.includes(dayOfWeek)
           : true;
+      case 'at_least_once_every_2_days': {
+        const targetDay = parseISODateKey(dateKey);
+        const createdDay = parseISODateKey(habit.createdAtKey || this.todayKey);
+        if (targetDay < createdDay) return false;
+
+        const dayRec = habit.history && habit.history[dateKey];
+        if (dayRec && (dayRec.done || dayRec.skipped || dayRec.usedShield)) {
+          return true;
+        }
+
+        const yesterdayKey = addDaysToKey(dateKey, -1);
+        const yesterdayDate = parseISODateKey(yesterdayKey);
+        if (yesterdayDate < createdDay) {
+          return true;
+        }
+
+        const yestRec = habit.history && habit.history[yesterdayKey];
+        if (yestRec && (yestRec.done || yestRec.skipped || yestRec.usedShield)) {
+          return false;
+        }
+
+        return true;
+      }
       case 'every_2_days': {
         const anchor = parseISODateKey(habit.createdAtKey || this.todayKey);
         const diff = Math.round(Math.abs(d - anchor) / 86400000);
@@ -1400,6 +1424,18 @@ function renderHabitRowHTML(habit) {
       html += '<span class="habit-tag" style="background:rgba(48,209,88,0.16); color:#30D158; font-weight:700; white-space:nowrap;">✓ ' + done + '/' + target + ' ' + unitText + ' ✓</span>';
     } else {
       html += '<span class="habit-tag" style="background:rgba(10,132,255,0.15); color:' + (habit.color || '#0A84FF') + '; font-weight:700; white-space:nowrap;">📅 ' + done + '/' + target + ' ' + unitText + '</span>';
+    }
+  } else if (habit.frequency === 'at_least_once_every_2_days') {
+    const isDoneToday = rec && rec.done;
+    const yestKey = addDaysToKey(dateKey, -1);
+    const yestRec = habit.history && habit.history[yestKey];
+    const isDoneYest = yestRec && yestRec.done;
+    if (isDoneToday) {
+      html += '<span class="habit-tag" style="background:rgba(48,209,88,0.16); color:#30D158; font-weight:700; white-space:nowrap;">Done today ✓</span>';
+    } else if (isDoneYest) {
+      html += '<span class="habit-tag" style="background:rgba(10,132,255,0.15); color:#0A84FF; font-weight:700; white-space:nowrap;">Satisfied yesterday ✓</span>';
+    } else {
+      html += '<span class="habit-tag" style="background:rgba(255,149,0,0.16); color:#FF9500; font-weight:700; white-space:nowrap;">Due today (2nd day)</span>';
     }
   } else {
     html += '<span class="habit-tag tag-freq">' + escapeHtml(getRepeatLabel(habit)) + '</span>';
@@ -3302,11 +3338,18 @@ function onFrequencySelectChange(val) {
   }
 
   if (hintEl) {
-    hintEl.style.display = isPeriodicFrequency(val) ? 'block' : 'none';
-    if (isWeeklyPeriodic(val)) {
-      hintEl.textContent = '📅 Flexible schedule: accomplish on any day(s) during the week to fulfill your target goal.';
-    } else if (isMonthlyPeriodic(val)) {
-      hintEl.textContent = '📅 Flexible schedule: accomplish on any day(s) during the month to fulfill your target goal.';
+    if (val === 'at_least_once_every_2_days') {
+      hintEl.style.display = 'block';
+      hintEl.textContent = '🔄 2-Day Rule: Must be completed at least once every 2 days. Completing yesterday satisfies today; missing yesterday makes today due.';
+    } else if (isPeriodicFrequency(val)) {
+      hintEl.style.display = 'block';
+      if (isWeeklyPeriodic(val)) {
+        hintEl.textContent = '📅 Flexible schedule: accomplish on any day(s) during the week to fulfill your target goal.';
+      } else if (isMonthlyPeriodic(val)) {
+        hintEl.textContent = '📅 Flexible schedule: accomplish on any day(s) during the month to fulfill your target goal.';
+      }
+    } else {
+      hintEl.style.display = 'none';
     }
   }
 }
