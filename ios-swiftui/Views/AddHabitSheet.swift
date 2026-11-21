@@ -39,6 +39,7 @@ public struct AddHabitSheet: View {
     // Subtasks & Reminders
     @State private var subtasks: [HabitSubtask] = []
     @State private var newSubtaskTitle: String = ""
+    @State private var tagsText: String = ""
     @State private var reminderEnabled: Bool = false
     @State private var reminderTime: Date = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
     
@@ -128,6 +129,7 @@ public struct AddHabitSheet: View {
                     selectedColorHex = h.colorHex
                     selectedIcon = h.icon
                     subtasks = h.subtasks
+                    tagsText = h.tags.joined(separator: ", ")
                     reminderEnabled = h.reminderEnabled
                     reminderTime = Calendar.current.date(bySettingHour: h.reminderHour, minute: h.reminderMinute, second: 0, of: Date()) ?? Date()
                     startDate = h.createdAt
@@ -477,6 +479,21 @@ public struct AddHabitSheet: View {
                 }
             }
             
+            // Shared Tags & Linked Completion
+            Section(
+                header: Text("Tags & Linked Habits"),
+                footer: Text("Tasks sharing the same tag are linked: completing one automatically completes all tasks with that tag (e.g. hair, skincare).")
+            ) {
+                HStack(spacing: 8) {
+                    Image(systemName: "tag.fill")
+                        .foregroundStyle(Color(hex: selectedColorHex))
+                        .font(.subheadline)
+                    TextField("e.g. hair, skincare, morning", text: $tagsText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+            }
+            
             // Smart Reminder Notification
             Section(header: Text("Local Notification Reminder")) {
                 Toggle("Daily Reminder", isOn: $reminderEnabled)
@@ -567,6 +584,10 @@ public struct AddHabitSheet: View {
         let rMin = comps.minute ?? 0
         let effectiveType: HabitTrackingType = polarity == .limit ? .amount : (polarity == .quit ? .binary : trackingType)
         let effectiveTargetTimes = frequency.isPeriodic ? (frequency == .customTimesPerWeek || frequency == .customTimesPerMonth ? frequencyTargetTimes : frequency.defaultTargetCount) : 1
+        let parsedTags = tagsText
+            .components(separatedBy: CharacterSet(charactersIn: ",; "))
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines.union(.init(charactersIn: "#"))) }
+            .filter { !$0.isEmpty }
         
         if var existing = editingHabit {
             existing.name = cleanName
@@ -585,6 +606,7 @@ public struct AddHabitSheet: View {
             existing.timeOfDay = selectedTimeOfDay
             existing.colorHex = selectedColorHex
             existing.icon = selectedIcon
+            existing.tags = parsedTags
             existing.subtasks = subtasks
             existing.reminderEnabled = reminderEnabled
             existing.reminderHour = rHour
@@ -608,6 +630,7 @@ public struct AddHabitSheet: View {
                 customWeekdays: Array(customWeekdays).sorted(),
                 strictness: strictness,
                 repeatSchedule: frequency.rawValue,
+                tags: parsedTags,
                 subtasks: subtasks,
                 reminderEnabled: reminderEnabled,
                 reminderHour: rHour,

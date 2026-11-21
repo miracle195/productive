@@ -326,6 +326,7 @@ public struct Habit: Identifiable, Codable, Equatable {
     // Organization & Lifecycle
     public var isArchived: Bool
     public var sortOrder: Int
+    public var tags: [String]
     public var abstainedSince: Date?
     public var linkedHealthMetric: String?
     
@@ -367,6 +368,7 @@ public struct Habit: Identifiable, Codable, Equatable {
         reminderMinute: Int = 0,
         isArchived: Bool = false,
         sortOrder: Int = 0,
+        tags: [String] = [],
         abstainedSince: Date? = nil,
         linkedHealthMetric: String? = nil,
         isCompleted: Bool = false,
@@ -403,6 +405,7 @@ public struct Habit: Identifiable, Codable, Equatable {
         self.reminderMinute = reminderMinute
         self.isArchived = isArchived
         self.sortOrder = sortOrder
+        self.tags = tags
         self.abstainedSince = abstainedSince ?? (polarity == .quit ? createdAt : nil)
         self.linkedHealthMetric = linkedHealthMetric
         self.isCompleted = isCompleted
@@ -444,6 +447,7 @@ public struct Habit: Identifiable, Codable, Equatable {
         self.reminderMinute = try c.decodeIfPresent(Int.self, forKey: .reminderMinute) ?? 0
         self.isArchived = try c.decodeIfPresent(Bool.self, forKey: .isArchived) ?? false
         self.sortOrder = try c.decodeIfPresent(Int.self, forKey: .sortOrder) ?? 0
+        self.tags = try c.decodeIfPresent([String].self, forKey: .tags) ?? []
         self.abstainedSince = try c.decodeIfPresent(Date.self, forKey: .abstainedSince)
         self.linkedHealthMetric = try c.decodeIfPresent(String.self, forKey: .linkedHealthMetric)
         self.isCompleted = try c.decodeIfPresent(Bool.self, forKey: .isCompleted) ?? false
@@ -458,7 +462,46 @@ public struct Habit: Identifiable, Codable, Equatable {
     // MARK: - Per-Date Helpers
     
     public func isCompleted(on dateKey: String) -> Bool {
-        history[dateKey]?.isCompleted ?? false
+        if let rec = history[dateKey] {
+            if rec.isCompleted { return true }
+            if trackingType == .amount && polarity == .build && rec.amount >= targetAmount { return true }
+            if trackingType == .reps && rec.reps >= targetReps { return true }
+        }
+        
+        // 2-Day Rolling Forward Fulfillment:
+        // When a task due in 2 days is completed on Day X, it counts 2 days forward:
+        // Day X is fulfilled, and Day X+1 (yesterday completed) is also fulfilled!
+        if frequency == .atLeastOnceEvery2Days || frequency == .every2Days {
+            if let targetDate = Self.isoDateFormatter.date(from: dateKey),
+               let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: targetDate) {
+                let createdDay = Calendar.current.startOfDay(for: createdAt)
+                let yesterdayStart = Calendar.current.startOfDay(for: yesterday)
+                if yesterdayStart >= createdDay {
+                    let yesterdayKey = Self.isoDateFormatter.string(from: yesterday)
+                    if let yRec = history[yesterdayKey] {
+                        if yRec.isCompleted { return true }
+                        if trackingType == .amount && polarity == .build && yRec.amount >= targetAmount { return true }
+                        if trackingType == .reps && yRec.reps >= targetReps { return true }
+                    }
+                }
+            }
+        }
+        
+        return false
+    }
+    
+    // MARK: - Tag Normalization & Shared Linked Tasks
+    
+    public var normalizedTags: Set<String> {
+        let items = tags.flatMap { $0.components(separatedBy: CharacterSet(charactersIn: ",; ")) }
+        return Set(items.map { $0.trimmingCharacters(in: .whitespacesAndNewlines.union(.init(charactersIn: "#"))).lowercased() }.filter { !$0.isEmpty })
+    }
+    
+    public func sharesTags(with other: Habit) -> Bool {
+        guard self.id != other.id else { return false }
+        let myTags = self.normalizedTags
+        guard !myTags.isEmpty else { return false }
+        return !myTags.isDisjoint(with: other.normalizedTags)
     }
     
     public func isSkipped(on dateKey: String) -> Bool {
@@ -595,42 +638,11 @@ public struct Habit: Identifiable, Codable, Equatable {
             return weekday == 1 || weekday == 7
         case .customDays:
             return customWeekdays.isEmpty ? true : customWeekdays.contains(weekday)
-        case .atLeastOnceEvery2Days:
-            // Never due on days prior to habit's creation
+        case .atLeastOnceEvery2Days, .every2Days:
+            // "FOR THE TASK DUE IN TWO DAYS MAKE THE TASK AVAILABLE EVERY DAY AND WHEN IT DONE IT WILL COUNT TWO DAYS FORWARD TO FULLFIL THE TASK"
+            // The task remains available in the user's daily view every day as long as targetDay >= createdDay
             if targetDay < createdDay { return false }
-            
-            // 1. If already completed, skipped, or frozen on THIS date, keep it due and completed
-            if history[dateKey]?.isCompleted == true || history[dateKey]?.isSkipped == true || history[dateKey]?.usedFreezeShield == true {
-                return true
-            }
-            
-            // 2. Check yesterday: if completed yesterday, today's requirement for the 2-day period is already satisfied!
-            guard let yesterday = calendar.date(byAdding: .day, value: -1, to: date) else { return true }
-            let yesterdayStart = calendar.startOfDay(for: yesterday)
-            
-            // If yesterday was before createdAt, today is day 1 of the habit -> due today!
-            if yesterdayStart < createdDay {
-                return true
-            }
-            
-            let yesterdayKey = Self.isoDateFormatter.string(from: yesterday)
-            let yesterdayCompleted = history[yesterdayKey]?.isCompleted == true ||
-                                     history[yesterdayKey]?.isSkipped == true ||
-                                     history[yesterdayKey]?.usedFreezeShield == true
-            
-            // If completed yesterday, today is a satisfied rest day (not due)
-            if yesterdayCompleted {
-                return false
-            }
-            
-            // Yesterday was NOT completed -> Today is mandatory (due) to prevent missing 2 consecutive days!
             return true
-            
-        case .every2Days:
-            let anchor = calendar.startOfDay(for: createdAt)
-            let target = calendar.startOfDay(for: date)
-            let diff = abs(calendar.dateComponents([.day], from: anchor, to: target).day ?? 0)
-            return diff % 2 == 0
         case .every3Days:
             let anchor = calendar.startOfDay(for: createdAt)
             let target = calendar.startOfDay(for: date)

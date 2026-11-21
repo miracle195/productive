@@ -285,6 +285,7 @@ class ProductiveState {
   }
 
   normalizeHabit(h) {
+    const rawTags = Array.isArray(h.tags) ? h.tags : (h.tags ? String(h.tags).split(/[,; ]+/).filter(Boolean) : []);
     return Object.assign({
       polarity: 'build',
       type: 'binary',
@@ -299,6 +300,7 @@ class ProductiveState {
       customWeekdays: [1, 2, 3, 4, 5],
       repeatLabel: 'Every day',
       strictness: 'strict',
+      tags: rawTags,
       subtasks: [],
       reminderTime: '09:00',
       isArchived: false,
@@ -309,6 +311,12 @@ class ProductiveState {
       totalLogs: 0,
       history: {}
     }, h);
+  }
+
+  getNormalizedTags(habit) {
+    if (!habit || !habit.tags) return [];
+    const raw = Array.isArray(habit.tags) ? habit.tags : String(habit.tags).split(/[,; ]+/);
+    return raw.map(t => String(t).trim().replace(/^#/, '').toLowerCase()).filter(Boolean);
   }
 
   saveHabits() {
@@ -397,33 +405,12 @@ class ProductiveState {
         return Array.isArray(habit.customWeekdays) && habit.customWeekdays.length > 0
           ? habit.customWeekdays.includes(dayOfWeek)
           : true;
-      case 'at_least_once_every_2_days': {
+      case 'at_least_once_every_2_days':
+      case 'every_2_days': {
         const targetDay = parseISODateKey(dateKey);
         const createdDay = parseISODateKey(habit.createdAtKey || this.todayKey);
         if (targetDay < createdDay) return false;
-
-        const dayRec = habit.history && habit.history[dateKey];
-        if (dayRec && (dayRec.done || dayRec.skipped || dayRec.usedShield)) {
-          return true;
-        }
-
-        const yesterdayKey = addDaysToKey(dateKey, -1);
-        const yesterdayDate = parseISODateKey(yesterdayKey);
-        if (yesterdayDate < createdDay) {
-          return true;
-        }
-
-        const yestRec = habit.history && habit.history[yesterdayKey];
-        if (yestRec && (yestRec.done || yestRec.skipped || yestRec.usedShield)) {
-          return false;
-        }
-
         return true;
-      }
-      case 'every_2_days': {
-        const anchor = parseISODateKey(habit.createdAtKey || this.todayKey);
-        const diff = Math.round(Math.abs(d - anchor) / 86400000);
-        return diff % 2 === 0;
       }
       case 'every_3_days': {
         const anchor = parseISODateKey(habit.createdAtKey || this.todayKey);
@@ -459,6 +446,12 @@ class ProductiveState {
     const dayData = habit.history && habit.history[dateKey];
     if (dayData && (dayData.skipped || dayData.usedShield)) return 'skipped';
     if (dayData && dayData.done) return 'completed';
+    // 2-Day Rolling Forward Fulfillment: completing on Day 1 satisfies Day 2
+    if (habit.frequency === 'at_least_once_every_2_days' || habit.frequency === 'every_2_days') {
+      const yesterdayKey = addDaysToKey(dateKey, -1);
+      const yestData = habit.history && habit.history[yesterdayKey];
+      if (yestData && yestData.done) return 'completed';
+    }
     if (this.isDayPast(dateKey) && !this.vacationMode) {
       if (habit.strictness === 'strict' && this.isHabitDueOnDate(habit, dateKey)) {
         return 'fatal_missed';
@@ -560,6 +553,10 @@ class ProductiveState {
     return habit.history[dateKey];
   }
 
+  toggleHabit(id, dateKey = this.selectedDay) {
+    return this.toggleBinaryHabit(id, dateKey);
+  }
+
   toggleBinaryHabit(id, dateKey = this.selectedDay) {
     const habit = this.habits.find(h => h.id === id);
     if (!habit) return false;
@@ -589,6 +586,42 @@ class ProductiveState {
     }
 
     this.recalculateHabitStats(habit);
+
+    // Auto-complete any other habits that share at least one tag!
+    const triggerTags = this.getNormalizedTags(habit);
+    if (triggerTags.length > 0) {
+      this.habits.forEach(other => {
+        if (other.id !== habit.id && !other.isArchived) {
+          const otherTags = this.getNormalizedTags(other);
+          const shares = triggerTags.some(t => otherTags.includes(t));
+          if (shares) {
+            const oRec = this.ensureDayRecord(other, dateKey);
+            oRec.done = rec.done;
+            oRec.skipped = false;
+            if (rec.done) {
+              if (other.polarity === 'build' && other.type === 'amount') {
+                const tgt = this.effectiveTargetAmount(other, dateKey);
+                if ((oRec.amount || 0) < tgt) oRec.amount = tgt;
+              } else if (other.type === 'reps') {
+                if ((oRec.reps || 0) < other.targetReps) oRec.reps = other.targetReps;
+              }
+              if (Array.isArray(other.subtasks) && other.subtasks.length > 0) {
+                oRec.completedSubtasks = other.subtasks.map(s => s.id);
+              }
+            } else {
+              oRec.completedSubtasks = [];
+              if (other.polarity === 'build' && other.type === 'amount') {
+                oRec.amount = 0;
+              } else if (other.type === 'reps') {
+                oRec.reps = 0;
+              }
+            }
+            this.recalculateHabitStats(other);
+          }
+        }
+      });
+    }
+
     this.saveHabits();
     return rec.done;
   }
@@ -718,6 +751,7 @@ class ProductiveState {
       customWeekdays: Array.isArray(data.customWeekdays) ? data.customWeekdays.slice() : [1, 2, 3, 4, 5],
       repeatLabel: data.repeatLabel || 'Every day',
       strictness: data.strictness || this.defaultStrictness || 'strict',
+      tags: Array.isArray(data.tags) ? data.tags : (data.tags ? String(data.tags).split(/[,; ]+/).map(t => t.trim().replace(/^#/, '')).filter(Boolean) : []),
       subtasks: Array.isArray(data.subtasks) ? data.subtasks.slice() : [],
       reminderTime: data.reminderTime || '09:00',
       createdAtKey: data.createdAtKey || this.selectedDay || this.todayKey,
@@ -787,6 +821,11 @@ class ProductiveState {
   getHabitProgressFraction(habit, dateKey = this.selectedDay) {
     const rec = habit.history && habit.history[dateKey];
     if (rec && (rec.done || rec.skipped || rec.usedShield)) return 1.0;
+    if (habit.frequency === 'at_least_once_every_2_days' || habit.frequency === 'every_2_days') {
+      const yesterdayKey = addDaysToKey(dateKey, -1);
+      const yestRec = habit.history && habit.history[yesterdayKey];
+      if (yestRec && yestRec.done) return 1.0;
+    }
 
     // Sub-checklist fractional progress: divide by items count so percentage is based on number done
     if (Array.isArray(habit.subtasks) && habit.subtasks.length > 0) {
@@ -818,7 +857,13 @@ class ProductiveState {
     const due = this.activeHabits.filter(h => this.isHabitDueOnDate(h, this.todayKey));
     return due.filter(h => {
       const rec = h.history && h.history[this.todayKey];
-      return !(rec && (rec.done || rec.skipped || rec.usedShield));
+      if (rec && (rec.done || rec.skipped || rec.usedShield)) return false;
+      if (h.frequency === 'at_least_once_every_2_days' || h.frequency === 'every_2_days') {
+        const yesterdayKey = addDaysToKey(this.todayKey, -1);
+        const yestRec = h.history && h.history[yesterdayKey];
+        if (yestRec && yestRec.done) return false;
+      }
+      return true;
     }).length;
   }
 
@@ -1430,20 +1475,26 @@ function renderHabitRowHTML(habit) {
     } else {
       html += '<span class="habit-tag" style="background:rgba(10,132,255,0.15); color:' + (habit.color || '#0A84FF') + '; font-weight:700; white-space:nowrap;">📅 ' + done + '/' + target + ' ' + unitText + '</span>';
     }
-  } else if (habit.frequency === 'at_least_once_every_2_days') {
+  } else if (habit.frequency === 'at_least_once_every_2_days' || habit.frequency === 'every_2_days') {
     const isDoneToday = rec && rec.done;
     const yestKey = addDaysToKey(dateKey, -1);
     const yestRec = habit.history && habit.history[yestKey];
     const isDoneYest = yestRec && yestRec.done;
     if (isDoneToday) {
-      html += '<span class="habit-tag" style="background:rgba(48,209,88,0.16); color:#30D158; font-weight:700; white-space:nowrap;">Done today ✓</span>';
+      html += '<span class="habit-tag" style="background:rgba(48,209,88,0.16); color:#30D158; font-weight:700; white-space:nowrap;">Done today (Day 1 of 2) ✓</span>';
     } else if (isDoneYest) {
-      html += '<span class="habit-tag" style="background:rgba(10,132,255,0.15); color:#0A84FF; font-weight:700; white-space:nowrap;">Satisfied yesterday ✓</span>';
+      html += '<span class="habit-tag" style="background:rgba(10,132,255,0.15); color:#0A84FF; font-weight:700; white-space:nowrap;">Fulfilled (Day 2 of 2) ✓</span>';
     } else {
-      html += '<span class="habit-tag" style="background:rgba(255,149,0,0.16); color:#FF9500; font-weight:700; white-space:nowrap;">Due today (2nd day)</span>';
+      html += '<span class="habit-tag" style="background:rgba(255,149,0,0.16); color:#FF9500; font-weight:700; white-space:nowrap;">Due today (2-day rule)</span>';
     }
   } else {
     html += '<span class="habit-tag tag-freq">' + escapeHtml(getRepeatLabel(habit)) + '</span>';
+  }
+  const normTags = state.getNormalizedTags(habit);
+  if (normTags.length > 0) {
+    normTags.forEach(tag => {
+      html += '<span class="habit-tag" style="background:rgba(10,132,255,0.12); color:' + (habit.color || '#0A84FF') + '; font-weight:700; white-space:nowrap;">🏷️ #' + escapeHtml(tag) + '</span>';
+    });
   }
   if (isSkipped) {
     html += '<span class="habit-tag" style="background:rgba(50,173,230,0.16); color:#32ADE6;">' + (rec.usedShield ? '❄️ Shielded' : '⏭️ Skipped') + '</span>';
@@ -3071,6 +3122,8 @@ function openAddHabitSheet() {
   if (segNav) segNav.style.display = 'flex';
   if (submitBtn) submitBtn.textContent = 'Create Habit';
   if (nameIn) nameIn.value = '';
+  const tagsIn = document.getElementById('custom-tags-input');
+  if (tagsIn) tagsIn.value = '';
 
   state.sheetTab = 'presets';
   renderBuilderSubtasks();
@@ -3114,6 +3167,7 @@ function openEditHabitSheet(habitId) {
   setVal('custom-reminder-time', h.reminderTime || '09:00');
   setVal('custom-color-select', h.color);
   setVal('custom-icon-select', h.icon);
+  setVal('custom-tags-input', Array.isArray(h.tags) ? h.tags.join(', ') : (h.tags || ''));
 
   onPolarityChange(h.polarity || 'build');
   onTrackingModeChange(h.type || 'binary');
@@ -4097,6 +4151,8 @@ if (typeof window !== 'undefined' && window.addEventListener) {
         const targetInput = document.getElementById('custom-frequency-target-input');
         const freqVal = freqSel ? freqSel.value : 'daily';
         const targetTimes = Number(targetInput ? targetInput.value : 1) || 1;
+        const tagsInput = document.getElementById('custom-tags-input');
+        const rawTags = tagsInput ? tagsInput.value.split(/[,; ]+/).map(t => t.trim().replace(/^#/, '')).filter(Boolean) : [];
         const payload = {
           name,
           polarity: state.customPolarity,
@@ -4111,6 +4167,7 @@ if (typeof window !== 'undefined' && window.addEventListener) {
           customWeekdays: state.customWeekdays.slice(),
           repeatLabel: (freqSel && freqSel.selectedOptions && freqSel.selectedOptions[0]) ? freqSel.selectedOptions[0].text : 'Every day',
           strictness: document.getElementById('custom-strictness-select').value,
+          tags: rawTags,
           subtasks: state.builderSubtasks.slice(),
           timeOfDay: document.getElementById('custom-time-select').value,
           reminderTime: document.getElementById('custom-reminder-time').value || '09:00',

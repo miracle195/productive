@@ -152,21 +152,21 @@ public struct HabitCardView: View {
                                             .lineLimit(1)
                                             .fixedSize(horizontal: true, vertical: false)
                                     }
-                                } else if liveHabit.frequency == .atLeastOnceEvery2Days {
-                                    let isDoneToday = liveHabit.isCompleted(on: activeDateKey)
+                                } else if liveHabit.frequency == .atLeastOnceEvery2Days || liveHabit.frequency == .every2Days {
+                                    let hasRecordToday = liveHabit.history[activeDateKey]?.isCompleted == true
                                     let calendar = Calendar.current
                                     let yesterday = calendar.date(byAdding: .day, value: -1, to: activeDate) ?? activeDate
                                     let yesterdayKey = Habit.isoDateFormatter.string(from: yesterday)
-                                    let isDoneYesterday = liveHabit.isCompleted(on: yesterdayKey)
+                                    let isDoneYesterday = liveHabit.history[yesterdayKey]?.isCompleted == true
                                     
-                                    if isDoneToday {
-                                        Label("Done today ✓", systemImage: "checkmark.seal.fill")
+                                    if hasRecordToday {
+                                        Label("Done today (Day 1 of 2) ✓", systemImage: "checkmark.seal.fill")
                                             .font(.caption2.weight(.bold))
                                             .foregroundStyle(.green)
                                             .lineLimit(1)
                                             .fixedSize(horizontal: true, vertical: false)
                                     } else if isDoneYesterday {
-                                        Label("Satisfied yesterday ✓", systemImage: "shield.lefthalf.filled")
+                                        Label("Fulfilled (Day 2 of 2) ✓", systemImage: "shield.lefthalf.filled")
                                             .font(.caption2.weight(.bold))
                                             .foregroundStyle(.blue)
                                             .lineLimit(1)
@@ -216,6 +216,26 @@ public struct HabitCardView: View {
                                         .foregroundStyle(.purple)
                                         .lineLimit(1)
                                         .fixedSize(horizontal: true, vertical: false)
+                                }
+                                
+                                if !liveHabit.tags.isEmpty {
+                                    ForEach(liveHabit.tags, id: \.self) { tag in
+                                        let clean = tag.trimmingCharacters(in: .whitespacesAndNewlines.union(.init(charactersIn: "#")))
+                                        if !clean.isEmpty {
+                                            HStack(spacing: 2) {
+                                                Image(systemName: "tag.fill")
+                                                    .font(.system(size: 8))
+                                                Text(clean)
+                                            }
+                                            .font(.system(size: 9.5, weight: .bold, design: .rounded))
+                                            .foregroundStyle(accentColor)
+                                            .padding(.horizontal, 5)
+                                            .padding(.vertical, 2)
+                                            .background(accentColor.opacity(0.12), in: Capsule())
+                                            .lineLimit(1)
+                                            .fixedSize(horizontal: true, vertical: false)
+                                        }
+                                    }
                                 }
                                 
                                 HStack(spacing: 2) {

@@ -635,6 +635,42 @@ public class HabitStore: ObservableObject {
     
     // MARK: - Habit Check-in, Multi-Mode, Quit/Limit, Subtasks & Protection Actions
     
+    private func propagateLinkedTags(from habitIndex: Int, on key: String, isCompleted: Bool) {
+        guard habits.indices.contains(habitIndex) else { return }
+        let triggerHabit = habits[habitIndex]
+        guard !triggerHabit.normalizedTags.isEmpty else { return }
+        
+        for i in habits.indices {
+            if habits[i].id != triggerHabit.id && !habits[i].isArchived && habits[i].sharesTags(with: triggerHabit) {
+                var linkedRec = habits[i].history[key] ?? HabitDayRecord()
+                if isCompleted {
+                    linkedRec.isCompleted = true
+                    linkedRec.isSkipped = false
+                    linkedRec.loggedAt = Date()
+                    if habits[i].trackingType == .amount && habits[i].polarity == .build {
+                        let tgt = effectiveTargetAmount(for: habits[i], on: key)
+                        if linkedRec.amount < tgt { linkedRec.amount = tgt }
+                    } else if habits[i].trackingType == .reps {
+                        if linkedRec.reps < habits[i].targetReps { linkedRec.reps = habits[i].targetReps }
+                    }
+                    if !habits[i].subtasks.isEmpty {
+                        linkedRec.completedSubtaskIds = habits[i].subtasks.map(\.id)
+                    }
+                } else {
+                    linkedRec.isCompleted = false
+                    linkedRec.completedSubtaskIds = []
+                    if habits[i].trackingType == .amount && habits[i].polarity == .build {
+                        linkedRec.amount = 0
+                    } else if habits[i].trackingType == .reps {
+                        linkedRec.reps = 0
+                    }
+                }
+                habits[i].history[key] = linkedRec
+                recalculateStats(for: i)
+            }
+        }
+    }
+    
     public func toggleHabit(id: UUID, on dateKey: String? = nil) {
         let key = dateKey ?? todayKey
         guard let index = habits.firstIndex(where: { $0.id == id }) else { return }
@@ -668,6 +704,7 @@ public class HabitStore: ObservableObject {
         }
         
         habits[index].history[key] = rec
+        propagateLinkedTags(from: index, on: key, isCompleted: rec.isCompleted)
         activeViewingDateKey = key
         recalculateStats(for: index)
         syncWidgetSnapshot(for: key)
@@ -699,6 +736,7 @@ public class HabitStore: ObservableObject {
         }
         
         habits[index].history[key] = rec
+        propagateLinkedTags(from: index, on: key, isCompleted: rec.isCompleted)
         activeViewingDateKey = key
         recalculateStats(for: index)
         syncWidgetSnapshot(for: key)
@@ -722,6 +760,7 @@ public class HabitStore: ObservableObject {
         rec.loggedAt = Date()
         
         habits[index].history[key] = rec
+        propagateLinkedTags(from: index, on: key, isCompleted: rec.isCompleted)
         activeViewingDateKey = key
         recalculateStats(for: index)
         syncWidgetSnapshot(for: key)
@@ -1025,6 +1064,7 @@ public class HabitStore: ObservableObject {
         customWeekdays: [Int] = [2, 3, 4, 5, 6],
         strictness: HabitStrictness = .strict,
         repeatSchedule: String = "Every day",
+        tags: [String] = [],
         subtasks: [HabitSubtask] = [],
         reminderEnabled: Bool = false,
         reminderHour: Int = 9,
@@ -1056,6 +1096,7 @@ public class HabitStore: ObservableObject {
             reminderHour: reminderHour,
             reminderMinute: reminderMinute,
             sortOrder: 0,
+            tags: tags,
             goalText: polarity == .quit ? "Stay clean" : (polarity == .limit ? "Max \(Int(targetAmount)) \(unit)" : "\(Int(targetAmount)) \(unit)"),
             history: [:]
         )
